@@ -55,7 +55,7 @@ if [ -n "$LAST_CSV" ]; then
     ln -sf "$LAST_CSV" /usr/share/nginx/html/catalog.csv
 fi
 # covers -> data/covers
-ln -sfn /data/covers /usr/share/nginx/html/covers
+ln -sfn ../data/covers /usr/share/nginx/html/covers
 
 # --- Configurar cron ---
 echo "Configurando cron con la programación: $CRON_SCHEDULE"

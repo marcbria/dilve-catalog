@@ -28,9 +28,15 @@ La primera vez, el contenedor descargará automáticamente todo el catálogo. A 
     ├── docker/                  # Scripts de inicio y actualización
     │   ├── entrypoint.sh
     │   └── update.sh
-    ├── extract/
-    │   ├── api_dilve.py         # Script principal de extracción
+    ├── extract/                 # Código de extracción
+    │   ├── __init__.py
+    │   ├── main.py              # Punto de entrada (orquestador)
     │   ├── config.py            # Configuración (lee variables de entorno)
+    │   ├── logger.py            # Logging y mensajes en consola
+    │   ├── dilve_api.py         # Llamadas a la API de DILVE
+    │   ├── onix_parser.py       # Parseo de ONIX 3.0
+    │   ├── file_manager.py      # Gestión de archivos y symlinks
+    │   ├── image_downloader.py  # Descarga de imágenes
     │   └── requirements.txt     # Dependencias Python
     └── public/                  # Frontend estático
         ├── index.html
@@ -114,8 +120,8 @@ Si deseas forzar una actualización en cualquier momento, puedes ejecutar dentro
 Al arrancar, el contenedor realiza las siguientes tareas automáticamente:
 
 1. **Verifica si existe algún CSV previo** en `data/catalog/`.
-   - Si **no existe** → ejecuta `api_dilve.py` en **modo completo** (descarga todo el catálogo).
-   - Si **existe** → toma la fecha del último CSV (ej. `20260708-1430.csv` → `2026-07-08`) y ejecuta `api_dilve.py` en **modo incremental** con `FROM_DATE` igual a esa fecha. Así solo descarga los cambios desde la última ejecución.
+   - Si **no existe** → ejecuta `main.py` en **modo completo** (descarga todo el catálogo).
+   - Si **existe** → toma la fecha del último CSV (ej. `20260708-1430.csv` → `2026-07-08`) y ejecuta `main.py` en **modo incremental** con `FROM_DATE` igual a esa fecha. Así solo descarga los cambios desde la última ejecución.
 
 2. **Crea/actualiza enlaces simbólicos** en `public/`:
    - `public/catalog.csv` → apunta al último CSV generado.
@@ -144,40 +150,40 @@ Si no deseas usar Docker para la extracción, puedes ejecutar el script directam
 
 3. Ejecuta:
 
-       python api_dilve.py [--update-metadata] [--update-covers] [--from-date YYYY-MM-DD]
+       python main.py [--update-metadata] [--update-covers] [--from-date YYYY-MM-DD]
 
 ### Opciones de ejecución del script
 
-El script `api_dilve.py` acepta los siguientes argumentos para controlar qué datos se descargan y cómo:
+El script `main.py` acepta los siguientes argumentos para controlar qué datos se descargan y cómo:
 
 | Argumento | Descripción |
 |-----------|-------------|
 | `--update-metadata` | Solo descarga metadatos (no descarga imágenes). Genera un nuevo CSV. |
 | `--update-covers` | Solo descarga cubiertas. Utiliza el último CSV para saber qué imágenes descargar. Si se usa con `--from-date`, obtiene los ISBN desde esa fecha y descarga las cubiertas correspondientes (sin generar CSV). |
-| `--from-date YYYY-MM-DD` | Fecha de inicio para el modo incremental. Sobrescribe `FROM_DATE`. Si no se especifica, se usa el valor de `config.py`. |
+| `--from-date YYYY-MM-DD` | Fecha de inicio para el modo incremental. Sobrescribe `FROM_DATE`. Si no se especifica, se usa el valor de `config.py`. Usa `all` para forzar modo completo. |
 
 **Ejemplos:**
 
-- `python api_dilve.py`  
+- `python main.py`  
   Descarga completa: metadatos + cubiertas de todo el catálogo.
 
-- `python api_dilve.py --from-date 2026-01-01`  
+- `python main.py --from-date 2026-01-01`  
   Descarga incremental: solo metadatos + cubiertas de libros nuevos o modificados desde el 1 de enero de 2026.
 
-- `python api_dilve.py --update-metadata`  
+- `python main.py --update-metadata`  
   Solo metadatos de todo el catálogo.
 
-- `python api_dilve.py --update-metadata --from-date 2026-01-01`  
+- `python main.py --update-metadata --from-date 2026-01-01`  
   Solo metadatos de los cambios desde una fecha.
 
-- `python api_dilve.py --update-covers`  
+- `python main.py --update-covers`  
   Solo cubiertas de los libros que faltan (usa el último CSV para saber qué imágenes descargar).
 
-- `python api_dilve.py --update-covers --from-date 2026-01-01`  
+- `python main.py --update-covers --from-date 2026-01-01`  
   Descarga cubiertas de los libros que han cambiado desde esa fecha (obtiene los ISBN mediante `getRecordStatusX` y descarga las imágenes, **sin generar CSV**).
 
-- `python api_dilve.py --update-covers --from-date 2000-01-01`  
-  Descarga cubiertas de **todo** el catálogo (usando una fecha anterior a la existencia de los datos). Equivale a descargar todas las cubiertas desde el principio.
+- `python main.py --update-covers --from-date all`  
+  Descarga cubiertas de **todo** el catálogo. Equivale a descargar todas las cubiertas desde el principio.
 
 **Nota:** La combinación `--update-metadata --update-covers` no está permitida porque ambos modos se ejecutan por defecto cuando no se especifica ninguno. Si quieres ambos, simplemente ejecuta el script sin argumentos o con `--from-date`.
 
