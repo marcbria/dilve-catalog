@@ -7,11 +7,15 @@ Genera un CSV en data/catalog/ con marca de tiempo, descarga las cubiertas en da
 y crea enlaces simbólicos en public/ para que el frontend acceda a los últimos datos.
 
 Modos de ejecución:
-  - Completo (default): descarga metadatos y cubiertas.
-  - Solo metadatos: --update-metadata
-  - Solo cubiertas: --update-covers
+  - Por defecto (sin argumentos): incremental desde la fecha del último CSV (metadatos + cubiertas).
+  - --from-date YYYY-MM-DD: incremental desde esa fecha.
+  - --from-date all: completo (metadatos + cubiertas).
+  - --update-metadata: solo metadatos (incremental desde último CSV o con fecha).
+  - --update-covers: solo cubiertas faltantes usando el último CSV.
+  - --update-covers --from-date YYYY-MM-DD: cubiertas desde esa fecha.
+  - --update-covers --from-date all: todas las cubiertas.
 
-Uso: python api_dilve.py [--update-metadata] [--update-covers]
+Uso: python api_dilve.py [--update-metadata] [--update-covers] [--from-date {YYYY-MM-DD|all}]
 """
 
 import os
@@ -25,12 +29,13 @@ from datetime import datetime
 from typing import List, Dict, Optional, Tuple
 import argparse
 import urllib3
+import glob
 
 # Importar configuración
 from config import (
     DILVE_USER, DILVE_PASS, EDITORIAL_CODE, BASE_URL,
     OUTPUT_DIR, COVERS_DIR, BATCH_SIZE, CSV_COLUMNS,
-    ACTIVE_STATUS_CODES, FROM_DATE
+    ACTIVE_STATUS_CODES, FROM_DATE as CONFIG_FROM_DATE
 )
 
 # Suprimir warnings de SSL
@@ -47,10 +52,36 @@ COLOR_RED = "\033[91m"
 COLOR_BOLD = "\033[1m"
 
 _log_file = None
+_log_filename = None
 
 # ----------------------------------------------------------------------
-# FUNCIONES AUXILIARES
+# LOGGING
 # ----------------------------------------------------------------------
+
+def init_log() -> bool:
+    """Inicializa el archivo de log con timestamp YYYYMMDD-HHMM.log."""
+    global _log_file, _log_filename
+    log_dir = "/data/logs"
+    try:
+        os.makedirs(log_dir, exist_ok=True)
+    except Exception as e:
+        print_error(f"No se pudo crear el directorio de logs {log_dir}: {e}")
+        return False
+
+    timestamp = datetime.now().strftime("%Y%m%d-%H%M")
+    _log_filename = os.path.join(log_dir, f"{timestamp}.log")
+    try:
+        _log_file = open(_log_filename, "a", encoding="utf-8")
+        return True
+    except Exception as e:
+        print_error(f"No se pudo abrir el archivo de log {_log_filename}: {e}")
+        return False
+
+def close_log():
+    global _log_file
+    if _log_file:
+        _log_file.close()
+        _log_file = None
 
 def _log_message(msg: str):
     global _log_file
@@ -75,6 +106,10 @@ def print_info(msg: str):
     print(f"{COLOR_BOLD}{msg}{COLOR_RESET}")
     _log_message(msg)
 
+# ----------------------------------------------------------------------
+# FUNCIONES AUXILIARES
+# ----------------------------------------------------------------------
+
 def safe_find_text(elem, path, default=""):
     node = elem.find(path, NS)
     if node is not None and node.text:
@@ -90,62 +125,96 @@ def llamada_api(accion: str, params: dict) -> requests.Response:
     return resp
 
 # ----------------------------------------------------------------------
+# OBTENCIÓN DE LA FECHA DEL ÚLTIMO CSV
+# ----------------------------------------------------------------------
+
+def get_last_csv_date() -> Optional[str]:
+    """Devuelve la fecha (YYYY-MM-DD) del último CSV en OUTPUT_DIR, o None si no hay."""
+    csv_files = sorted(glob.glob(os.path.join(OUTPUT_DIR, "*.csv")), reverse=True)
+    if not csv_files:
+        return None
+    last_csv = csv_files[0]
+    basename = os.path.basename(last_csv)
+    # Formato: YYYYMMDD-HHMM.csv
+    if '-' in basename:
+        date_part = basename.split('-')[0]
+        if len(date_part) == 8 and date_part.isdigit():
+            try:
+                dt = datetime.strptime(date_part, "%Y%m%d")
+                return dt.strftime("%Y-%m-%d")
+            except ValueError:
+                pass
+    return None
+
+# ----------------------------------------------------------------------
 # OBTENCIÓN DE ISBN
 # ----------------------------------------------------------------------
 
-def obtener_lista_isbn() -> List[str]:
-    from_date_val = FROM_DATE
-    if isinstance(from_date_val, str) and from_date_val.lower() == "none":
-        from_date_val = None
+def obtener_lista_isbn(from_date: Optional[str] = None) -> List[str]:
+    """
+    Obtiene la lista de ISBN.
+    - Si from_date es None, usa CONFIG_FROM_DATE (si existe) o modo completo.
+    - Si from_date es una cadena, se usa como fecha incremental.
+    - Si from_date es la cadena especial "all", se fuerza modo completo.
+    """
+    fecha = from_date
+    if fecha == "all":
+        fecha = None
 
-    if from_date_val is not None and from_date_val != "":
-        print_info(f"Modo incremental: obteniendo cambios desde {from_date_val}")
-        params = {
-            "publisher": EDITORIAL_CODE,
-            "fromDate": from_date_val,
-            "type": "A",
-            "detail": "N",
-            "hyphens": "N"
-        }
-        resp = llamada_api("getRecordStatusX", params)
-        root = ET.fromstring(resp.content)
-        ns = {'d': 'http://www.dilve.es/dilve/api/xsd/getRecordStatusXResponse'}
-        error = root.find('.//d:error', ns)
-        if error is not None:
-            code = error.find('d:code', ns).text if error.find('d:code', ns) is not None else ""
-            text = error.find('d:text', ns).text if error.find('d:text', ns) is not None else ""
-            raise Exception(f"Error DILVE: {code} - {text}")
-        isbns = []
-        for rec in root.findall('.//d:newRecords/d:record', ns):
-            id_elem = rec.find('d:id', ns)
-            if id_elem is not None and id_elem.text:
-                isbns.append(id_elem.text.strip())
-        for rec in root.findall('.//d:changedRecords/d:record', ns):
-            id_elem = rec.find('d:id', ns)
-            if id_elem is not None and id_elem.text:
-                isbns.append(id_elem.text.strip())
-        return isbns
-    else:
-        print_info("Modo completo: obteniendo todo el catálogo")
-        params = {
-            "publisher": EDITORIAL_CODE,
-            "type": "L",
-            "hyphens": "N"
-        }
-        resp = llamada_api("getRecordListX", params)
-        root = ET.fromstring(resp.content)
-        ns = {'d': 'http://www.dilve.es/dilve/api/xsd/getRecordListXResponse'}
-        error = root.find('.//d:error', ns)
-        if error is not None:
-            code = error.find('d:code', ns).text if error.find('d:code', ns) is not None else ""
-            text = error.find('d:text', ns).text if error.find('d:text', ns) is not None else ""
-            raise Exception(f"Error DILVE: {code} - {text}")
-        isbns = []
-        for record in root.findall('.//d:record', ns):
-            id_elem = record.find('d:id', ns)
-            if id_elem is not None and id_elem.text:
-                isbns.append(id_elem.text.strip())
-        return isbns
+    if fecha is None:
+        # Usar CONFIG_FROM_DATE si está definido
+        if CONFIG_FROM_DATE is not None and CONFIG_FROM_DATE != "":
+            fecha = CONFIG_FROM_DATE
+        else:
+            # Modo completo
+            print_info("Modo completo: obteniendo todo el catálogo")
+            params = {
+                "publisher": EDITORIAL_CODE,
+                "type": "L",
+                "hyphens": "N"
+            }
+            resp = llamada_api("getRecordListX", params)
+            root = ET.fromstring(resp.content)
+            ns = {'d': 'http://www.dilve.es/dilve/api/xsd/getRecordListXResponse'}
+            error = root.find('.//d:error', ns)
+            if error is not None:
+                code = error.find('d:code', ns).text if error.find('d:code', ns) is not None else ""
+                text = error.find('d:text', ns).text if error.find('d:text', ns) is not None else ""
+                raise Exception(f"Error DILVE: {code} - {text}")
+            isbns = []
+            for record in root.findall('.//d:record', ns):
+                id_elem = record.find('d:id', ns)
+                if id_elem is not None and id_elem.text:
+                    isbns.append(id_elem.text.strip())
+            return isbns
+
+    # Si llegamos aquí, tenemos una fecha (incremental)
+    print_info(f"Modo incremental: obteniendo cambios desde {fecha}")
+    params = {
+        "publisher": EDITORIAL_CODE,
+        "fromDate": fecha,
+        "type": "A",
+        "detail": "N",
+        "hyphens": "N"
+    }
+    resp = llamada_api("getRecordStatusX", params)
+    root = ET.fromstring(resp.content)
+    ns = {'d': 'http://www.dilve.es/dilve/api/xsd/getRecordStatusXResponse'}
+    error = root.find('.//d:error', ns)
+    if error is not None:
+        code = error.find('d:code', ns).text if error.find('d:code', ns) is not None else ""
+        text = error.find('d:text', ns).text if error.find('d:text', ns) is not None else ""
+        raise Exception(f"Error DILVE: {code} - {text}")
+    isbns = []
+    for rec in root.findall('.//d:newRecords/d:record', ns):
+        id_elem = rec.find('d:id', ns)
+        if id_elem is not None and id_elem.text:
+            isbns.append(id_elem.text.strip())
+    for rec in root.findall('.//d:changedRecords/d:record', ns):
+        id_elem = rec.find('d:id', ns)
+        if id_elem is not None and id_elem.text:
+            isbns.append(id_elem.text.strip())
+    return isbns
 
 def chunk_list(lst: List, size: int):
     for i in range(0, len(lst), size):
@@ -236,7 +305,6 @@ def parsear_producto(product: ET.Element) -> Dict[str, str]:
     # DescriptiveDetail
     descriptive = product.find("onix:DescriptiveDetail", NS)
     if descriptive is not None:
-        # Título y subtítulo
         titulo = ""
         subtitulo = ""
         for title_elem in descriptive.findall("onix:TitleDetail", NS):
@@ -332,11 +400,10 @@ def parsear_producto(product: ET.Element) -> Dict[str, str]:
                   "publico_objetivo", "num_edic"]:
             datos[k] = ""
 
-    # ---------- AUTORES (corregido) ----------
+    # ---------- AUTORES ----------
     autores = []
     notas = []
     for contributor in product.findall("onix:Contributor", NS):
-        # Filtrar por rol de autor (A01) o coautor (A02) según lista 17
         role = safe_find_text(contributor, "onix:ContributorRole", "")
         if role not in ["A01", "A02"]:
             continue
@@ -351,10 +418,8 @@ def parsear_producto(product: ET.Element) -> Dict[str, str]:
             autores.append(person_name)
             nota = safe_find_text(contributor, "onix:BiographicalNote", "")
             notas.append(nota if nota else "")
-    # Guardar todos los autores separados por punto y coma
     datos["autor"] = "; ".join(autores) if autores else ""
-    datos["autor_entidad"] = ""  # no se usa
-    # Guardar hasta 3 notas biográficas
+    datos["autor_entidad"] = ""
     for i in range(1, 4):
         key = f"nota_biografica_autor{i}"
         if i <= len(notas):
@@ -397,12 +462,11 @@ def parsear_producto(product: ET.Element) -> Dict[str, str]:
         datos["año_public"] = ""
     datos["tirada"] = ""
 
-    # ---------- PRECIOS (corregido) ----------
+    # ---------- PRECIOS ----------
     supply_detail = product.find("onix:ProductSupply/onix:SupplyDetail", NS)
     disponibilidad = situ_catalogo = ""
     fecha_disponibilidad = fecha_puesta_venta = ""
     iva = precio_sin_iva = precio_venta_publico = ""
-    moneda = "EUR"
 
     if supply_detail is not None:
         avail = supply_detail.find("onix:Availability", NS)
@@ -419,17 +483,11 @@ def parsear_producto(product: ET.Element) -> Dict[str, str]:
             elif role == "06":
                 fecha_disponibilidad = date_val
 
-        # Buscar precio
         for price_elem in supply_detail.findall("onix:Price", NS):
             price_type = safe_find_text(price_elem, "onix:PriceType", "")
             amount = safe_find_text(price_elem, "onix:PriceAmount", "")
-            currency = safe_find_text(price_elem, "onix:CurrencyCode", "")
-            if currency:
-                moneda = currency
-            # Si encontramos RRP incluyendo impuestos (01)
             if price_type == "01" and amount:
                 precio_venta_publico = amount
-                # Intentar obtener IVA
                 tax = price_elem.find("onix:Tax", NS)
                 if tax is not None:
                     iva = safe_find_text(tax, "onix:TaxRate", "")
@@ -439,14 +497,11 @@ def parsear_producto(product: ET.Element) -> Dict[str, str]:
                             precio_sin_iva = f"{float(amount) / (1 + tasa):.2f}"
                         except:
                             pass
-                # Si no hay IVA, asumimos que el precio incluye IVA y no podemos calcular
                 if not iva:
                     precio_sin_iva = amount
                 break
-            # Si no encontramos tipo 01, buscar tipo 02 (RRP sin impuestos)
             elif price_type == "02" and amount:
                 precio_sin_iva = amount
-                # Intentar obtener IVA para calcular precio con IVA
                 tax = price_elem.find("onix:Tax", NS)
                 if tax is not None:
                     iva = safe_find_text(tax, "onix:TaxRate", "")
@@ -624,9 +679,8 @@ def descargar_imagen(isbn: str, resource_name: str, url_externa: str = "") -> Tu
 # ----------------------------------------------------------------------
 
 def actualizar_cubiertas_desde_csv():
-    """Lee el último CSV y descarga las cubiertas que faltan o están desactualizadas."""
-    print_info("=== Modo: Actualización de cubiertas ===")
-    # Buscar el último CSV
+    """Lee el último CSV y descarga las cubiertas que faltan."""
+    print_info("=== Modo: Actualización de cubiertas (desde CSV) ===")
     csv_files = sorted([f for f in os.listdir(OUTPUT_DIR) if f.endswith('.csv')], reverse=True)
     if not csv_files:
         print_error("No hay archivos CSV en el directorio de salida.")
@@ -634,7 +688,6 @@ def actualizar_cubiertas_desde_csv():
     latest_csv = os.path.join(OUTPUT_DIR, csv_files[0])
     print_info(f"Usando CSV: {latest_csv}")
 
-    # Leer el CSV
     with open(latest_csv, 'r', encoding='utf-8-sig') as f:
         reader = csv.DictReader(f)
         rows = list(reader)
@@ -647,14 +700,11 @@ def actualizar_cubiertas_desde_csv():
         imagen = row.get('imagen_cubierta', '').strip()
         if not isbn or not imagen:
             continue
-        # Verificar si ya existe la imagen
         img_path = os.path.join(COVERS_DIR, imagen)
         if os.path.exists(img_path):
             print_info(f"[{idx}/{total}] {isbn}: imagen ya existe, omitiendo.")
             continue
-        # Descargar
         print_info(f"[{idx}/{total}] {isbn}: descargando {imagen}")
-        # Intentar obtener url_externa (no está en el CSV, pero podemos intentar con DILVE)
         success, origen = descargar_imagen(isbn, imagen, "")
         if success:
             descargadas += 1
@@ -664,28 +714,61 @@ def actualizar_cubiertas_desde_csv():
     print_info(f"Proceso completado. Descargadas: {descargadas}, Errores: {errores}")
 
 # ----------------------------------------------------------------------
+# ACTUALIZACIÓN DE SYMLINKS (unificada)
+# ----------------------------------------------------------------------
+
+def update_symlinks(csv_path: str):
+    """Crea/actualiza los symlinks en public/ apuntando al CSV y a covers."""
+    # catalog.csv
+    symlink_path = "public/catalog.csv"
+    if os.path.islink(symlink_path) or os.path.exists(symlink_path):
+        try:
+            os.remove(symlink_path)
+        except OSError as e:
+            print_warn(f"No se pudo eliminar el enlace antiguo {symlink_path}: {e}")
+    try:
+        rel_path = os.path.relpath(csv_path, start="public")
+        os.symlink(rel_path, symlink_path)
+        print_ok(f"Enlace simbólico creado: {symlink_path} -> {csv_path}")
+    except Exception as e:
+        print_error(f"Error al crear enlace simbólico para catalog.csv: {e}")
+
+    # covers
+    covers_symlink = "public/covers"
+    if os.path.islink(covers_symlink) or os.path.exists(covers_symlink):
+        try:
+            os.remove(covers_symlink)
+        except OSError as e:
+            print_warn(f"No se pudo eliminar el enlace antiguo {covers_symlink}: {e}")
+    try:
+        os.symlink("../data/covers", covers_symlink)
+        print_ok(f"Enlace simbólico creado: {covers_symlink} -> data/covers")
+    except Exception as e:
+        print_error(f"Error al crear enlace simbólico para covers: {e}")
+
+# ----------------------------------------------------------------------
 # MODO COMPLETO O SOLO METADATOS
 # ----------------------------------------------------------------------
 
-def ejecutar_descarga(actualizar_metadatos: bool = True, actualizar_cubiertas: bool = True):
-    global _log_file
+def ejecutar_descarga(actualizar_metadatos: bool = True, actualizar_cubiertas: bool = True, from_date: Optional[str] = None):
     start_time = time.time()
+    if from_date == "all":
+        from_date = None
+
+    # Determinar la fecha a usar: si no se especifica, usar la del último CSV (si existe)
+    if from_date is None:
+        last_date = get_last_csv_date()
+        if last_date:
+            from_date = last_date
+            print_info(f"Usando fecha del último CSV: {from_date}")
+        else:
+            print_info("No hay CSV previo. Se realizará modo completo.")
+
     print_info("=== Iniciando descarga del catálogo ===")
 
     os.makedirs(OUTPUT_DIR, exist_ok=True)
     os.makedirs(COVERS_DIR, exist_ok=True)
-    os.makedirs("data/logs", exist_ok=True)
     os.makedirs("public", exist_ok=True)
-
-    log_date = datetime.now().strftime("%Y%m%d")
-    log_filename = os.path.join("data/logs", f"{log_date}.log")
-    try:
-        _log_file = open(log_filename, "a", encoding="utf-8")
-    except Exception as e:
-        print_error(f"No se pudo abrir el archivo de log {log_filename}: {e}")
-        _log_file = None
-
-    _log_message("=== INICIO EJECUCIÓN ===")
 
     total_isbns = 0
     libros_activos = 0
@@ -698,7 +781,7 @@ def ejecutar_descarga(actualizar_metadatos: bool = True, actualizar_cubiertas: b
     try:
         print_info("Obteniendo lista de ISBN de la editorial...")
         try:
-            isbns = obtener_lista_isbn()
+            isbns = obtener_lista_isbn(from_date=from_date)
         except Exception as e:
             print_error(f"Error al obtener lista de ISBN: {e}")
             _log_message(f"ERROR: {e}")
@@ -726,7 +809,6 @@ def ejecutar_descarga(actualizar_metadatos: bool = True, actualizar_cubiertas: b
                         libros_activos += 1
                         datos.pop("estado_catalogo", None)
 
-                        # Descargar imagen solo si se solicita
                         if actualizar_cubiertas:
                             img = datos.get("imagen_cubierta", "")
                             url_externa = datos.pop("_url_externa", "")
@@ -742,7 +824,6 @@ def ejecutar_descarga(actualizar_metadatos: bool = True, actualizar_cubiertas: b
                                     else:
                                         errores_registros += 1
                         else:
-                            # Si no actualizamos cubiertas, simplemente descartamos la URL externa
                             datos.pop("_url_externa", None)
 
                         if actualizar_metadatos:
@@ -768,7 +849,6 @@ def ejecutar_descarga(actualizar_metadatos: bool = True, actualizar_cubiertas: b
             return
 
         if actualizar_metadatos:
-            # Escribir CSV con marca de tiempo
             timestamp = datetime.now().strftime("%Y%m%d-%H%M")
             csv_filename = f"{timestamp}.csv"
             csv_path = os.path.join(OUTPUT_DIR, csv_filename)
@@ -783,22 +863,11 @@ def ejecutar_descarga(actualizar_metadatos: bool = True, actualizar_cubiertas: b
                 writer.writeheader()
                 writer.writerows(resultados)
 
-            # Actualizar symlink en public/
-            symlink_path = "public/catalog.csv"
-            if os.path.islink(symlink_path) or os.path.exists(symlink_path):
-                try:
-                    os.remove(symlink_path)
-                except OSError as e:
-                    print_warn(f"No se pudo eliminar el enlace antiguo {symlink_path}: {e}")
-            try:
-                rel_path = os.path.relpath(csv_path, start="public")
-                os.symlink(rel_path, symlink_path)
-                print_ok(f"Enlace simbólico creado: {symlink_path} -> {csv_path}")
-            except Exception as e:
-                print_error(f"Error al crear enlace simbólico: {e}")
+            # Actualizar symlinks
+            update_symlinks(csv_path)
 
-        # Siempre actualizar el symlink de covers si existe y se actualizaron cubiertas
-        if actualizar_cubiertas:
+        if actualizar_cubiertas and not actualizar_metadatos:
+            # Solo cubiertas: actualizar symlink covers (pero no catalog.csv)
             covers_symlink = "public/covers"
             if os.path.islink(covers_symlink) or os.path.exists(covers_symlink):
                 try:
@@ -809,7 +878,7 @@ def ejecutar_descarga(actualizar_metadatos: bool = True, actualizar_cubiertas: b
                 os.symlink("../data/covers", covers_symlink)
                 print_ok(f"Enlace simbólico creado: {covers_symlink} -> data/covers")
             except Exception as e:
-                print_error(f"Error al crear enlace simbólico: {e}")
+                print_error(f"Error al crear enlace simbólico para covers: {e}")
 
         elapsed_time = time.time() - start_time
         print("\n" + "=" * 60)
@@ -846,32 +915,55 @@ def ejecutar_descarga(actualizar_metadatos: bool = True, actualizar_cubiertas: b
     except Exception as e:
         print_error(f"Error inesperado: {e}")
         _log_message(f"Error inesperado: {e}")
-    finally:
-        if _log_file:
-            _log_message("=== FIN EJECUCIÓN ===")
-            _log_file.close()
-            _log_file = None
 
 # ----------------------------------------------------------------------
 # MAIN
 # ----------------------------------------------------------------------
 
 def main():
+    global _log_file
     parser = argparse.ArgumentParser(description="Descarga de catálogo DILVE")
-    parser.add_argument("--update-metadata", action="store_true", help="Solo actualiza metadatos (no descarga imágenes)")
-    parser.add_argument("--update-covers", action="store_true", help="Solo actualiza cubiertas (usa el último CSV)")
+    parser.add_argument("--update-metadata", action="store_true", help="Solo actualiza metadatos")
+    parser.add_argument("--update-covers", action="store_true", help="Solo actualiza cubiertas")
+    parser.add_argument("--from-date", type=str, help="Fecha de inicio (YYYY-MM-DD) o 'all' para completo.")
     args = parser.parse_args()
 
-    # Si no se especifica nada, ejecutar modo completo (metadatos + cubiertas)
-    if not args.update_metadata and not args.update_covers:
-        ejecutar_descarga(actualizar_metadatos=True, actualizar_cubiertas=True)
-    elif args.update_metadata and not args.update_covers:
-        ejecutar_descarga(actualizar_metadatos=True, actualizar_cubiertas=False)
-    elif not args.update_metadata and args.update_covers:
-        actualizar_cubiertas_desde_csv()
-    else:
-        print_error("No se pueden usar --update-metadata y --update-covers simultáneamente.")
+    # Inicializar log
+    if not init_log():
         sys.exit(1)
+
+    # Procesar fecha
+    from_date = args.from_date
+    if from_date and from_date.lower() == "all":
+        from_date = "all"  # Se mantiene como string para que luego se convierta a None en ejecutar_descarga
+
+    if from_date and from_date != "all":
+        try:
+            datetime.strptime(from_date, "%Y-%m-%d")
+        except ValueError:
+            print_error(f"Formato de fecha inválido: {from_date}. Use YYYY-MM-DD o 'all'.")
+            close_log()
+            sys.exit(1)
+
+    try:
+        # Si no se especifican flags, por defecto hace metadatos + cubiertas desde último CSV
+        if not args.update_metadata and not args.update_covers:
+            print_info("Modo por defecto: metadatos + cubiertas (incremental desde último CSV o completo si no hay)")
+            ejecutar_descarga(actualizar_metadatos=True, actualizar_cubiertas=True, from_date=from_date)
+        elif args.update_metadata and not args.update_covers:
+            print_info("Modo solo metadatos")
+            ejecutar_descarga(actualizar_metadatos=True, actualizar_cubiertas=False, from_date=from_date)
+        elif not args.update_metadata and args.update_covers:
+            if from_date:
+                print_info("Modo solo cubiertas con fecha específica")
+                ejecutar_descarga(actualizar_metadatos=False, actualizar_cubiertas=True, from_date=from_date)
+            else:
+                actualizar_cubiertas_desde_csv()
+        else:
+            print_error("No se pueden usar --update-metadata y --update-covers simultáneamente.")
+            sys.exit(1)
+    finally:
+        close_log()
 
 if __name__ == "__main__":
     main()
