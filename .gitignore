@@ -45,6 +45,7 @@ Thumbs.db
 
 # Docker (si se generan archivos intermedios)
 .dockerignore
+.env
 
 # Archivos temporales de pruebas
 test_*.py
