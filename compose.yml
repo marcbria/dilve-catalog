@@ -1,0 +1,16 @@
+services:
+  catalog:
+    build: .
+    ports:
+      - "8080:80"
+    volumes:
+      - ./data:/data
+    environment:
+      - DILVE_USER=tu_usuario
+      - DILVE_PASS=tu_contraseña
+      - EDITORIAL_CODE=DLV00001234|DLV00005678
+      - BATCH_SIZE=128
+      - ACTIVE_STATUS_CODES=04,02,13,18
+      - CRON_SCHEDULE=0 2 * * *
+      - TZ=Europe/Madrid
+    restart: unless-stopped
