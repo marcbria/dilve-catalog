@@ -1,7 +1,51 @@
-venv
-__pycache__
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Entornos virtuales
+venv/
+env/
+ENV/
+.venv/
+
+# Archivos de configuración sensibles
+extract/config.py
+extract/config.old
 config.py
-covers/*
-catalog/*
-logs/*
-catalog.csv
+config.old
+
+# Datos descargados (CSVs, imágenes, logs, etc.)
+data/
+catalog/
+covers/
+logs/
+*.csv
+!colections.csv        # excepción: este archivo puede ser necesario como ejemplo
+catalog.csv            # enlace simbólico en la raíz
+
+# Editor y sistema
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Archivos de log
+*.log
+
+# Docker (si se generan archivos intermedios)
+.dockerignore
+
+# Archivos temporales de pruebas
+test_*.py
+temp_*

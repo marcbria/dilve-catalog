@@ -3,9 +3,9 @@
 
 """
 Descarga el catálogo de una editorial desde DILVE (DAPI v1.0).
-Genera un CSV en la carpeta catalog/ con marca de tiempo y descarga las cubiertas.
-Modo incremental: si se define FROM_DATE en config.py, solo se obtienen los cambios desde esa fecha.
-Uso: python catalog_dilve.py
+Genera un CSV en data/catalog/ con marca de tiempo, descarga las cubiertas en data/covers/
+y crea enlaces simbólicos en public/ para que el frontend acceda a los últimos datos.
+Uso: python api_dilve.py
 """
 
 import os
@@ -40,7 +40,7 @@ COLOR_RED = "\033[91m"
 COLOR_CYAN = "\033[96m"
 COLOR_BOLD = "\033[1m"
 
-# Log file global (se asigna en main)
+# Log file global
 _log_file = None
 
 # ----------------------------------------------------------------------
@@ -56,61 +56,39 @@ def _log_message(msg: str):
         _log_file.flush()
 
 def print_ok(msg: str):
-    """Mensaje en verde (éxito) y se guarda en log."""
     print(f"{COLOR_GREEN}✓ {msg}{COLOR_RESET}")
     _log_message(f"✓ {msg}")
 
 def print_warn(msg: str):
-    """Mensaje en naranja/amarillo (advertencia) y se guarda en log."""
     print(f"{COLOR_YELLOW}⚠ {msg}{COLOR_RESET}")
     _log_message(f"⚠ {msg}")
 
 def print_error(msg: str):
-    """Mensaje en rojo (error) y se guarda en log."""
     print(f"{COLOR_RED}✗ {msg}{COLOR_RESET}")
     _log_message(f"✗ {msg}")
 
 def print_info(msg: str):
-    """Mensaje en blanco (información normal) y se guarda en log."""
     print(f"{COLOR_BOLD}{msg}{COLOR_RESET}")
     _log_message(msg)
 
 def safe_find_text(elem, path, default=""):
-    """Busca un elemento XML y devuelve su texto, o default si no existe."""
     node = elem.find(path, NS)
     if node is not None and node.text:
         return node.text.strip()
     return default
 
-
 def safe_find_all(elem, path):
-    """Devuelve todos los elementos encontrados en la ruta."""
     return elem.findall(path, NS)
 
-
 def llamada_api(accion: str, params: dict) -> requests.Response:
-    """
-    Realiza una llamada a la API de DILVE.
-    - accion: getRecordListX, getRecordsX, getResourceX, etc.
-    - params: diccionario con los parámetros de la llamada (sin incluir user/password si ya están).
-    Devuelve el objeto Response.
-    """
     url = BASE_URL + accion + ".do"
-    # Añadir siempre user y password
     params["user"] = DILVE_USER
     params["password"] = DILVE_PASS
     resp = requests.get(url, params=params, timeout=60)
     resp.raise_for_status()
     return resp
 
-
 def obtener_lista_isbn() -> List[str]:
-    """
-    Obtiene la lista de ISBN (sin guiones) de los productos de la editorial.
-    Si FROM_DATE está definido (no None ni vacío), usa getRecordStatusX para obtener solo nuevos y modificados.
-    Si no, usa getRecordListX para obtener el catálogo completo.
-    """
-    # Normalizar FROM_DATE: si es "None" (string), convertirlo a None
     from_date_val = FROM_DATE
     if isinstance(from_date_val, str) and from_date_val.lower() == "none":
         from_date_val = None
@@ -120,35 +98,27 @@ def obtener_lista_isbn() -> List[str]:
         params = {
             "publisher": EDITORIAL_CODE,
             "fromDate": from_date_val,
-            "type": "A",          # Todos: new, changed, deleted
-            "detail": "N",        # Normal (solo IDs)
+            "type": "A",
+            "detail": "N",
             "hyphens": "N"
         }
         resp = llamada_api("getRecordStatusX", params)
         root = ET.fromstring(resp.content)
-
-        # Namespace específico de getRecordStatusXResponse
         ns = {'d': 'http://www.dilve.es/dilve/api/xsd/getRecordStatusXResponse'}
-
-        # Comprobar error
         error = root.find('.//d:error', ns)
         if error is not None:
             code = error.find('d:code', ns).text if error.find('d:code', ns) is not None else ""
             text = error.find('d:text', ns).text if error.find('d:text', ns) is not None else ""
             raise Exception(f"Error DILVE: {code} - {text}")
-
         isbns = []
-        # Obtener de newRecords
         for rec in root.findall('.//d:newRecords/d:record', ns):
             id_elem = rec.find('d:id', ns)
             if id_elem is not None and id_elem.text:
                 isbns.append(id_elem.text.strip())
-        # Obtener de changedRecords
         for rec in root.findall('.//d:changedRecords/d:record', ns):
             id_elem = rec.find('d:id', ns)
             if id_elem is not None and id_elem.text:
                 isbns.append(id_elem.text.strip())
-        # Nota: los deletedRecords se ignoran (no se pueden obtener metadatos)
         return isbns
     else:
         print_info("Modo completo: obteniendo todo el catálogo")
@@ -159,17 +129,12 @@ def obtener_lista_isbn() -> List[str]:
         }
         resp = llamada_api("getRecordListX", params)
         root = ET.fromstring(resp.content)
-
-        # Namespace específico de getRecordListXResponse
         ns = {'d': 'http://www.dilve.es/dilve/api/xsd/getRecordListXResponse'}
-
-        # Comprobar error
         error = root.find('.//d:error', ns)
         if error is not None:
             code = error.find('d:code', ns).text if error.find('d:code', ns) is not None else ""
             text = error.find('d:text', ns).text if error.find('d:text', ns) is not None else ""
             raise Exception(f"Error DILVE: {code} - {text}")
-
         isbns = []
         for record in root.findall('.//d:record', ns):
             id_elem = record.find('d:id', ns)
@@ -177,15 +142,11 @@ def obtener_lista_isbn() -> List[str]:
                 isbns.append(id_elem.text.strip())
         return isbns
 
-
 def chunk_list(lst: List, size: int):
-    """Divide una lista en fragmentos de tamaño size."""
     for i in range(0, len(lst), size):
         yield lst[i:i + size]
 
-
 def obtener_productos_onix(isbn_chunk: List[str]) -> List[ET.Element]:
-    """Obtiene los metadatos ONIX 3.0 para un lote de ISBN (máximo 128)."""
     identifier = "|".join(isbn_chunk)
     params = {
         "identifier": identifier,
@@ -195,37 +156,23 @@ def obtener_productos_onix(isbn_chunk: List[str]) -> List[ET.Element]:
     }
     resp = llamada_api("getRecordsX", params)
     root = ET.fromstring(resp.content)
-
-    # Comprobar errores a nivel global
     error = root.find(".//error", {})
     if error is not None:
         code = error.find("code").text if error.find("code") is not None else ""
         text = error.find("text").text if error.find("text") is not None else ""
         raise Exception(f"Error en getRecordsX: {code} - {text}")
-
     onix_msg = root.find(".//onix:ONIXMessage", NS)
     if onix_msg is None:
         return []
     products = onix_msg.findall("onix:Product", NS)
     return products
 
-
 def formatear_isbn_con_guiones(isbn13: str) -> str:
-    """
-    Convierte un ISBN13 sin guiones a formato con guiones (intento básico).
-    Si no se puede, devuelve el mismo.
-    """
     if not isbn13 or len(isbn13) != 13:
         return isbn13
-    # Formato típico: 978-84-XXXXX-XX-X
-    # Aplicamos una regla general: 978-84-XXXXX-XX-X (para España)
-    # Intentamos dividir según el prefijo del grupo editorial.
-    # Como no conocemos el grupo exacto, devolvemos sin guiones.
     return isbn13
 
-
 def convertir_mm_a_cm(mm_str: str) -> str:
-    """Convierte milímetros a centímetros (divide entre 10)."""
     if not mm_str:
         return ""
     try:
@@ -235,16 +182,13 @@ def convertir_mm_a_cm(mm_str: str) -> str:
     except:
         return mm_str
 
-
 def parsear_producto(product: ET.Element) -> Dict[str, str]:
-    """Extrae todos los campos requeridos de un elemento <Product> ONIX 3.0."""
     datos = {}
-
-    # ---------- Identificadores ----------
+    # Identificadores
     isbn13 = ""
     for id_elem in product.findall("onix:ProductIdentifier", NS):
         id_type = safe_find_text(id_elem, "onix:ProductIDType", "")
-        if id_type == "15":  # ISBN-13
+        if id_type == "15":
             isbn13 = safe_find_text(id_elem, "onix:IDValue", "")
             break
     datos["isbn13"] = isbn13
@@ -268,7 +212,7 @@ def parsear_producto(product: ET.Element) -> Dict[str, str]:
         datos["editorial"] = ""
         datos["sello"] = ""
 
-    # Estado en el catálogo (lista 64) - se usa para filtrar, pero no se guarda en el CSV
+    # Estado en el catálogo (lista 64)
     estado_catalogo = ""
     if publishing_detail is not None:
         pub_status = publishing_detail.find("onix:PublicationStatus", NS)
@@ -283,40 +227,36 @@ def parsear_producto(product: ET.Element) -> Dict[str, str]:
     # DescriptiveDetail
     descriptive = product.find("onix:DescriptiveDetail", NS)
     if descriptive is not None:
-        # Título y subtítulo
         titulo = ""
         subtitulo = ""
         for title_elem in descriptive.findall("onix:TitleDetail", NS):
             title_type = safe_find_text(title_elem, "onix:TitleType", "")
-            if title_type == "01":  # Product title
+            if title_type == "01":
                 title_elem2 = title_elem.find("onix:TitleElement", NS)
                 if title_elem2 is not None:
                     titulo = safe_find_text(title_elem2, "onix:TitleText", "")
-            elif title_type == "02":  # Subtitle
+            elif title_type == "02":
                 title_elem2 = title_elem.find("onix:TitleElement", NS)
                 if title_elem2 is not None:
                     subtitulo = safe_find_text(title_elem2, "onix:TitleText", "")
         datos["titulo"] = titulo
         datos["subtitulo"] = subtitulo
 
-        # Formato y encuadernación
         datos["formato_libro_3.0"] = safe_find_text(descriptive, "onix:ProductForm", "")
         pfd = descriptive.find("onix:ProductFormDetail", NS)
         datos["encuad"] = pfd.text if pfd is not None else ""
 
-        # Número de páginas
         datos["num_pags"] = safe_find_text(descriptive, "onix:NumberOfPages", "")
 
-        # Dimensiones
         measure_list = descriptive.findall("onix:Measure", NS)
         alto_mm = ancho_mm = grueso_mm = ""
         for measure in measure_list:
             measure_type = safe_find_text(measure, "onix:MeasureType", "")
-            if measure_type == "01":  # Height
+            if measure_type == "01":
                 alto_mm = safe_find_text(measure, "onix:Measurement", "")
-            elif measure_type == "02":  # Width
+            elif measure_type == "02":
                 ancho_mm = safe_find_text(measure, "onix:Measurement", "")
-            elif measure_type == "03":  # Thickness
+            elif measure_type == "03":
                 grueso_mm = safe_find_text(measure, "onix:Measurement", "")
         datos["alto"] = alto_mm
         datos["alto_cm"] = convertir_mm_a_cm(alto_mm)
@@ -325,11 +265,9 @@ def parsear_producto(product: ET.Element) -> Dict[str, str]:
         datos["grueso"] = grueso_mm
         datos["grueso_cm"] = convertir_mm_a_cm(grueso_mm)
 
-        # Peso
         peso_elem = descriptive.find("onix:Measure[@onix:MeasureType='08']", NS)
         datos["peso"] = safe_find_text(peso_elem, "onix:Measurement", "") if peso_elem is not None else ""
 
-        # Colección
         collection = descriptive.find("onix:Collection", NS)
         if collection is not None:
             datos["coleccion"] = safe_find_text(collection, "onix:TitleDetail/onix:TitleElement/onix:TitleText", "")
@@ -339,14 +277,12 @@ def parsear_producto(product: ET.Element) -> Dict[str, str]:
             datos["coleccion"] = ""
             datos["num_en_coleccion"] = ""
 
-        # Idioma
         language = descriptive.find("onix:Language", NS)
         if language is not None:
             datos["idioma"] = safe_find_text(language, "onix:LanguageCode", "")
         else:
             datos["idioma"] = ""
 
-        # Materias
         bic = thema = ibic = thema_cargada = ""
         for subject in descriptive.findall("onix:Subject", NS):
             scheme = safe_find_text(subject, "onix:SubjectSchemeIdentifier", "")
@@ -364,19 +300,15 @@ def parsear_producto(product: ET.Element) -> Dict[str, str]:
         datos["codigo_ibic_cargada"] = ibic
         datos["codigo_thema_cargada"] = thema_cargada
 
-        # Audiencia
         audience = descriptive.find("onix:Audience", NS)
         if audience is not None:
             datos["publico_objetivo"] = safe_find_text(audience, "onix:AudienceCode", "")
         else:
             datos["publico_objetivo"] = ""
 
-        # Edición
         edition = descriptive.find("onix:EditionNumber", NS)
         datos["num_edic"] = edition.text if edition is not None else ""
-
     else:
-        # Si no hay DescriptiveDetail, campos vacíos
         for k in ["titulo", "subtitulo", "formato_libro_3.0", "encuad", "num_pags",
                   "alto", "alto_cm", "ancho", "ancho_cm", "grueso", "grueso_cm",
                   "peso", "coleccion", "num_en_coleccion", "idioma",
@@ -385,7 +317,7 @@ def parsear_producto(product: ET.Element) -> Dict[str, str]:
                   "publico_objetivo", "num_edic"]:
             datos[k] = ""
 
-    # ---------- Autores ----------
+    # Autores
     autores = []
     notas = []
     for contributor in product.findall("onix:Contributor", NS):
@@ -409,7 +341,7 @@ def parsear_producto(product: ET.Element) -> Dict[str, str]:
         else:
             datos[key] = ""
 
-    # ---------- Fechas ----------
+    # Fechas
     publishing_detail = product.find("onix:PublishingDetail", NS)
     fecha_public = ""
     if publishing_detail is not None:
@@ -442,10 +374,9 @@ def parsear_producto(product: ET.Element) -> Dict[str, str]:
     else:
         datos["fecha_public_dma"] = ""
         datos["año_public"] = ""
+    datos["tirada"] = ""
 
-    datos["tirada"] = ""  # No estándar
-
-    # ---------- Disponibilidad y precios ----------
+    # Disponibilidad y precios
     supply_detail = product.find("onix:ProductSupply/onix:SupplyDetail", NS)
     disponibilidad = situ_catalogo = ""
     fecha_disponibilidad = fecha_puesta_venta = ""
@@ -515,7 +446,7 @@ def parsear_producto(product: ET.Element) -> Dict[str, str]:
     datos["precio_sin_iva"] = precio_sin_iva
     datos["precio_venta_publico"] = precio_venta_publico
 
-    # ---------- Resumen ----------
+    # Resumen
     collateral = product.find("onix:CollateralDetail", NS)
     resumen = idioma_resumen = ""
     if collateral is not None:
@@ -529,11 +460,11 @@ def parsear_producto(product: ET.Element) -> Dict[str, str]:
     datos["texto_resumen"] = resumen
     datos["idioma_resumen"] = idioma_resumen
 
-    # ---------- Imagen de cubierta ----------
+    # Imagen de cubierta
     imagen_cubierta = ""
     formato_imagen = ""
     formato_imagen_3_0 = ""
-    url_externa = ""  # Guardaremos la URL si es externa
+    url_externa = ""
     if collateral is not None:
         for resource in collateral.findall("onix:SupportingResource", NS):
             resource_type = safe_find_text(resource, "onix:ResourceContentType", "")
@@ -545,10 +476,8 @@ def parsear_producto(product: ET.Element) -> Dict[str, str]:
                     link = safe_find_text(version, "onix:ResourceLink", "")
                     if link:
                         parsed = urlparse(link)
-                        # Si el esquema es http o https, es una URL externa
                         if parsed.scheme in ("http", "https"):
                             url_externa = link
-                            # Extraer nombre del archivo de la URL (sin query string)
                             filename = os.path.basename(parsed.path)
                             if filename:
                                 imagen_cubierta = filename
@@ -558,11 +487,9 @@ def parsear_producto(product: ET.Element) -> Dict[str, str]:
                                 else:
                                     formato_imagen = "jpg"
                             else:
-                                # Si no hay nombre, usar ISBN con extensión por defecto
                                 imagen_cubierta = f"{isbn13}.jpg"
                                 formato_imagen = "jpg"
                         else:
-                            # Es un nombre de recurso interno (no URL)
                             filename = os.path.basename(link)
                             if filename:
                                 imagen_cubierta = filename
@@ -578,10 +505,9 @@ def parsear_producto(product: ET.Element) -> Dict[str, str]:
     datos["formato_imagen_cubierta"] = formato_imagen
     datos["formato_imagen_cubierta_3.0"] = formato_imagen_3_0
     datos["fecha_mod_imagen_cubierta"] = ""
-    # Guardamos la URL externa para descarga posterior
     datos["_url_externa"] = url_externa
 
-    # ---------- URLs y relaciones ----------
+    # URLs y relaciones
     datos["URL_descarga_producto"] = ""
     datos["web_descarga_producto"] = ""
     sustituto = sustituido = ""
@@ -611,21 +537,11 @@ def parsear_producto(product: ET.Element) -> Dict[str, str]:
     datos["libro_publico"] = "Sí"
     return datos
 
-
 def descargar_imagen(isbn: str, resource_name: str, url_externa: str = "") -> tuple:
-    """
-    Descarga la imagen de cubierta.
-    Si se proporciona url_externa, descarga de esa URL.
-    Si no, usa getResourceX con el nombre del recurso.
-    Retorna (éxito, tipo_origen) donde tipo_origen es "dilve" o "externa".
-    """
     if not resource_name:
         return False, ""
-
-    # Si hay URL externa, descargar de allí
     if url_externa and url_externa.startswith(("http://", "https://")):
         try:
-            # Deshabilitar verificación SSL para dominios con certificados problemáticos
             resp = requests.get(url_externa, timeout=60, verify=False)
             resp.raise_for_status()
             filepath = os.path.join(COVERS_DIR, resource_name)
@@ -636,8 +552,6 @@ def descargar_imagen(isbn: str, resource_name: str, url_externa: str = "") -> tu
         except Exception as e:
             print_error(f"Error descargando imagen externa {resource_name} para ISBN {isbn}: {e}")
             return False, "externa"
-
-    # Si no, usar getResourceX
     params = {
         "identifier": isbn,
         "resource": resource_name
@@ -653,31 +567,28 @@ def descargar_imagen(isbn: str, resource_name: str, url_externa: str = "") -> tu
         print_error(f"Error descargando imagen {resource_name} para ISBN {isbn}: {e}")
         return False, "dilve"
 
-
 def main():
     global _log_file
-
     start_time = time.time()
     print_info("=== Iniciando descarga del catálogo ===")
 
     # Crear directorios necesarios
     os.makedirs(OUTPUT_DIR, exist_ok=True)
     os.makedirs(COVERS_DIR, exist_ok=True)
-    os.makedirs("logs", exist_ok=True)
+    os.makedirs("data/logs", exist_ok=True)
+    os.makedirs("public", exist_ok=True)
 
     # Abrir archivo de log (diario)
     log_date = datetime.now().strftime("%Y%m%d")
-    log_filename = os.path.join("logs", f"{log_date}.log")
+    log_filename = os.path.join("data/logs", f"{log_date}.log")
     try:
         _log_file = open(log_filename, "a", encoding="utf-8")
     except Exception as e:
         print_error(f"No se pudo abrir el archivo de log {log_filename}: {e}")
         _log_file = None
 
-    # Escribir cabecera de ejecución en log
     _log_message("=== INICIO EJECUCIÓN ===")
 
-    # Contadores para el resumen final
     total_isbns = 0
     libros_activos = 0
     metadatos_descargados = 0
@@ -687,7 +598,6 @@ def main():
     registros_procesados = 0
 
     try:
-        # 1. Obtener lista de ISBN
         print_info("Obteniendo lista de ISBN de la editorial...")
         try:
             isbns = obtener_lista_isbn()
@@ -702,7 +612,6 @@ def main():
             _log_message("No se encontraron productos.")
             return
 
-        # 2. Procesar por lotes
         resultados = []
         total = len(isbns)
         for i, chunk in enumerate(chunk_list(isbns, BATCH_SIZE), 1):
@@ -712,17 +621,12 @@ def main():
                 for prod in productos:
                     try:
                         datos = parsear_producto(prod)
-                        # Filtrar por estado en el catálogo (lista 64)
                         status = datos.get("estado_catalogo", "")
                         if status not in ACTIVE_STATUS_CODES:
                             print_warn(f"Saltando ISBN {datos.get('isbn13')} con estado {status}")
                             continue
                         libros_activos += 1
-
-                        # Eliminar la clave 'estado_catalogo' porque no está en CSV_COLUMNS
                         datos.pop("estado_catalogo", None)
-
-                        # Descargar imagen
                         img = datos.get("imagen_cubierta", "")
                         url_externa = datos.pop("_url_externa", "")
                         if img:
@@ -757,12 +661,11 @@ def main():
             _log_message("No se generaron datos.")
             return
 
-        # 3. Escribir CSV con marca de tiempo
+        # Escribir CSV con marca de tiempo
         timestamp = datetime.now().strftime("%Y%m%d-%H%M")
         csv_filename = f"{timestamp}.csv"
         csv_path = os.path.join(OUTPUT_DIR, csv_filename)
 
-        # Asegurar que todos los diccionarios tengan todas las claves
         for row in resultados:
             for col in CSV_COLUMNS:
                 if col not in row:
@@ -773,25 +676,35 @@ def main():
             writer.writeheader()
             writer.writerows(resultados)
 
-        # Crear enlace simbólico catalog.csv que apunte al último CSV
-        symlink_path = "catalog.csv"
-        # Eliminar enlace anterior si existe
+        # Crear enlaces simbólicos en public/
+        # catalog.csv -> data/catalog/archivo.csv
+        symlink_path = "public/catalog.csv"
         if os.path.islink(symlink_path) or os.path.exists(symlink_path):
             try:
                 os.remove(symlink_path)
             except OSError as e:
                 print_warn(f"No se pudo eliminar el enlace antiguo {symlink_path}: {e}")
         try:
-            # Crear enlace simbólico relativo
-            rel_path = os.path.relpath(csv_path, start=os.path.dirname(symlink_path) or ".")
+            rel_path = os.path.relpath(csv_path, start="public")
             os.symlink(rel_path, symlink_path)
             print_ok(f"Enlace simbólico creado: {symlink_path} -> {csv_path}")
         except Exception as e:
             print_error(f"Error al crear enlace simbólico: {e}")
 
-        elapsed_time = time.time() - start_time
+        # covers -> data/covers
+        covers_symlink = "public/covers"
+        if os.path.islink(covers_symlink) or os.path.exists(covers_symlink):
+            try:
+                os.remove(covers_symlink)
+            except OSError as e:
+                print_warn(f"No se pudo eliminar el enlace antiguo {covers_symlink}: {e}")
+        try:
+            os.symlink("../data/covers", covers_symlink)
+            print_ok(f"Enlace simbólico creado: {covers_symlink} -> data/covers")
+        except Exception as e:
+            print_error(f"Error al crear enlace simbólico: {e}")
 
-        # Resumen final con colores
+        elapsed_time = time.time() - start_time
         print("\n" + "=" * 60)
         print_info("=== RESUMEN DE EJECUCIÓN ===")
         print(f"Obras del catálogo: {total_isbns}")
@@ -804,7 +717,6 @@ def main():
         print_info(f"CSV generado: {csv_path}")
         print("=" * 60)
 
-        # Guardar resumen en log
         _log_message("=== RESUMEN ===")
         _log_message(f"Obras del catálogo: {total_isbns}")
         _log_message(f"Libros activos: {libros_activos}")
@@ -822,12 +734,10 @@ def main():
         print_error(f"Error inesperado: {e}")
         _log_message(f"Error inesperado: {e}")
     finally:
-        # Cerrar archivo de log
         if _log_file:
             _log_message("=== FIN EJECUCIÓN ===")
             _log_file.close()
             _log_file = None
-
 
 if __name__ == "__main__":
     main()
