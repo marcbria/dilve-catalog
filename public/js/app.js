@@ -129,7 +129,11 @@
         const iva = row["iva"] || "";
         const resumen = row["texto_resumen"] || "";
         const imagen = row["imagen_cubierta"] || "";
+        const isbnDigital = row["isbn13_edicion_digital"] || "";
+        const isbnImpreso = row["isbn13_edicion_impresa"] || "";
+        const productosRelacionados = row["productos_relacionados"] || "";
 
+        // Determinar si es digital
         let isDigital = false;
         if (formato === "EC" || formato === "ED" || formatoDigital.trim() !== "") {
             isDigital = true;
@@ -171,8 +175,16 @@
         const numericPrice = parseFloat(precioVenta) || 0;
         const isFree = precioVenta === "" || numericPrice === 0;
         const displayPrice = isFree ? "" : numericPrice.toFixed(2) + " EUR";
-        const isbnDigital = row["isbn13_edicion_digital"] || "";
-        const isbnImpreso = row["isbn13_edicion_impresa"] || "";
+
+        // Recoger formatos digitales desde productos relacionados
+        let digitalFormats = [];
+        if (isDigital) {
+            digitalFormats.push(formato);
+        }
+        if (productosRelacionados) {
+            // Si hay productos relacionados, podríamos extraer formatos de ahí
+            // pero por ahora no tenemos esa info
+        }
 
         return {
             isbn,
@@ -196,10 +208,45 @@
             isFree,
             iva,
             abstractText: resumen,
-            coverLink: imagen,
+            coverLink: imagen ? `covers/${imagen}` : "",
             productIDAlternative: isDigital ? isbnImpreso : isbnDigital,
-            normalizedTitle: titleText.toLowerCase().trim()
+            normalizedTitle: titleText.toLowerCase().trim(),
+            digitalFormats: digitalFormats,
+            relatedProducts: productosRelacionados ? productosRelacionados.split("|") : []
         };
+    }
+
+    // ─── Fusión de libros duplicados (mismo ISBN) ──────────
+    function mergeBooks(books) {
+        const map = new Map();
+        books.forEach(book => {
+            const key = book.isbn;
+            if (map.has(key)) {
+                const existing = map.get(key);
+                // Fusionar formatos digitales
+                if (book.digitalFormats && book.digitalFormats.length > 0) {
+                    existing.digitalFormats = [...new Set([...existing.digitalFormats, ...book.digitalFormats])];
+                }
+                // Si uno es digital y el otro no, mantener el digital
+                if (book.isDigital && !existing.isDigital) {
+                    existing.isDigital = true;
+                    existing.formatLabel = "DIGITAL";
+                }
+                // Si uno tiene portada y el otro no, mantener la que tiene
+                if (book.coverLink && !existing.coverLink) {
+                    existing.coverLink = book.coverLink;
+                }
+                // Mantener el precio más bajo si hay diferencia (opcional)
+                if (book.priceAmount > 0 && (existing.priceAmount === 0 || book.priceAmount < existing.priceAmount)) {
+                    existing.priceAmount = book.priceAmount;
+                    existing.displayPrice = book.displayPrice;
+                    existing.isFree = book.isFree;
+                }
+            } else {
+                map.set(key, { ...book });
+            }
+        });
+        return Array.from(map.values());
     }
 
     // ─── Càrrega de coleccions (opcional) ────────────────────
@@ -217,18 +264,18 @@
 
     async function fetchCollectionsCSV() {
         try {
-            const resp = await fetch("data/colections.csv");
+            const resp = await fetch("data/collections.csv");
             if (resp.ok) {
                 const text = await resp.text();
                 const hasData = await loadCollections(text);
                 collectionWrapper.style.display = hasData ? "block" : "none";
             } else {
                 collectionWrapper.style.display = "none";
-                console.log("colections.csv no trobat (no és crític)");
+                console.log("collections.csv no trobat (no és crític)");
             }
         } catch (e) {
             collectionWrapper.style.display = "none";
-            console.log("colections.csv no accessible (no és crític)");
+            console.log("collections.csv no accessible (no és crític)");
         }
     }
 
@@ -250,7 +297,10 @@
     // ─── Càrrega del catàleg ─────────────────────────────────
     async function loadCatalog(csvText) {
         const raw = parseCSVText(csvText);
-        allBooks = raw.map(transformBook).filter(b => b.titleText || b.isbn);
+        let books = raw.map(transformBook).filter(b => b.titleText || b.isbn);
+        // Fusionar duplicados por ISBN
+        books = mergeBooks(books);
+        allBooks = books;
         allBooks.sort((a, b) => b.sortDate - a.sortDate);
         populateCollectionFilter();
         console.log(`Total llibres: ${allBooks.length}`);
@@ -488,6 +538,8 @@
         if (book.isFree) {
             link.href = `https://doi.org/10.5565/lib/${cleanIsbnValue}`;
             link.textContent = "En obert";
+            // Color del movimiento diamante (azul)
+            link.style.backgroundColor = "rgb(56, 92, 169)";
             link.classList.add("btn-free");
         } else if (book.displayPrice) {
             link.href = `https://www.unebook.es/?isbn=${cleanIsbnValue}`;
@@ -550,12 +602,7 @@
             priceHTML = `<span class="detail-price-big"><a href="https://www.unebook.es/?isbn=${cleanIsbnValue}" target="_blank">${book.displayPrice}</a></span>${book.iva ? ` <span style="font-size:0.8rem;color:#888;">(IVA ${book.iva}%)</span>` : ""}`;
         }
 
-        let actionHTML = "";
-        if (book.isFree) {
-            actionHTML = `<div class="detail-action"><a href="https://doi.org/10.5565/lib/${cleanIsbnValue}" target="_blank">Accedir a Llibres en obert</a></div>`;
-        } else if (book.displayPrice) {
-            actionHTML = `<div class="detail-action"><a href="https://www.unebook.es/?isbn=${cleanIsbnValue}" target="_blank">Comprar a Unebook</a></div>`;
-        }
+        // Eliminado el botón "Accedir a Llibres en obert" (actionHTML ya no se genera)
 
         const related = getRelatedBooks(book);
         const otherFormatsHTML = createRelatedLinksHTML(related.otherFormats, "Altres formats disponibles");
@@ -565,11 +612,16 @@
             `<div class="detail-section"><a class="collection-link" data-collection="${escapeHTML(book.collectionTitle)}">📚 Veure tots els llibres de «${escapeHTML(book.collectionTitle)}»</a></div>` :
             "";
 
+        // Mostrar formatos digitales si hay más de uno
+        let digitalFormatsHTML = "";
+        if (book.digitalFormats && book.digitalFormats.length > 1) {
+            digitalFormatsHTML = `<div class="detail-section"><h4>Formats digitals</h4><div class="detail-row"><span class="value">${book.digitalFormats.join(", ")}</span></div></div>`;
+        }
+
         modalBody.innerHTML = `
         <div class="modal-cover-col">
             ${coverHTML}
             ${priceHTML ? '<div style="text-align:center;">' + priceHTML + '</div>' : ''}
-            ${actionHTML}
             <div class="detail-tags">
                 <span class="detail-tag highlight">${book.formatLabel}</span>
                 <span class="detail-tag">${book.languageLabel}</span>
@@ -592,6 +644,7 @@
                 ${book.extentLabel ? `<div class="detail-row"><span class="label">Extensió:</span><span class="value">${book.extentLabel}</span></div>` : ''}
                 ${book.collectionTitle ? `<div class="detail-row"><span class="label">Col·lecció:</span><span class="value">${escapeHTML(book.collectionTitle)}${book.collectionNumber ? ' — Núm. ' + book.collectionNumber : ''}</span></div>` : ''}
             </div>
+            ${digitalFormatsHTML}
             ${book.abstractText ? `<div class="detail-section"><h4>Descripció</h4><div class="detail-description">${escapeHTML(book.abstractText)}</div></div>` : ''}
             ${otherFormatsHTML}
             ${translationsHTML}

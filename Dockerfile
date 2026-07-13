@@ -24,6 +24,9 @@ RUN pip install --no-cache-dir -r /app/requirements.txt
 # Crear directorios de datos (volumen)
 RUN mkdir -p /data/catalog /data/covers /data/logs
 
+# Configurar Nginx para usar nuestro index
+COPY docker/nginx.conf /etc/nginx/conf.d/default.conf
+
 # Exponer puerto HTTP
 EXPOSE 80
 
