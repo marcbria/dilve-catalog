@@ -51,15 +51,27 @@ export function populateCollectionFilter() {
 export function updateCollectionIntro() {
     const selected = dom.collectionFilter.value;
     if (selected && selected !== "all" && state.collectionsData.length > 0) {
-        const found = state.collectionsData.find(c => c.titulo.toLowerCase() === selected.toLowerCase());
+        // Buscar sin distinción de mayúsculas
+        const found = state.collectionsData.find(c => 
+            c.titulo.toLowerCase() === selected.toLowerCase()
+        );
         if (found && found.intro) {
-            dom.collectionIntro.innerHTML = found.intro;
+            // Mostrar título como encabezado h2 y la introducción
+            dom.collectionIntro.innerHTML = `<h2>${escapeHTML(found.titulo)}</h2>${found.intro}`;
             dom.collectionIntro.classList.add("active");
             return;
         }
     }
     dom.collectionIntro.innerHTML = "";
     dom.collectionIntro.classList.remove("active");
+}
+
+// ─── Función auxiliar para escapar HTML (evita inyecciones) ──
+function escapeHTML(str) {
+    if (!str) return "";
+    const d = document.createElement("div");
+    d.textContent = str;
+    return d.innerHTML;
 }
 
 export function navigateToCollection(collectionTitle) {
