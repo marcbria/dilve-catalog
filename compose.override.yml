@@ -18,3 +18,10 @@ services:
       - ./data:/data
       # En producción no montamos ./public porque los archivos están en la imagen
       # - ./public:/usr/share/nginx/html
+
+    networks:
+      - proxy
+
+networks:
+  proxy:
+    external: true
