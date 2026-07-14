@@ -6,6 +6,9 @@ RUN apt-get update && apt-get install -y \
     cron \
     && rm -rf /var/lib/apt/lists/*
 
+# Eliminar la configuración por defecto de Nginx (evita conflicto con nuestro default.conf)
+RUN rm -f /etc/nginx/sites-enabled/default
+
 # Configurar directorios
 WORKDIR /app
 

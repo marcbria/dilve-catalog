@@ -54,7 +54,7 @@ document.getElementById('hamburgerBtn').addEventListener('click', function() {
 
 async function init() {
     try {
-        const response = await fetch('data/catalog.csv');
+        const response = await fetch('/data/catalog.csv');
         if (!response.ok) throw new Error(`Error en carregar el fitxer: ${response.status} ${response.statusText}`);
         const csvText = await response.text();
         await fetchCollectionsCSV();

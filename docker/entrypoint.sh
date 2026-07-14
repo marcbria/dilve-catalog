@@ -8,8 +8,12 @@ export BATCH_SIZE="${BATCH_SIZE:-128}"
 export ACTIVE_STATUS_CODES="${ACTIVE_STATUS_CODES:-04,02,13,18}"
 export CRON_SCHEDULE="${CRON_SCHEDULE:-0 2 * * *}"
 export TZ="${TZ:-UTC}"
+export BASE_PATH="${BASE_PATH:-/}"
 
 ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
+
+# Sustituir el placeholder {{BASE_PATH}} en el index.html
+sed -i "s|{{BASE_PATH}}|$BASE_PATH|g" /usr/share/nginx/html/index.html
 
 get_last_csv_date() {
     local last_csv=$(ls -1 /data/catalog/*.csv 2>/dev/null | sort -r | head -n1)

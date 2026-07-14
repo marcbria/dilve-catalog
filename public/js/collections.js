@@ -1,7 +1,7 @@
 import { dom, state } from './config.js';
 import { parseCSVText } from './csvParser.js';
 
-// ─── Càrrega de coleccions (opcional) ────────────────────
+// ─── Càrrega de col·leccions (opcional) ────────────────────
 export async function loadCollections(csvText) {
     const raw = parseCSVText(csvText);
     state.collectionsData = raw
@@ -16,8 +16,8 @@ export async function loadCollections(csvText) {
 
 export async function fetchCollectionsCSV() {
     try {
-        // UNIFICADO: usamos "collections.csv" (con dos 'l')
-        const resp = await fetch("data/collections.csv");
+        // Ruta absoluta para que funcione con el <base> y el middleware de Traefik
+        const resp = await fetch("/data/collections.csv");
         if (resp.ok) {
             const text = await resp.text();
             const hasData = await loadCollections(text);
@@ -47,16 +47,16 @@ export function populateCollectionFilter() {
     if (sorted.length === 0) dom.collectionWrapper.style.display = "none";
 }
 
-// ─── Mostrar la intro de la colección seleccionada ───────
+// ─── Mostrar la intro de la col·lecció seleccionada ───────
 export function updateCollectionIntro() {
     const selected = dom.collectionFilter.value;
     if (selected && selected !== "all" && state.collectionsData.length > 0) {
-        // Buscar sin distinción de mayúsculas
+        // Buscar sense distinció de majúscules
         const found = state.collectionsData.find(c => 
             c.titulo.toLowerCase() === selected.toLowerCase()
         );
         if (found && found.intro) {
-            // Mostrar título como encabezado h2 y la introducción
+            // Mostrar títol com a encapçalament h2 i la introducció
             dom.collectionIntro.innerHTML = `<h2>${escapeHTML(found.titulo)}</h2>${found.intro}`;
             dom.collectionIntro.classList.add("active");
             return;
@@ -66,7 +66,7 @@ export function updateCollectionIntro() {
     dom.collectionIntro.classList.remove("active");
 }
 
-// ─── Función auxiliar para escapar HTML (evita inyecciones) ──
+// ─── Funció auxiliar per escapar HTML (evita injeccions) ──
 function escapeHTML(str) {
     if (!str) return "";
     const d = document.createElement("div");
@@ -74,6 +74,7 @@ function escapeHTML(str) {
     return d.innerHTML;
 }
 
+// ─── Navegar a una col·lecció ──────────────────────────────
 export function navigateToCollection(collectionTitle) {
     const exists = Array.from(dom.collectionFilter.options).some(opt => opt.value === collectionTitle);
     if (!exists) {
