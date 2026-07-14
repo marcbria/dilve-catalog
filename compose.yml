@@ -1,11 +1,6 @@
 services:
-  catalog:
+  app:
     build: .
     env_file:
       - .env
-    ports:
-      - "8080:80"
-    volumes:
-      - ./data:/data
-      - ./public:/usr/share/nginx/html
     restart: unless-stopped
