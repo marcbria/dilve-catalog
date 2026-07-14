@@ -2,25 +2,26 @@ services:
   app:
     env_file:
       - .env
-
     labels:
       # Enable traefik for this stack:
       - "traefik.enable=true"
-
       # HTTPS routers:
       - "traefik.http.routers.cataleg.rule=Host(`publicacions.uab.cat`) && PathPrefix(`/llibres/catalog`)"
       - "traefik.http.routers.cataleg.entrypoints=websecure"
       - "traefik.http.routers.cataleg.tls=true"
       - "traefik.http.routers.cataleg.tls.certresolver=leresolver"
       - "traefik.http.services.cataleg.loadbalancer.server.port=80"
-
+        # Remove prefix: 
+      - "traefik.http.middlewares.strip-catalog.stripprefix.prefixes=/llibres/catalog"
+      - "traefik.http.routers.cataleg.middlewares=strip-catalog"
     volumes:
       - ./data:/data
       - ./public:/usr/share/nginx/html
 
-    networks:
-      - proxy
+# Enable whith traefik's network:
+#    networks:
+#      - proxy
 
-networks:
-  proxy:
-    external: true
+# networks:
+#  proxy:
+#    external: true
