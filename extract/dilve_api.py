@@ -23,48 +23,37 @@ def llamada_api(accion: str, params: dict) -> requests.Response:
 def obtener_lista_isbn(from_date: Optional[str] = None) -> List[str]:
     """
     Obtiene la lista de ISBN.
-    - Si from_date es None, usa CONFIG_FROM_DATE (si existe) o modo completo.
-    - Si from_date es una cadena, se usa como fecha incremental.
-    - Si from_date es "all", se fuerza modo completo.
+    - Si from_date es None o "all", se ejecuta modo completo.
+    - Si from_date es una fecha YYYY-MM-DD, se ejecuta modo incremental.
     """
-    from config import FROM_DATE as CONFIG_FROM_DATE
-
-    fecha = from_date
-    if fecha == "all":
-        fecha = None
-
-    if fecha is None:
-        # Usar CONFIG_FROM_DATE si está definido
-        if CONFIG_FROM_DATE is not None and CONFIG_FROM_DATE != "":
-            fecha = CONFIG_FROM_DATE
-        else:
-            # Modo completo
-            print_info("Modo completo: obteniendo todo el catálogo")
-            params = {
-                "publisher": EDITORIAL_CODE,
-                "type": "L",
-                "hyphens": "N"
-            }
-            resp = llamada_api("getRecordListX", params)
-            root = ET.fromstring(resp.content)
-            ns = {'d': 'http://www.dilve.es/dilve/api/xsd/getRecordListXResponse'}
-            error = root.find('.//d:error', ns)
-            if error is not None:
-                code = error.find('d:code', ns).text if error.find('d:code', ns) is not None else ""
-                text = error.find('d:text', ns).text if error.find('d:text', ns) is not None else ""
-                raise Exception(f"Error DILVE: {code} - {text}")
-            isbns = []
-            for record in root.findall('.//d:record', ns):
-                id_elem = record.find('d:id', ns)
-                if id_elem is not None and id_elem.text:
-                    isbns.append(id_elem.text.strip())
-            return isbns
+    # Si from_date es "all" o None, modo completo
+    if from_date is None or from_date == "all":
+        print_info("Modo completo: obteniendo todo el catálogo")
+        params = {
+            "publisher": EDITORIAL_CODE,
+            "type": "L",
+            "hyphens": "N"
+        }
+        resp = llamada_api("getRecordListX", params)
+        root = ET.fromstring(resp.content)
+        ns = {'d': 'http://www.dilve.es/dilve/api/xsd/getRecordListXResponse'}
+        error = root.find('.//d:error', ns)
+        if error is not None:
+            code = error.find('d:code', ns).text if error.find('d:code', ns) is not None else ""
+            text = error.find('d:text', ns).text if error.find('d:text', ns) is not None else ""
+            raise Exception(f"Error DILVE: {code} - {text}")
+        isbns = []
+        for record in root.findall('.//d:record', ns):
+            id_elem = record.find('d:id', ns)
+            if id_elem is not None and id_elem.text:
+                isbns.append(id_elem.text.strip())
+        return isbns
 
     # Si llegamos aquí, tenemos una fecha (incremental)
-    print_info(f"Modo incremental: obteniendo cambios desde {fecha}")
+    print_info(f"Modo incremental: obteniendo cambios desde {from_date}")
     params = {
         "publisher": EDITORIAL_CODE,
-        "fromDate": fecha,
+        "fromDate": from_date,
         "type": "A",
         "detail": "N",
         "hyphens": "N"
