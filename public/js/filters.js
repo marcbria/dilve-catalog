@@ -58,6 +58,7 @@ export function applyFiltersAndReset() {
     resetPagination();
     updateCollectionIntro();
     updateURL();
+    updateFilterActiveState(); // Resaltar filtros activos
 
     const count = state.filteredBooks.length;
     dom.resultsCount.textContent = count + " llibre" + (count !== 1 ? "s" : "");
@@ -67,6 +68,31 @@ export function applyFiltersAndReset() {
     } else {
         loadMoreBooks();
     }
+}
+
+// ─── Resaltar filtros activos ──────────────────────────
+function updateFilterActiveState() {
+    // Search input
+    if (dom.searchInput.value.trim()) {
+        dom.searchInput.classList.add('filter-active');
+    } else {
+        dom.searchInput.classList.remove('filter-active');
+    }
+
+    // Selects
+    const selects = [
+        dom.langFilter,
+        dom.formatFilter,
+        dom.priceFilter,
+        dom.collectionFilter
+    ];
+    selects.forEach(select => {
+        if (select.value !== 'all') {
+            select.classList.add('filter-active');
+        } else {
+            select.classList.remove('filter-active');
+        }
+    });
 }
 
 export function resetAllFilters() {

@@ -20,27 +20,6 @@ async function loadCatalog(csvText) {
     applyFiltersAndReset();
 }
 
-// ─── Inicialització ──────────────────────────────────────
-async function init() {
-    try {
-        const response = await fetch('catalog.csv');
-        if (!response.ok) throw new Error(`Error en carregar el fitxer: ${response.status} ${response.statusText}`);
-        const csvText = await response.text();
-        await fetchCollectionsCSV();
-        await loadCatalog(csvText);
-        setupIntersectionObserver();
-    } catch (err) {
-        console.error('Error carregant catalog.csv:', err);
-        dom.fileFallback.classList.add('active');
-        await fetchCollectionsCSV();
-        dom.booksGrid.innerHTML =
-            '<div class="error-message"><div class="icon">⚠️</div><p>No s\'ha pogut carregar automàticament el catàleg.</p><p style="font-size:0.9rem;">Selecciona el fitxer <strong>catalog.csv</strong> mitjançant el selector superior.</p></div>';
-        dom.booksGrid.style.display = 'grid';
-        dom.noResults.style.display = 'none';
-        dom.resultsCount.textContent = '';
-    }
-}
-
 // ─── Event listeners ──────────────────────────────────────
 dom.searchInput.addEventListener('input', applyFiltersAndReset);
 dom.sortSelect.addEventListener('change', applyFiltersAndReset);
@@ -70,5 +49,31 @@ dom.csvFileInput.addEventListener('change', function (e) {
     };
     reader.readAsText(file, 'UTF-8');
 });
+
+// ─── Hamburguesa ─────────────────────────────────────────
+document.getElementById('hamburgerBtn').addEventListener('click', function() {
+    document.getElementById('filterGroup').classList.toggle('open');
+});
+
+// ─── Inicialització ──────────────────────────────────────
+async function init() {
+    try {
+        const response = await fetch('catalog.csv');
+        if (!response.ok) throw new Error(`Error en carregar el fitxer: ${response.status} ${response.statusText}`);
+        const csvText = await response.text();
+        await fetchCollectionsCSV();
+        await loadCatalog(csvText);
+        setupIntersectionObserver();
+    } catch (err) {
+        console.error('Error carregant catalog.csv:', err);
+        dom.fileFallback.classList.add('active');
+        await fetchCollectionsCSV();
+        dom.booksGrid.innerHTML =
+            '<div class="error-message"><div class="icon">⚠️</div><p>No s\'ha pogut carregar automàticament el catàleg.</p><p style="font-size:0.9rem;">Selecciona el fitxer <strong>catalog.csv</strong> mitjançant el selector superior.</p></div>';
+        dom.booksGrid.style.display = 'grid';
+        dom.noResults.style.display = 'none';
+        dom.resultsCount.textContent = '';
+    }
+}
 
 init();

@@ -62,9 +62,11 @@ export function createBookCard(book) {
         link.href = `https://doi.org/10.5565/lib/${cleanIsbnValue}`;
         link.textContent = "En obert";
         link.classList.add("btn-free");
-    } else if (book.displayPrice) {
+    } else if (book.priceAmount > 0) {
         link.href = `https://www.unebook.es/?isbn=${cleanIsbnValue}`;
-        link.textContent = book.displayPrice;
+        // Formato europeo: coma como separador decimal y símbolo €
+        const priceFormatted = book.priceAmount.toFixed(2).replace('.', ',') + ' €';
+        link.textContent = priceFormatted;
         link.classList.add("btn-buy");
     }
     priceDiv.appendChild(link);
@@ -127,17 +129,15 @@ export function openDetailModal(book) {
         `<img src="${escapeHTML(book.coverLink)}" alt="${escapeHTML(book.titleText)}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';"><div class="modal-cover-placeholder" style="display:none;">${escapeHTML(book.titleText.substring(0,80))}</div>` :
         `<div class="modal-cover-placeholder">${escapeHTML(book.titleText.substring(0,80))}</div>`;
 
+    // Precio e IVA: si es gratuito, no mostrar el bloque de precio
     let priceHTML = "";
-    if (book.isFree) {
-        priceHTML = `<span class="detail-price-big"><a href="https://doi.org/10.5565/lib/${cleanIsbnValue}" target="_blank">En obert</a></span>`;
-    } else if (book.displayPrice) {
-        priceHTML = `<span class="detail-price-big"><a href="https://www.unebook.es/?isbn=${cleanIsbnValue}" target="_blank">${book.displayPrice}</a></span>${book.iva ? ` <span style="font-size:0.8rem;color:#888;">(IVA ${book.iva}%)</span>` : ""}`;
-    }
-
     let actionHTML = "";
     if (book.isFree) {
-        actionHTML = `<div class="detail-action"><a href="https://doi.org/10.5565/lib/${cleanIsbnValue}" target="_blank" class="btn-free">Llibres en obert</a></div>`;
-    } else if (book.displayPrice) {
+        // No mostrar precio, solo botón de acción
+        actionHTML = `<div class="detail-action"><a href="https://doi.org/10.5565/lib/${cleanIsbnValue}" target="_blank" class="btn-free">Accessible en obert</a></div>`;
+    } else if (book.priceAmount > 0) {
+        const priceFormatted = book.priceAmount.toFixed(2).replace('.', ',') + ' €';
+        priceHTML = `<span class="detail-price-big"><a href="https://www.unebook.es/?isbn=${cleanIsbnValue}" target="_blank">${priceFormatted}</a></span>${book.iva ? ` <span class="iva-inclosit">(IVA inclòs)</span>` : ""}`;
         actionHTML = `<div class="detail-action"><a href="https://www.unebook.es/?isbn=${cleanIsbnValue}" target="_blank" class="btn-buy">Comprar en UNEBook</a></div>`;
     }
 
@@ -169,6 +169,12 @@ export function openDetailModal(book) {
     const langDisplay = book.languageLabel;
     const formatDisplay = book.formatLabel;
 
+    // Editorial: si es "Servei de Publicacions de la Universitat Autònoma de Barcelona", enlazar
+    let publisherDisplay = book.publisherName;
+    if (publisherDisplay === "Servei de Publicacions de la Universitat Autònoma de Barcelona") {
+        publisherDisplay = `<a href="https://publicacions.uab.cat" target="_blank">Servei de Publicacions de la UAB</a>`;
+    }
+
     dom.modalBody.innerHTML = `
     <div class="modal-cover-col">
         ${coverHTML}
@@ -187,7 +193,7 @@ export function openDetailModal(book) {
             <div class="detail-row"><span class="label">Autor/s:</span><span class="value">${authorLinks}</span></div>
             <div class="detail-row"><span class="label">ISBN:</span><span class="value">${escapeHTML(book.isbn)}</span></div>
             ${book.productIDAlternative ? `<div class="detail-row"><span class="label">ISBN alternatiu:</span><span class="value">${escapeHTML(book.productIDAlternative)}</span></div>` : ''}
-            <div class="detail-row"><span class="label">Editorial:</span><span class="value">${escapeHTML(book.publisherName)}</span></div>
+            <div class="detail-row"><span class="label">Editorial:</span><span class="value">${publisherDisplay}</span></div>
             <div class="detail-row"><span class="label">Data publicació:</span><span class="value">${book.displayDate || '—'}</span></div>
             <div class="detail-row"><span class="label">Idioma:</span><span class="value"><span class="modal-link" data-lang="${book.languageCode}">${escapeHTML(langDisplay)}</span></span></div>
             <div class="detail-row"><span class="label">Format:</span><span class="value"><span class="modal-link" data-format="${formatDisplay}">${escapeHTML(formatDisplay)}</span></span></div>
