@@ -12,9 +12,9 @@ services:
       - "traefik.http.routers.cataleg.tls.certresolver=leresolver"
       - "traefik.http.services.cataleg.loadbalancer.server.port=80"
       # Middleware para quitar el prefijo
-      - "traefik.http.middlewares.strip-catalog.stripprefix.prefixes=/llibres/catalog"
-      - "traefik.http.routers.cataleg.middlewares=strip-catalog"
+      - "traefik.http.middlewares.strip-cataleg.stripprefix.prefixes=/llibres/catalog"
+      - "traefik.http.routers.cataleg.middlewares=strip-cataleg"
     volumes:
       - ./data:/data
-      # Ya no montamos ./public porque los archivos están en la imagen
+      # En producción no montamos ./public porque los archivos están en la imagen
       # - ./public:/usr/share/nginx/html

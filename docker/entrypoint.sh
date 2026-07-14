@@ -43,13 +43,18 @@ else
     export FROM_DATE=""
 fi
 
+# Ejecutar main.py en segundo plano para no bloquear Nginx
 cd /app
-python main.py
+python main.py >> /data/logs/startup.log 2>&1 &
 
 echo "Configurando cron con la programación: $CRON_SCHEDULE"
 echo "$CRON_SCHEDULE root /app/update.sh >> /data/logs/cron.log 2>&1" > /etc/cron.d/dilve-update
 chmod 0644 /etc/cron.d/dilve-update
 crontab /etc/cron.d/dilve-update
 
-cron
+# Iniciar cron en segundo plano
+cron &
+
+# Iniciar Nginx en primer plano (mantiene el contenedor vivo)
+echo "Iniciando Nginx..."
 nginx -g "daemon off;"
