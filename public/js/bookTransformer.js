@@ -1,4 +1,3 @@
-// ─── Utilitats ─────────────────────────────────────────────
 export function invertirNombre(nombre) {
     if (!nombre) return "";
     if (nombre.includes(',')) {
@@ -8,7 +7,6 @@ export function invertirNombre(nombre) {
     return nombre;
 }
 
-// ─── Transformació del registre ──────────────────────────
 export function transformBook(row) {
     const isbn = row["isbn13"] || "";
     const titleText = row["titulo"] || "";
@@ -104,7 +102,7 @@ export function transformBook(row) {
         isFree,
         iva,
         abstractText: resumen,
-        coverLink: imagen ? `covers/${imagen}` : "",
+        coverLink: imagen ? `data/covers/${imagen}` : "",
         productIDAlternative: isDigital ? isbnImpreso : isbnDigital,
         normalizedTitle: titleText.toLowerCase().trim(),
         digitalFormats: digitalFormats,
@@ -112,7 +110,6 @@ export function transformBook(row) {
     };
 }
 
-// ─── Fusión de libros duplicados (mismo ISBN) ──────────
 export function mergeBooks(books) {
     const map = new Map();
     books.forEach(book => {

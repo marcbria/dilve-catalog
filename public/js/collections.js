@@ -16,18 +16,19 @@ export async function loadCollections(csvText) {
 
 export async function fetchCollectionsCSV() {
     try {
-        const resp = await fetch("data/colections.csv");
+        // UNIFICADO: usamos "collections.csv" (con dos 'l')
+        const resp = await fetch("data/collections.csv");
         if (resp.ok) {
             const text = await resp.text();
             const hasData = await loadCollections(text);
             dom.collectionWrapper.style.display = hasData ? "block" : "none";
         } else {
             dom.collectionWrapper.style.display = "none";
-            console.log("colections.csv no trobat (no és crític)");
+            console.log("collections.csv no trobat (no és crític)");
         }
     } catch (e) {
         dom.collectionWrapper.style.display = "none";
-        console.log("colections.csv no accessible (no és crític)");
+        console.log("collections.csv no accessible (no és crític)");
     }
 }
 
@@ -50,7 +51,7 @@ export function populateCollectionFilter() {
 export function updateCollectionIntro() {
     const selected = dom.collectionFilter.value;
     if (selected && selected !== "all" && state.collectionsData.length > 0) {
-        const found = state.collectionsData.find(c => c.titulo === selected);
+        const found = state.collectionsData.find(c => c.titulo.toLowerCase() === selected.toLowerCase());
         if (found && found.intro) {
             dom.collectionIntro.innerHTML = found.intro;
             dom.collectionIntro.classList.add("active");
@@ -70,6 +71,5 @@ export function navigateToCollection(collectionTitle) {
         dom.collectionFilter.appendChild(opt);
     }
     dom.collectionFilter.value = collectionTitle;
-    // Disparar el evento change para aplicar filtros
     dom.collectionFilter.dispatchEvent(new Event('change'));
 }

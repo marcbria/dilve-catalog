@@ -6,7 +6,6 @@ import { applyFiltersAndReset, resetAllFilters, navigateToLanguage, navigateToFo
 import { loadMoreBooks, setupIntersectionObserver, closeModal, openDetailModal } from './uiRenderer.js';
 import { applyInitialURLParams, updateURL } from './urlManager.js';
 
-// ─── Càrrega del catàleg ─────────────────────────────────
 async function loadCatalog(csvText) {
     const raw = parseCSVText(csvText);
     let books = raw.map(transformBook).filter(b => b.titleText || b.isbn);
@@ -20,7 +19,6 @@ async function loadCatalog(csvText) {
     applyFiltersAndReset();
 }
 
-// ─── Event listeners ──────────────────────────────────────
 dom.searchInput.addEventListener('input', applyFiltersAndReset);
 dom.sortSelect.addEventListener('change', applyFiltersAndReset);
 dom.langFilter.addEventListener('change', applyFiltersAndReset);
@@ -50,15 +48,13 @@ dom.csvFileInput.addEventListener('change', function (e) {
     reader.readAsText(file, 'UTF-8');
 });
 
-// ─── Hamburguesa ─────────────────────────────────────────
 document.getElementById('hamburgerBtn').addEventListener('click', function() {
     document.getElementById('filterGroup').classList.toggle('open');
 });
 
-// ─── Inicialització ──────────────────────────────────────
 async function init() {
     try {
-        const response = await fetch('catalog.csv');
+        const response = await fetch('data/catalog.csv');
         if (!response.ok) throw new Error(`Error en carregar el fitxer: ${response.status} ${response.statusText}`);
         const csvText = await response.text();
         await fetchCollectionsCSV();

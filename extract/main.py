@@ -1,15 +1,11 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-"""
-Punto de entrada principal para la descarga del catálogo DILVE.
-Orquesta los módulos según los argumentos de línea de comandos.
-"""
-
 import argparse
 import sys
 import time
 import os
+import glob
 from datetime import datetime
 from typing import Optional
 
@@ -24,7 +20,7 @@ from onix_parser import parsear_producto
 from file_manager import (
     crear_directorios,
     guardar_csv,
-    update_symlinks,
+    create_data_symlink,
     get_last_csv_date,
     leer_csv_ultimo,
 )
@@ -37,15 +33,12 @@ def ejecutar_descarga(
     from_date: Optional[str] = None,
 ):
     start_time = time.time()
-    fecha_mostrada = from_date  # Guardamos para el mensaje de "no encontrados"
+    fecha_mostrada = from_date
 
-    # CORRECCIÓN: Si el usuario pasó explícitamente "all", forzamos modo completo sin mirar el último CSV
     if from_date == "all":
         print_info("Forzando modo completo (--from-date all)")
-        # No hacemos nada más, dejamos que obtener_lista_isbn maneje "all"
         fecha_mostrada = "el inicio"
     else:
-        # Si no se especificó fecha, usar la del último CSV (si existe)
         if from_date is None:
             last_date = get_last_csv_date()
             if last_date:
@@ -79,7 +72,6 @@ def ejecutar_descarga(
         total_isbns = len(isbns)
         print_info(f"Total de ISBN encontrados: {total_isbns}")
         if not isbns:
-            # Mensaje con la fecha
             if fecha_mostrada and fecha_mostrada != "el inicio":
                 print_warn(
                     f"No se encontraron productos nuevos para la editorial desde la fecha {fecha_mostrada}."
@@ -87,6 +79,12 @@ def ejecutar_descarga(
             else:
                 print_warn("No se encontraron productos para esta editorial.")
             _log_message("No se encontraron productos.")
+            if actualizar_metadatos:
+                csv_files = sorted(glob.glob("/data/catalog/*.csv"), reverse=True)
+                if csv_files:
+                    latest = csv_files[0]
+                    create_data_symlink(latest)
+                    print_info(f"Symlink actualizado al último CSV existente: {latest}")
             return
 
         resultados = []
@@ -102,7 +100,6 @@ def ejecutar_descarga(
                         datos = parsear_producto(prod)
                         status = datos.get("estado_catalogo", "")
                         if status not in ACTIVE_STATUS_CODES:
-                            # Mostrar descripción del estado
                             desc = CATALOG_STATUS_DESCRIPTIONS.get(status, "Desconocido")
                             print_warn(
                                 f"Saltando ISBN {datos.get('isbn13')} con estado {status} ({desc})"
@@ -154,31 +151,21 @@ def ejecutar_descarga(
         print_info(f"Libros activos encontrados: {libros_activos}")
         print_info(f"Metadatos descargados: {metadatos_descargados}")
 
-        if actualizar_metadatos and not resultados:
-            print_warn("No se generaron datos. Saliendo.")
-            _log_message("No se generaron datos.")
-            return
-
         if actualizar_metadatos:
-            timestamp = datetime.now().strftime("%Y%m%d-%H%M")
-            csv_filename = f"{timestamp}.csv"
-            csv_path = f"/data/catalog/{csv_filename}"
-            guardar_csv(resultados, csv_path)
-            update_symlinks(csv_path)
-
-        if actualizar_cubiertas and not actualizar_metadatos:
-            # Solo cubiertas: actualizar symlink covers (pero no catalog.csv)
-            covers_symlink = "public/covers"
-            if os.path.islink(covers_symlink) or os.path.exists(covers_symlink):
-                try:
-                    os.remove(covers_symlink)
-                except OSError as e:
-                    print_warn(f"No se pudo eliminar el enlace antiguo {covers_symlink}: {e}")
-            try:
-                os.symlink("../data/covers", covers_symlink)
-                print_ok(f"Enlace simbólico creado: {covers_symlink} -> data/covers")
-            except Exception as e:
-                print_error(f"Error al crear enlace simbólico para covers: {e}")
+            if resultados:
+                timestamp = datetime.now().strftime("%Y%m%d-%H%M")
+                csv_filename = f"{timestamp}.csv"
+                csv_path = f"/data/catalog/{csv_filename}"
+                guardar_csv(resultados, csv_path)
+                create_data_symlink(csv_path)
+            else:
+                csv_files = sorted(glob.glob("/data/catalog/*.csv"), reverse=True)
+                if csv_files:
+                    latest = csv_files[0]
+                    create_data_symlink(latest)
+                    print_info(f"Symlink actualizado al último CSV existente (sin cambios): {latest}")
+                else:
+                    print_warn("No hay ningún CSV para enlazar.")
 
         elapsed_time = time.time() - start_time
         print("\n" + "=" * 60)
@@ -192,7 +179,7 @@ def ejecutar_descarga(
             print_ok(f"Cubiertas descargadas de URLs externas: {cubiertas_externas}")
         print_error(f"Libros con errores: {errores_registros}")
         print_info(f"Tiempo de ejecución: {elapsed_time:.2f} segundos")
-        if actualizar_metadatos:
+        if actualizar_metadatos and resultados:
             print_info(f"CSV generado: {csv_path}")
         print("=" * 60)
 
@@ -206,7 +193,7 @@ def ejecutar_descarga(
             _log_message(f"Cubiertas externas: {cubiertas_externas}")
         _log_message(f"Errores: {errores_registros}")
         _log_message(f"Tiempo: {elapsed_time:.2f}s")
-        if actualizar_metadatos:
+        if actualizar_metadatos and resultados:
             _log_message(f"CSV: {csv_path}")
 
     except KeyboardInterrupt:
