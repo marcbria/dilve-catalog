@@ -70,25 +70,37 @@ def guardar_csv(resultados: List[Dict], csv_path: str) -> None:
 
 def update_symlinks(csv_path: str) -> None:
     """Crea/actualiza los symlinks en public/ apuntando al CSV y a covers."""
+    # Asegurar que el directorio public existe
+    os.makedirs("public", exist_ok=True)
+
     # catalog.csv
     symlink_path = "public/catalog.csv"
     if os.path.islink(symlink_path) or os.path.exists(symlink_path):
         try:
             os.remove(symlink_path)
+            print_info(f"Enlace antiguo eliminado: {symlink_path}")
         except OSError as e:
             print_warn(f"No se pudo eliminar el enlace antiguo {symlink_path}: {e}")
     try:
+        # Calcular ruta relativa desde public/ al CSV
         rel_path = os.path.relpath(csv_path, start="public")
         os.symlink(rel_path, symlink_path)
         print_ok(f"Enlace simbólico creado: {symlink_path} -> {csv_path}")
     except Exception as e:
         print_error(f"Error al crear enlace simbólico para catalog.csv: {e}")
+        # Fallback: intentar con ruta absoluta
+        try:
+            os.symlink(csv_path, symlink_path)
+            print_ok(f"Enlace simbólico creado (absoluto): {symlink_path} -> {csv_path}")
+        except Exception as e2:
+            print_error(f"Error al crear enlace simbólico absoluto: {e2}")
 
     # covers
     covers_symlink = "public/covers"
     if os.path.islink(covers_symlink) or os.path.exists(covers_symlink):
         try:
             os.remove(covers_symlink)
+            print_info(f"Enlace antiguo eliminado: {covers_symlink}")
         except OSError as e:
             print_warn(f"No se pudo eliminar el enlace antiguo {covers_symlink}: {e}")
     try:

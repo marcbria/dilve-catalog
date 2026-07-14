@@ -45,7 +45,7 @@ fi
 
 # Ejecutar la descarga
 cd /app
-python api_dilve.py
+python main.py
 
 # --- Crear enlaces simbólicos en public/ ---
 echo "Actualizando enlaces simbólicos en /usr/share/nginx/html/"

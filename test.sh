@@ -8,7 +8,7 @@
 # ─── Constantes ──────────────────────────────────────────────────────
 CONTAINER_NAME="catalog"
 COVERS_PATH="/data/covers"
-API_SCRIPT="/app/api_dilve.py"
+API_SCRIPT="/app/main.py"
 
 # ─── Colores ──────────────────────────────────────────────────────────
 GREEN='\033[0;32m'

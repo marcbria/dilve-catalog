@@ -109,6 +109,16 @@
         return data;
     }
 
+    // ─── Utilitats ─────────────────────────────────────────────
+    function invertirNombre(nombre) {
+        if (!nombre) return "";
+        if (nombre.includes(',')) {
+            const parts = nombre.split(',').map(s => s.trim());
+            return parts.reverse().join(' ');
+        }
+        return nombre;
+    }
+
     // ─── Transformació del registre ──────────────────────────
     function transformBook(row) {
         const isbn = row["isbn13"] || "";
@@ -119,12 +129,13 @@
         const collectionNumber = row["num_en_coleccion"] || "";
         const languageRaw = (row["idioma"] || "").toLowerCase();
         const pages = row["num_pags"] || "";
-        const editorial = row["editorial"] || "Servei de Publicacions de la Universitat Autònoma de Barcelona";
+        const editorial = row["editorial"] || "Servei de Publicacions de la UAB";
         const sello = row["sello"] || "";
         const formato = (row["formato_libro_3.0"] || "").toUpperCase();
         const formatoDigital = row["formato_edicion_digital"] || "";
         const fechaPublic = row["fecha_public"] || "";
         const fechaPublicDMA = row["fecha_public_dma"] || "";
+        const year = row["año_public"] || "";
         const precioVenta = row["precio_venta_publico"] || "";
         const iva = row["iva"] || "";
         const resumen = row["texto_resumen"] || "";
@@ -133,15 +144,15 @@
         const isbnImpreso = row["isbn13_edicion_impresa"] || "";
         const productosRelacionados = row["productos_relacionados"] || "";
 
-        // Determinar si es digital
         let isDigital = false;
         if (formato === "EC" || formato === "ED" || formatoDigital.trim() !== "") {
             isDigital = true;
         }
-        const formatLabel = isDigital ? "DIGITAL" : "PAPER";
+        const formatLabel = isDigital ? "Digital" : "Paper";
 
-        const authors = authorsRaw.split(",").map(a => a.trim()).filter(a => a);
-        const authorDisplay = authors.length > 0 ? authors.join(", ") : "Autor desconegut";
+        const authorList = authorsRaw.split(';').map(a => a.trim()).filter(a => a);
+        const authors = authorList.map(a => invertirNombre(a));
+        const authorDisplay = authors.length > 0 ? authors.join('; ') : "Autor desconegut";
 
         let displayDate = "";
         let sortDate = 0;
@@ -176,14 +187,12 @@
         const isFree = precioVenta === "" || numericPrice === 0;
         const displayPrice = isFree ? "" : numericPrice.toFixed(2) + " EUR";
 
-        // Recoger formatos digitales desde productos relacionados
         let digitalFormats = [];
         if (isDigital) {
             digitalFormats.push(formato);
         }
         if (productosRelacionados) {
-            // Si hay productos relacionados, podríamos extraer formatos de ahí
-            // pero por ahora no tenemos esa info
+            // no tenemos info extra
         }
 
         return {
@@ -198,6 +207,7 @@
             languageLabel,
             displayDate,
             sortDate,
+            year: year || (displayDate ? displayDate.slice(-4) : ""),
             extentLabel: pages ? pages + " pàgines" : "",
             isDigital,
             formatLabel,
@@ -223,20 +233,16 @@
             const key = book.isbn;
             if (map.has(key)) {
                 const existing = map.get(key);
-                // Fusionar formatos digitales
                 if (book.digitalFormats && book.digitalFormats.length > 0) {
                     existing.digitalFormats = [...new Set([...existing.digitalFormats, ...book.digitalFormats])];
                 }
-                // Si uno es digital y el otro no, mantener el digital
                 if (book.isDigital && !existing.isDigital) {
                     existing.isDigital = true;
-                    existing.formatLabel = "DIGITAL";
+                    existing.formatLabel = "Digital";
                 }
-                // Si uno tiene portada y el otro no, mantener la que tiene
                 if (book.coverLink && !existing.coverLink) {
                     existing.coverLink = book.coverLink;
                 }
-                // Mantener el precio más bajo si hay diferencia (opcional)
                 if (book.priceAmount > 0 && (existing.priceAmount === 0 || book.priceAmount < existing.priceAmount)) {
                     existing.priceAmount = book.priceAmount;
                     existing.displayPrice = book.displayPrice;
@@ -264,18 +270,18 @@
 
     async function fetchCollectionsCSV() {
         try {
-            const resp = await fetch("data/collections.csv");
+            const resp = await fetch("data/colections.csv");
             if (resp.ok) {
                 const text = await resp.text();
                 const hasData = await loadCollections(text);
                 collectionWrapper.style.display = hasData ? "block" : "none";
             } else {
                 collectionWrapper.style.display = "none";
-                console.log("collections.csv no trobat (no és crític)");
+                console.log("colections.csv no trobat (no és crític)");
             }
         } catch (e) {
             collectionWrapper.style.display = "none";
-            console.log("collections.csv no accessible (no és crític)");
+            console.log("colections.csv no accessible (no és crític)");
         }
     }
 
@@ -298,7 +304,6 @@
     async function loadCatalog(csvText) {
         const raw = parseCSVText(csvText);
         let books = raw.map(transformBook).filter(b => b.titleText || b.isbn);
-        // Fusionar duplicados por ISBN
         books = mergeBooks(books);
         allBooks = books;
         allBooks.sort((a, b) => b.sortDate - a.sortDate);
@@ -406,7 +411,6 @@
             return true;
         });
 
-        // Ordenació
         switch (sortVal) {
             case "title-asc":
                 filteredBooks.sort((a, b) => a.titleText.localeCompare(b.titleText, "ca"));
@@ -524,8 +528,7 @@
         const metaEl = document.createElement("div");
         metaEl.className = "card-meta";
         metaEl.innerHTML = `<span><span class="card-language-dot lang-${book.languageCode}"></span> ${book.languageLabel}</span>`;
-        if (book.displayDate) metaEl.innerHTML += `<span>📅 ${book.displayDate}</span>`;
-        if (book.extentLabel) metaEl.innerHTML += `<span>📄 ${book.extentLabel}</span>`;
+        if (book.year) metaEl.innerHTML += `<span>📅 ${book.year}</span>`;
         cardBody.appendChild(titleEl);
         cardBody.appendChild(authorEl);
         cardBody.appendChild(metaEl);
@@ -538,12 +541,11 @@
         if (book.isFree) {
             link.href = `https://doi.org/10.5565/lib/${cleanIsbnValue}`;
             link.textContent = "En obert";
-            // Color del movimiento diamante (azul)
-            link.style.backgroundColor = "rgb(56, 92, 169)";
             link.classList.add("btn-free");
         } else if (book.displayPrice) {
             link.href = `https://www.unebook.es/?isbn=${cleanIsbnValue}`;
             link.textContent = book.displayPrice;
+            link.classList.add("btn-buy");
         }
         priceDiv.appendChild(link);
         cardBody.appendChild(priceDiv);
@@ -565,10 +567,15 @@
 
     function createRelatedLinksHTML(books, label) {
         if (!books.length) return "";
-        let html = `<div class="detail-section"><h4>${label}</h4><div class="detail-row">`;
+        let html = `<div class="detail-section"><h4>${label}</h4><div class="detail-row" style="flex-wrap:wrap;">`;
         books.forEach((b, i) => {
-            html += `<span class="related-link" data-isbn="${b.isbn}">${b.titleText} (${b.languageLabel}, ${b.formatLabel})</span>`;
-            if (i < books.length - 1) html += ", ";
+            let text = "";
+            if (b.titleText === books[0]?.titleText) {
+                text = `${b.formatLabel} (${b.languageLabel})`;
+            } else {
+                text = `${b.titleText} (${b.formatLabel}, ${b.languageLabel})`;
+            }
+            html += `<button class="related-button" data-isbn="${b.isbn}">${text}</button>`;
         });
         html += `</div></div>`;
         return html;
@@ -583,6 +590,19 @@
             collectionFilter.appendChild(opt);
         }
         collectionFilter.value = collectionTitle;
+        applyFiltersAndReset();
+        controlsBar.scrollIntoView({ behavior: "smooth" });
+    }
+
+    function navigateToLanguage(langCode) {
+        langFilter.value = langCode;
+        applyFiltersAndReset();
+        controlsBar.scrollIntoView({ behavior: "smooth" });
+    }
+
+    function navigateToFormat(formatLabel) {
+        if (formatLabel === "Paper") formatFilter.value = "paper";
+        else if (formatLabel === "Digital") formatFilter.value = "digital";
         applyFiltersAndReset();
         controlsBar.scrollIntoView({ behavior: "smooth" });
     }
@@ -602,30 +622,49 @@
             priceHTML = `<span class="detail-price-big"><a href="https://www.unebook.es/?isbn=${cleanIsbnValue}" target="_blank">${book.displayPrice}</a></span>${book.iva ? ` <span style="font-size:0.8rem;color:#888;">(IVA ${book.iva}%)</span>` : ""}`;
         }
 
-        // Eliminado el botón "Accedir a Llibres en obert" (actionHTML ya no se genera)
+        let actionHTML = "";
+        if (book.isFree) {
+            actionHTML = `<div class="detail-action"><a href="https://doi.org/10.5565/lib/${cleanIsbnValue}" target="_blank" class="btn-free">Llibres en obert</a></div>`;
+        } else if (book.displayPrice) {
+            actionHTML = `<div class="detail-action"><a href="https://www.unebook.es/?isbn=${cleanIsbnValue}" target="_blank" class="btn-buy">Comprar en UNEBook</a></div>`;
+        }
 
         const related = getRelatedBooks(book);
         const otherFormatsHTML = createRelatedLinksHTML(related.otherFormats, "Altres formats disponibles");
         const translationsHTML = createRelatedLinksHTML(related.translations, "Traduccions");
 
         const collectionLinkHTML = book.collectionTitle ?
-            `<div class="detail-section"><a class="collection-link" data-collection="${escapeHTML(book.collectionTitle)}">📚 Veure tots els llibres de «${escapeHTML(book.collectionTitle)}»</a></div>` :
+            `<div class="detail-section"><button class="collection-link" data-collection="${escapeHTML(book.collectionTitle)}">Veure tots els llibres de «${escapeHTML(book.collectionTitle)}»</button></div>` :
             "";
 
-        // Mostrar formatos digitales si hay más de uno
         let digitalFormatsHTML = "";
         if (book.digitalFormats && book.digitalFormats.length > 1) {
             digitalFormatsHTML = `<div class="detail-section"><h4>Formats digitals</h4><div class="detail-row"><span class="value">${book.digitalFormats.join(", ")}</span></div></div>`;
         }
 
+        let collectionDisplay = "";
+        if (book.collectionTitle) {
+            collectionDisplay = escapeHTML(book.collectionTitle);
+            if (book.collectionNumber) {
+                collectionDisplay += ` — Núm. ${escapeHTML(book.collectionNumber)}`;
+            }
+        }
+
+        const authorLinks = book.authors.map(a => {
+            return `<span class="modal-link" data-author="${escapeHTML(a)}">${escapeHTML(a)}</span>`;
+        }).join(', ');
+
+        const langDisplay = book.languageLabel;
+        const formatDisplay = book.formatLabel;
+
         modalBody.innerHTML = `
         <div class="modal-cover-col">
             ${coverHTML}
             ${priceHTML ? '<div style="text-align:center;">' + priceHTML + '</div>' : ''}
+            ${actionHTML}
             <div class="detail-tags">
-                <span class="detail-tag highlight">${book.formatLabel}</span>
-                <span class="detail-tag">${book.languageLabel}</span>
-                ${book.isFree ? '<span class="detail-tag highlight">En obert</span>' : ''}
+                <span class="detail-tag highlight modal-link" data-format="${formatDisplay}">${formatDisplay}</span>
+                <span class="detail-tag highlight modal-link" data-lang="${book.languageCode}">${langDisplay}</span>
             </div>
         </div>
         <div class="modal-details-col">
@@ -633,16 +672,15 @@
             ${book.subtitle ? `<div class="subtitle">${escapeHTML(book.subtitle)}</div>` : ''}
             <div class="detail-section">
                 <h4>Informació general</h4>
-                <div class="detail-row"><span class="label">Autor/s:</span><span class="value">${escapeHTML(book.authorDisplay)}</span></div>
+                <div class="detail-row"><span class="label">Autor/s:</span><span class="value">${authorLinks}</span></div>
                 <div class="detail-row"><span class="label">ISBN:</span><span class="value">${escapeHTML(book.isbn)}</span></div>
                 ${book.productIDAlternative ? `<div class="detail-row"><span class="label">ISBN alternatiu:</span><span class="value">${escapeHTML(book.productIDAlternative)}</span></div>` : ''}
                 <div class="detail-row"><span class="label">Editorial:</span><span class="value">${escapeHTML(book.publisherName)}</span></div>
-                ${book.imprintName ? `<div class="detail-row"><span class="label">Segell:</span><span class="value">${escapeHTML(book.imprintName)}</span></div>` : ''}
                 <div class="detail-row"><span class="label">Data publicació:</span><span class="value">${book.displayDate || '—'}</span></div>
-                <div class="detail-row"><span class="label">Idioma:</span><span class="value">${book.languageLabel}</span></div>
-                <div class="detail-row"><span class="label">Format:</span><span class="value">${book.formatLabel}</span></div>
+                <div class="detail-row"><span class="label">Idioma:</span><span class="value"><span class="modal-link" data-lang="${book.languageCode}">${escapeHTML(langDisplay)}</span></span></div>
+                <div class="detail-row"><span class="label">Format:</span><span class="value"><span class="modal-link" data-format="${formatDisplay}">${escapeHTML(formatDisplay)}</span></span></div>
                 ${book.extentLabel ? `<div class="detail-row"><span class="label">Extensió:</span><span class="value">${book.extentLabel}</span></div>` : ''}
-                ${book.collectionTitle ? `<div class="detail-row"><span class="label">Col·lecció:</span><span class="value">${escapeHTML(book.collectionTitle)}${book.collectionNumber ? ' — Núm. ' + book.collectionNumber : ''}</span></div>` : ''}
+                ${book.collectionTitle ? `<div class="detail-row"><span class="label">Col·lecció:</span><span class="value"><span class="modal-link" data-collection="${escapeHTML(book.collectionTitle)}">${collectionDisplay}</span></span></div>` : ''}
             </div>
             ${digitalFormatsHTML}
             ${book.abstractText ? `<div class="detail-section"><h4>Descripció</h4><div class="detail-description">${escapeHTML(book.abstractText)}</div></div>` : ''}
@@ -652,83 +690,115 @@
         </div>
         `;
 
-        modalBody.querySelectorAll(".related-link").forEach(link => {
-            link.addEventListener("click", (e) => {
+        // Asignar eventos a los enlaces del modal
+        modalBody.querySelectorAll('.modal-link[data-author]').forEach(el => {
+            el.addEventListener('click', (e) => {
                 e.stopPropagation();
-                const isbn = link.getAttribute("data-isbn");
+                closeModal();
+                searchInput.value = el.dataset.author;
+                applyFiltersAndReset();
+                controlsBar.scrollIntoView({ behavior: "smooth" });
+            });
+        });
+        modalBody.querySelectorAll('.modal-link[data-lang]').forEach(el => {
+            el.addEventListener('click', (e) => {
+                e.stopPropagation();
+                closeModal();
+                navigateToLanguage(el.dataset.lang);
+            });
+        });
+        modalBody.querySelectorAll('.modal-link[data-format]').forEach(el => {
+            el.addEventListener('click', (e) => {
+                e.stopPropagation();
+                closeModal();
+                navigateToFormat(el.dataset.format);
+            });
+        });
+        modalBody.querySelectorAll('.modal-link[data-collection]').forEach(el => {
+            el.addEventListener('click', (e) => {
+                e.stopPropagation();
+                closeModal();
+                navigateToCollection(el.dataset.collection);
+            });
+        });
+
+        modalBody.querySelectorAll('.related-button').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const isbn = btn.getAttribute('data-isbn');
                 const relatedBook = allBooks.find(b => b.isbn === isbn);
                 if (relatedBook) openDetailModal(relatedBook);
             });
         });
 
-        const collectionLink = modalBody.querySelector(".collection-link");
+        const collectionLink = modalBody.querySelector('.collection-link');
         if (collectionLink) {
-            collectionLink.addEventListener("click", (e) => {
+            collectionLink.addEventListener('click', (e) => {
                 e.stopPropagation();
-                const colTitle = collectionLink.getAttribute("data-collection");
+                const colTitle = collectionLink.getAttribute('data-collection');
                 closeModal();
                 navigateToCollection(colTitle);
             });
         }
 
-        modalOverlay.classList.add("active");
-        document.body.style.overflow = "hidden";
-        document.getElementById("modalContent").scrollTop = 0;
+        modalOverlay.classList.add('active');
+        document.body.style.overflow = 'hidden';
+        document.getElementById('modalContent').scrollTop = 0;
     }
 
     function closeModal() {
-        modalOverlay.classList.remove("active");
-        document.body.style.overflow = "";
+        modalOverlay.classList.remove('active');
+        document.body.style.overflow = '';
     }
 
     // ─── Event listeners ──────────────────────────────────────
-    searchInput.addEventListener("input", applyFiltersAndReset);
-    sortSelect.addEventListener("change", applyFiltersAndReset);
-    langFilter.addEventListener("change", applyFiltersAndReset);
-    formatFilter.addEventListener("change", applyFiltersAndReset);
-    priceFilter.addEventListener("change", applyFiltersAndReset);
-    collectionFilter.addEventListener("change", applyFiltersAndReset);
-    resetButton.addEventListener("click", resetAllFilters);
+    searchInput.addEventListener('input', applyFiltersAndReset);
+    sortSelect.addEventListener('change', applyFiltersAndReset);
+    langFilter.addEventListener('change', applyFiltersAndReset);
+    formatFilter.addEventListener('change', applyFiltersAndReset);
+    priceFilter.addEventListener('change', applyFiltersAndReset);
+    collectionFilter.addEventListener('change', applyFiltersAndReset);
+    resetButton.addEventListener('click', resetAllFilters);
 
-    modalClose.addEventListener("click", closeModal);
-    modalOverlay.addEventListener("click", function (e) {
+    modalClose.addEventListener('click', closeModal);
+    modalOverlay.addEventListener('click', function (e) {
         if (e.target === modalOverlay) closeModal();
     });
-    document.addEventListener("keydown", function (e) {
-        if (e.key === "Escape" && modalOverlay.classList.contains("active")) closeModal();
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' && modalOverlay.classList.contains('active')) closeModal();
     });
 
-    csvFileInput.addEventListener("change", function (e) {
+    csvFileInput.addEventListener('change', function (e) {
         const file = e.target.files[0];
         if (!file) return;
         const reader = new FileReader();
         reader.onload = function (ev) {
-            fileFallback.classList.remove("active");
+            fileFallback.classList.remove('active');
             loadCatalog(ev.target.result).then(() => {
                 setupIntersectionObserver();
             });
         };
-        reader.readAsText(file, "UTF-8");
+        reader.readAsText(file, 'UTF-8');
     });
 
     // ─── Inicialització ──────────────────────────────────────
     async function init() {
         try {
-            const response = await fetch("catalog.csv");
+            const response = await fetch('catalog.csv');
             if (!response.ok) throw new Error(`Error en carregar el fitxer: ${response.status} ${response.statusText}`);
             const csvText = await response.text();
             await fetchCollectionsCSV();
             await loadCatalog(csvText);
             setupIntersectionObserver();
         } catch (err) {
-            console.error("Error carregant catalog.csv:", err);
-            fileFallback.classList.add("active");
+            console.error('Error carregant catalog.csv:', err);
+            fileFallback.classList.add('active');
             await fetchCollectionsCSV();
             booksGrid.innerHTML =
                 '<div class="error-message"><div class="icon">⚠️</div><p>No s\'ha pogut carregar automàticament el catàleg.</p><p style="font-size:0.9rem;">Selecciona el fitxer <strong>catalog.csv</strong> mitjançant el selector superior.</p></div>';
-            booksGrid.style.display = "grid";
-            noResults.style.display = "none";
-            resultsCount.textContent = "";
+            booksGrid.style.display = 'grid';
+            noResults.style.display = 'none';
+            resultsCount.textContent = '';
         }
     }
 

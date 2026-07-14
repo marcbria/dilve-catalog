@@ -28,15 +28,9 @@ La primera vez, el contenedor descargará automáticamente todo el catálogo. A 
     ├── docker/                  # Scripts de inicio y actualización
     │   ├── entrypoint.sh
     │   └── update.sh
-    ├── extract/                 # Código de extracción
-    │   ├── __init__.py
-    │   ├── main.py              # Punto de entrada (orquestador)
+    ├── extract/
+    │   ├── main.py         # Script principal de extracción
     │   ├── config.py            # Configuración (lee variables de entorno)
-    │   ├── logger.py            # Logging y mensajes en consola
-    │   ├── dilve_api.py         # Llamadas a la API de DILVE
-    │   ├── onix_parser.py       # Parseo de ONIX 3.0
-    │   ├── file_manager.py      # Gestión de archivos y symlinks
-    │   ├── image_downloader.py  # Descarga de imágenes
     │   └── requirements.txt     # Dependencias Python
     └── public/                  # Frontend estático
         ├── index.html
@@ -160,7 +154,7 @@ El script `main.py` acepta los siguientes argumentos para controlar qué datos s
 |-----------|-------------|
 | `--update-metadata` | Solo descarga metadatos (no descarga imágenes). Genera un nuevo CSV. |
 | `--update-covers` | Solo descarga cubiertas. Utiliza el último CSV para saber qué imágenes descargar. Si se usa con `--from-date`, obtiene los ISBN desde esa fecha y descarga las cubiertas correspondientes (sin generar CSV). |
-| `--from-date YYYY-MM-DD` | Fecha de inicio para el modo incremental. Sobrescribe `FROM_DATE`. Si no se especifica, se usa el valor de `config.py`. Usa `all` para forzar modo completo. |
+| `--from-date YYYY-MM-DD` | Fecha de inicio para el modo incremental. Sobrescribe `FROM_DATE`. Si no se especifica, se usa el valor de `config.py`. |
 
 **Ejemplos:**
 
@@ -182,8 +176,8 @@ El script `main.py` acepta los siguientes argumentos para controlar qué datos s
 - `python main.py --update-covers --from-date 2026-01-01`  
   Descarga cubiertas de los libros que han cambiado desde esa fecha (obtiene los ISBN mediante `getRecordStatusX` y descarga las imágenes, **sin generar CSV**).
 
-- `python main.py --update-covers --from-date all`  
-  Descarga cubiertas de **todo** el catálogo. Equivale a descargar todas las cubiertas desde el principio.
+- `python main.py --update-covers --from-date 2000-01-01`  
+  Descarga cubiertas de **todo** el catálogo (usando una fecha anterior a la existencia de los datos). Equivale a descargar todas las cubiertas desde el principio.
 
 **Nota:** La combinación `--update-metadata --update-covers` no está permitida porque ambos modos se ejecutan por defecto cuando no se especifica ninguno. Si quieres ambos, simplemente ejecuta el script sin argumentos o con `--from-date`.
 

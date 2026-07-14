@@ -5,10 +5,14 @@ Descarga de imágenes (desde DILVE o externas).
 
 import os
 import requests
+import urllib3
 from typing import Tuple, Optional
 from logger import print_ok, print_warn, print_error, print_info
 from dilve_api import descargar_recurso_dilve
 from file_manager import leer_csv_ultimo
+
+# Suprimir warnings de SSL (para certificados autofirmados)
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 COVERS_DIR = "/data/covers"
 

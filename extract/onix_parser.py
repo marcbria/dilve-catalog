@@ -4,6 +4,7 @@ Parseo de XML ONIX 3.0 para extraer metadatos.
 """
 
 import os
+import re
 from urllib.parse import urlparse
 from typing import Dict, List
 import xml.etree.ElementTree as ET
@@ -36,7 +37,7 @@ def parsear_producto(product: ET.Element) -> Dict[str, str]:
             isbn13 = safe_find_text(id_elem, "onix:IDValue", "")
             break
     datos["isbn13"] = isbn13
-    datos["ISBN13_guiones"] = isbn13  # simplificado
+    datos["ISBN13_guiones"] = isbn13
 
     # Editorial y sello
     publishing_detail = product.find("onix:PublishingDetail", NS)
@@ -68,7 +69,7 @@ def parsear_producto(product: ET.Element) -> Dict[str, str]:
                 estado_catalogo = pub_status.text.strip()
     datos["estado_catalogo"] = estado_catalogo
 
-    # DescriptiveDetail (título, subtítulo, formato, páginas, dimensiones, etc.)
+    # DescriptiveDetail
     descriptive = product.find("onix:DescriptiveDetail", NS)
     if descriptive is not None:
         titulo = ""
@@ -90,8 +91,34 @@ def parsear_producto(product: ET.Element) -> Dict[str, str]:
         pfd = descriptive.find("onix:ProductFormDetail", NS)
         datos["encuad"] = pfd.text if pfd is not None else ""
 
-        datos["num_pags"] = safe_find_text(descriptive, "onix:NumberOfPages", "")
+        # ---------- NÚMERO DE PÁGINAS (mejorado) ----------
+        num_pags = ""
 
+        # 1. Buscar en NumberOfPages (ONIX 2.1)
+        num_pags = safe_find_text(descriptive, "onix:NumberOfPages", "")
+        if num_pags:
+            datos["num_pags"] = num_pags
+        else:
+            # 2. Buscar en Extent con tipos de páginas (00 o 11) y unidad 03 o 19 (páginas)
+            for extent in descriptive.findall("onix:Extent", NS):
+                extent_type = safe_find_text(extent, "onix:ExtentType", "")
+                extent_unit = safe_find_text(extent, "onix:ExtentUnit", "")
+                if extent_type in ["00", "11"] and extent_unit in ["03", "19"]:
+                    num_pags = safe_find_text(extent, "onix:ExtentValue", "")
+                    if num_pags:
+                        break
+            # 3. Fallback: buscar cualquier Extent con unidad 03 o 19 y valor entero
+            if not num_pags:
+                for extent in descriptive.findall("onix:Extent", NS):
+                    extent_unit = safe_find_text(extent, "onix:ExtentUnit", "")
+                    if extent_unit in ["03", "19"]:
+                        value = safe_find_text(extent, "onix:ExtentValue", "")
+                        if value and re.match(r'^\d+$', value):  # solo dígitos
+                            num_pags = value
+                            break
+            datos["num_pags"] = num_pags
+
+        # Dimensiones
         measure_list = descriptive.findall("onix:Measure", NS)
         alto_mm = ancho_mm = grueso_mm = ""
         for measure in measure_list:
@@ -166,12 +193,12 @@ def parsear_producto(product: ET.Element) -> Dict[str, str]:
                   "publico_objetivo", "num_edic"]:
             datos[k] = ""
 
-    # Autores
+    # ---------- AUTORES ----------
     autores = []
     notas = []
-    for contributor in product.findall("onix:Contributor", NS):
+    for contributor in product.findall(".//onix:Contributor", NS):
         role = safe_find_text(contributor, "onix:ContributorRole", "")
-        if role not in ["A01", "A02"]:
+        if role not in ["A01", "A02", "01", "02"]:
             continue
         person_name = safe_find_text(contributor, "onix:PersonName", "")
         if not person_name:
@@ -193,7 +220,7 @@ def parsear_producto(product: ET.Element) -> Dict[str, str]:
         else:
             datos[key] = ""
 
-    # Fechas
+    # ---------- Fechas ----------
     fecha_public = ""
     if publishing_detail is not None:
         for date_elem in publishing_detail.findall("onix:PublicationDate", NS):
@@ -227,11 +254,12 @@ def parsear_producto(product: ET.Element) -> Dict[str, str]:
         datos["año_public"] = ""
     datos["tirada"] = ""
 
-    # Precios
+    # ---------- PRECIOS ----------
     supply_detail = product.find("onix:ProductSupply/onix:SupplyDetail", NS)
     disponibilidad = situ_catalogo = ""
     fecha_disponibilidad = fecha_puesta_venta = ""
     iva = precio_sin_iva = precio_venta_publico = ""
+
     if supply_detail is not None:
         avail = supply_detail.find("onix:Availability", NS)
         if avail is not None:
@@ -250,11 +278,15 @@ def parsear_producto(product: ET.Element) -> Dict[str, str]:
         for price_elem in supply_detail.findall("onix:Price", NS):
             price_type = safe_find_text(price_elem, "onix:PriceType", "")
             amount = safe_find_text(price_elem, "onix:PriceAmount", "")
-            if price_type == "01" and amount:
+            if not amount:
+                continue
+            if price_type in ["01", "04"]:
                 precio_venta_publico = amount
                 tax = price_elem.find("onix:Tax", NS)
                 if tax is not None:
-                    iva = safe_find_text(tax, "onix:TaxRate", "")
+                    iva = safe_find_text(tax, "onix:TaxRatePercent", "")
+                    if not iva:
+                        iva = safe_find_text(tax, "onix:TaxRate", "")
                     if iva and amount:
                         try:
                             tasa = float(iva) / 100
@@ -264,11 +296,13 @@ def parsear_producto(product: ET.Element) -> Dict[str, str]:
                 if not iva:
                     precio_sin_iva = amount
                 break
-            elif price_type == "02" and amount:
+            elif price_type == "02":
                 precio_sin_iva = amount
                 tax = price_elem.find("onix:Tax", NS)
                 if tax is not None:
-                    iva = safe_find_text(tax, "onix:TaxRate", "")
+                    iva = safe_find_text(tax, "onix:TaxRatePercent", "")
+                    if not iva:
+                        iva = safe_find_text(tax, "onix:TaxRate", "")
                     if iva and amount:
                         try:
                             tasa = float(iva) / 100
@@ -313,7 +347,7 @@ def parsear_producto(product: ET.Element) -> Dict[str, str]:
     datos["precio_sin_iva"] = precio_sin_iva
     datos["precio_venta_publico"] = precio_venta_publico
 
-    # Resumen
+    # ---------- Resumen ----------
     collateral = product.find("onix:CollateralDetail", NS)
     resumen = idioma_resumen = ""
     if collateral is not None:
@@ -327,7 +361,7 @@ def parsear_producto(product: ET.Element) -> Dict[str, str]:
     datos["texto_resumen"] = resumen
     datos["idioma_resumen"] = idioma_resumen
 
-    # Imagen de cubierta
+    # ---------- Imagen de cubierta ----------
     imagen_cubierta = ""
     formato_imagen = ""
     formato_imagen_3_0 = ""
@@ -374,7 +408,7 @@ def parsear_producto(product: ET.Element) -> Dict[str, str]:
     datos["fecha_mod_imagen_cubierta"] = ""
     datos["_url_externa"] = url_externa
 
-    # URLs y relaciones
+    # ---------- URLs y relaciones ----------
     datos["URL_descarga_producto"] = ""
     datos["web_descarga_producto"] = ""
     sustituto = sustituido = ""

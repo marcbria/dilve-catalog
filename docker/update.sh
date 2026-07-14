@@ -27,7 +27,7 @@ else
 fi
 
 # Ejecutar extracción
-python api_dilve.py
+python main.py
 
 # Actualizar enlace simbólico al último CSV
 LAST_CSV=$(ls -1 /data/catalog/*.csv 2>/dev/null | sort -r | head -n1)

@@ -13,30 +13,48 @@ import os
 from datetime import datetime
 from typing import Optional
 
-from config import ACTIVE_STATUS_CODES, BATCH_SIZE
+from config import (
+    ACTIVE_STATUS_CODES,
+    BATCH_SIZE,
+    CATALOG_STATUS_DESCRIPTIONS,
+)
 from logger import init_log, close_log, print_info, print_ok, print_warn, print_error, _log_message
 from dilve_api import obtener_lista_isbn, obtener_productos_onix
 from onix_parser import parsear_producto
 from file_manager import (
-    crear_directorios, guardar_csv, update_symlinks, 
-    get_last_csv_date, leer_csv_ultimo
+    crear_directorios,
+    guardar_csv,
+    update_symlinks,
+    get_last_csv_date,
+    leer_csv_ultimo,
 )
 from image_downloader import descargar_imagen, actualizar_cubiertas_desde_csv
 
-def ejecutar_descarga(actualizar_metadatos: bool = True, actualizar_cubiertas: bool = True, from_date: Optional[str] = None):
-    """Función principal que orquesta la descarga."""
-    start_time = time.time()
-    if from_date == "all":
-        from_date = None
 
-    # Determinar fecha de inicio
-    if from_date is None:
-        last_date = get_last_csv_date()
-        if last_date:
-            from_date = last_date
-            print_info(f"Usando fecha del último CSV: {from_date}")
-        else:
-            print_info("No hay CSV previo. Se realizará modo completo.")
+def ejecutar_descarga(
+    actualizar_metadatos: bool = True,
+    actualizar_cubiertas: bool = True,
+    from_date: Optional[str] = None,
+):
+    start_time = time.time()
+    fecha_mostrada = from_date  # Guardamos para el mensaje de "no encontrados"
+
+    # CORRECCIÓN: Si el usuario pasó explícitamente "all", forzamos modo completo sin mirar el último CSV
+    if from_date == "all":
+        print_info("Forzando modo completo (--from-date all)")
+        # No hacemos nada más, dejamos que obtener_lista_isbn maneje "all"
+        fecha_mostrada = "el inicio"
+    else:
+        # Si no se especificó fecha, usar la del último CSV (si existe)
+        if from_date is None:
+            last_date = get_last_csv_date()
+            if last_date:
+                from_date = last_date
+                print_info(f"Usando fecha del último CSV: {from_date}")
+                fecha_mostrada = from_date
+            else:
+                print_info("No hay CSV previo. Se realizará modo completo.")
+                fecha_mostrada = "el inicio"
 
     print_info("=== Iniciando descarga del catálogo ===")
     crear_directorios()
@@ -57,17 +75,26 @@ def ejecutar_descarga(actualizar_metadatos: bool = True, actualizar_cubiertas: b
             print_error(f"Error al obtener lista de ISBN: {e}")
             _log_message(f"ERROR: {e}")
             return
+
         total_isbns = len(isbns)
         print_info(f"Total de ISBN encontrados: {total_isbns}")
         if not isbns:
-            print_warn("No se encontraron productos para esta editorial.")
+            # Mensaje con la fecha
+            if fecha_mostrada and fecha_mostrada != "el inicio":
+                print_warn(
+                    f"No se encontraron productos nuevos para la editorial desde la fecha {fecha_mostrada}."
+                )
+            else:
+                print_warn("No se encontraron productos para esta editorial.")
             _log_message("No se encontraron productos.")
             return
 
         resultados = []
         total = len(isbns)
         for i, chunk in enumerate(chunk_list(isbns, BATCH_SIZE), 1):
-            print_info(f"Procesando lote {i} de { (total + BATCH_SIZE - 1)//BATCH_SIZE } ({len(chunk)} ISBN)...")
+            print_info(
+                f"Procesando lote {i} de { (total + BATCH_SIZE - 1)//BATCH_SIZE } ({len(chunk)} ISBN)..."
+            )
             try:
                 productos = obtener_productos_onix(chunk)
                 for prod in productos:
@@ -75,8 +102,13 @@ def ejecutar_descarga(actualizar_metadatos: bool = True, actualizar_cubiertas: b
                         datos = parsear_producto(prod)
                         status = datos.get("estado_catalogo", "")
                         if status not in ACTIVE_STATUS_CODES:
-                            print_warn(f"Saltando ISBN {datos.get('isbn13')} con estado {status}")
+                            # Mostrar descripción del estado
+                            desc = CATALOG_STATUS_DESCRIPTIONS.get(status, "Desconocido")
+                            print_warn(
+                                f"Saltando ISBN {datos.get('isbn13')} con estado {status} ({desc})"
+                            )
                             continue
+
                         libros_activos += 1
                         datos.pop("estado_catalogo", None)
 
@@ -86,7 +118,9 @@ def ejecutar_descarga(actualizar_metadatos: bool = True, actualizar_cubiertas: b
                             if img:
                                 isbn_val = datos.get("isbn13")
                                 if isbn_val:
-                                    success, origen = descargar_imagen(isbn_val, img, url_externa)
+                                    success, origen = descargar_imagen(
+                                        isbn_val, img, url_externa
+                                    )
                                     if success:
                                         if origen == "dilve":
                                             cubiertas_dilve += 1
@@ -100,14 +134,20 @@ def ejecutar_descarga(actualizar_metadatos: bool = True, actualizar_cubiertas: b
                         if actualizar_metadatos:
                             resultados.append(datos)
                             metadatos_descargados += 1
+
                         registros_procesados += 1
+
                     except Exception as e:
-                        print_error(f"Error procesando ISBN {datos.get('isbn13', 'desconocido')}: {e}")
+                        print_error(
+                            f"Error procesando ISBN {datos.get('isbn13', 'desconocido')}: {e}"
+                        )
                         errores_registros += 1
                         continue
+
             except Exception as e:
                 print_error(f"Error procesando lote {i}: {e}")
                 continue
+
             time.sleep(0.5)
 
         print_info(f"Total de registros procesados: {registros_procesados}")
@@ -176,15 +216,29 @@ def ejecutar_descarga(actualizar_metadatos: bool = True, actualizar_cubiertas: b
         print_error(f"Error inesperado: {e}")
         _log_message(f"Error inesperado: {e}")
 
+
 def chunk_list(lst, size):
     for i in range(0, len(lst), size):
-        yield lst[i:i + size]
+        yield lst[i : i + size]
+
 
 def main():
     parser = argparse.ArgumentParser(description="Descarga de catálogo DILVE")
-    parser.add_argument("--update-metadata", action="store_true", help="Solo actualiza metadatos")
-    parser.add_argument("--update-covers", action="store_true", help="Solo actualiza cubiertas")
-    parser.add_argument("--from-date", type=str, help="Fecha de inicio (YYYY-MM-DD) o 'all' para completo.")
+    parser.add_argument(
+        "--update-metadata",
+        action="store_true",
+        help="Solo actualiza metadatos",
+    )
+    parser.add_argument(
+        "--update-covers",
+        action="store_true",
+        help="Solo actualiza cubiertas",
+    )
+    parser.add_argument(
+        "--from-date",
+        type=str,
+        help="Fecha de inicio (YYYY-MM-DD) o 'all' para completo.",
+    )
     args = parser.parse_args()
 
     if not init_log():
@@ -197,28 +251,47 @@ def main():
         try:
             datetime.strptime(from_date, "%Y-%m-%d")
         except ValueError:
-            print_error(f"Formato de fecha inválido: {from_date}. Use YYYY-MM-DD o 'all'.")
+            print_error(
+                f"Formato de fecha inválido: {from_date}. Use YYYY-MM-DD o 'all'."
+            )
             close_log()
             sys.exit(1)
 
     try:
         if not args.update_metadata and not args.update_covers:
-            print_info("Modo por defecto: metadatos + cubiertas (incremental desde último CSV o completo si no hay)")
-            ejecutar_descarga(actualizar_metadatos=True, actualizar_cubiertas=True, from_date=from_date)
+            print_info(
+                "Modo por defecto: metadatos + cubiertas (incremental desde último CSV o completo si no hay)"
+            )
+            ejecutar_descarga(
+                actualizar_metadatos=True,
+                actualizar_cubiertas=True,
+                from_date=from_date,
+            )
         elif args.update_metadata and not args.update_covers:
             print_info("Modo solo metadatos")
-            ejecutar_descarga(actualizar_metadatos=True, actualizar_cubiertas=False, from_date=from_date)
+            ejecutar_descarga(
+                actualizar_metadatos=True,
+                actualizar_cubiertas=False,
+                from_date=from_date,
+            )
         elif not args.update_metadata and args.update_covers:
             if from_date:
                 print_info("Modo solo cubiertas con fecha específica")
-                ejecutar_descarga(actualizar_metadatos=False, actualizar_cubiertas=True, from_date=from_date)
+                ejecutar_descarga(
+                    actualizar_metadatos=False,
+                    actualizar_cubiertas=True,
+                    from_date=from_date,
+                )
             else:
                 actualizar_cubiertas_desde_csv()
         else:
-            print_error("No se pueden usar --update-metadata y --update-covers simultáneamente.")
+            print_error(
+                "No se pueden usar --update-metadata y --update-covers simultáneamente."
+            )
             sys.exit(1)
     finally:
         close_log()
+
 
 if __name__ == "__main__":
     main()
