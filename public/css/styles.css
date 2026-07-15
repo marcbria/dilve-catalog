@@ -284,3 +284,74 @@ body { font-family:var(--font-sans); background-color:#f8f9fa; color:#1a1a1a; li
     .card-author { font-size:0.75rem; }
 }
 @media (min-width: 1600px) { .books-grid { grid-template-columns:repeat(5,1fr); } }
+
+
+/* UAB Header */
+
+/* Estils per al tema UAB */
+body {
+    font-family: 'NimbusSanL', Arial, sans-serif;
+    background-color: #f8f9fa;
+}
+
+.prenavigation {
+    background-color: #f0f0f0;
+    border-bottom: 1px solid #ddd;
+    font-size: 0.75rem;
+    padding: 4px 0;
+}
+
+.prenavigation .container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.prenavigation a {
+    color: #333;
+    text-decoration: none;
+    margin: 0 4px;
+}
+.prenavigation a:hover {
+    text-decoration: underline;
+}
+
+.navbar {
+    background: #fff !important;
+    border-bottom: 4px solid #007e11 !important;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    padding: 10px 0;
+}
+
+.navbar-brand img {
+    max-height: 52px;
+    height: auto;
+    width: auto;
+    display: block;
+}
+
+.navbar-nav .nav-link {
+    color: #1a1a1a;
+    font-weight: 500;
+}
+.navbar-nav .nav-link:hover {
+    color: #007e11;
+}
+
+.container {
+    max-width: 1260px;
+    margin: 0 auto;
+    padding: 0 24px;
+}
+
+/* Ajustos per al menu hamburguesa en mòbils */
+@media (max-width: 768px) {
+    .navbar-brand {
+        margin-right: auto;
+    }
+    .navbar-toggler {
+        border: none;
+    }
+}
