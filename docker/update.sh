@@ -1,11 +1,18 @@
 #!/bin/bash
+# Script ejecutado por cron para actualizar el catálogo
 
+# Asegurar PATH para que encuentre python3
+export PATH="/usr/local/bin:/usr/bin:/bin"
+export PYTHONUNBUFFERED=1
+
+# Cargar variables de entorno (si se definieron en docker-compose)
 if [ -f /etc/environment ]; then
     . /etc/environment
 fi
 
 cd /app
 
+# Obtener fecha del último CSV
 LAST_CSV=$(ls -1 /data/catalog/*.csv 2>/dev/null | sort -r | head -n1)
 if [ -n "$LAST_CSV" ]; then
     basename=$(basename "$LAST_CSV" .csv)
@@ -23,4 +30,5 @@ else
     echo "No hay CSV previo. Modo completo."
 fi
 
-python main.py
+# Ejecutar extracción (creará /data/catalog.csv automáticamente)
+python3 main.py
