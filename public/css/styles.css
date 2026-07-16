@@ -140,114 +140,286 @@ body { font-family:var(--font-sans); background-color:#f8f9fa; color:#1a1a1a; li
 .file-fallback.active { display:block; }
 .file-fallback input { margin-top:12px; font-family:var(--font-sans); }
 
-/* ─── MODAL ─── */
-.modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.55); z-index:200; display:flex; align-items:center; justify-content:center; padding:24px; opacity:0; pointer-events:none; transition:opacity 0.3s ease; backdrop-filter:blur(3px); -webkit-backdrop-filter:blur(3px); }
-.modal-overlay.active { opacity:1; pointer-events:auto; }
-.modal { background:#fff; max-width:900px; width:100%; max-height:88vh; overflow-y:auto; box-shadow:0 20px 48px rgba(0,0,0,0.2); position:relative; transform:translateY(20px); transition:transform 0.3s ease; }
-.modal-overlay.active .modal { transform:translateY(0); }
-.modal-close { position:sticky; top:16px; float:right; z-index:10; width:40px; height:40px; border:none; background:#fff; cursor:pointer; font-size:1.2rem; box-shadow:0 2px 8px rgba(0,0,0,0.15); transition:0.2s; display:flex; align-items:center; justify-content:center; margin-right:16px; color:#333; }
-.modal-close:hover { background:#f5f5f5; color:#000; }
-.modal-body { display:flex; gap:32px; padding:24px 28px 32px; flex-wrap:wrap; }
-.modal-cover-col { flex:0 0 260px; display:flex; flex-direction:column; align-items:center; gap:16px; }
-.modal-cover-col img { width:100%; height:auto; max-height:100%; object-fit:contain; box-shadow:0 8px 20px rgba(0,0,0,0.1); aspect-ratio:auto; background:#f1f1f1; }
-.modal-cover-placeholder { width:100%; aspect-ratio:3/4; background:linear-gradient(135deg, #e0e8e7, #d0dcd9); display:flex; align-items:center; justify-content:center; font-family:var(--font-serif); font-size:2rem; color:#aaa; text-align:center; padding:30px; box-shadow:0 8px 20px rgba(0,0,0,0.1); }
-.modal-details-col { flex:1; min-width:280px; display:flex; flex-direction:column; gap:18px; }
-.modal-details-col h2 { font-family:var(--font-sans); font-size:1.8rem; font-weight:700; color:#1a1a1a; line-height:1.25; letter-spacing:-0.3px; }
-.subtitle { font-family:var(--font-serif); font-size:1.1rem; color:#666; font-style:italic; margin-top:-12px; }
-.detail-section { border-top:1px solid #eee; padding-top:14px; }
-.detail-section h4 { font-size:0.8rem; text-transform:uppercase; letter-spacing:0.8px; color:#888; margin-bottom:8px; font-weight:600; }
-.detail-row { display:flex; gap:8px; padding:4px 0; font-size:0.9rem; flex-wrap:wrap; }
-.detail-row .label { font-weight:600; color:#444; min-width:110px; flex-shrink:0; }
-.detail-description { font-size:0.9rem; color:#555; line-height:1.7; max-height:200px; overflow-y:auto; padding-right:8px; white-space:pre-line; }
-.detail-tags { display:flex; flex-wrap:wrap; gap:8px; margin-top:4px; }
-.detail-tag { display:inline-block; padding:5px 12px; font-size:0.8rem; font-weight:500; background:#f0f0f0; color:#555; }
-.detail-tag.highlight { background:var(--uab-green-pale); color:var(--uab-green-dark); font-weight:600; }
-.detail-tag.highlight.modal-link {
-    text-decoration: none;
-    cursor: pointer;
-    transition: background 0.2s, color 0.2s;
+/* ─── MODAL (con prefijo catalog- para evitar conflictos con Bootstrap) ─── */
+.catalog-modal-overlay {
+    position: fixed !important;
+    inset: 0 !important;
+    background: rgba(0, 0, 0, 0.55) !important;
+    z-index: 9999 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 24px !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+    transition: opacity 0.3s ease !important;
+    backdrop-filter: blur(3px) !important;
+    -webkit-backdrop-filter: blur(3px) !important;
 }
-.detail-tag.highlight.modal-link:hover {
-    background: var(--uab-green);
-    color: #fff;
+.catalog-modal-overlay.active {
+    opacity: 1 !important;
+    pointer-events: auto !important;
+}
+.catalog-modal-overlay .catalog-modal {
+    background: #fff !important;
+    max-width: 900px !important;
+    width: 100% !important;
+    max-height: 88vh !important;
+    overflow-y: auto !important;
+    box-shadow: 0 20px 48px rgba(0, 0, 0, 0.2) !important;
+    position: relative !important;
+    transform: translateY(20px) !important;
+    transition: transform 0.3s ease !important;
+    display: block !important;
+    margin: 0 !important;
+    border-radius: 0 !important;
+}
+.catalog-modal-overlay.active .catalog-modal {
+    transform: translateY(0) !important;
+}
+.catalog-modal-close {
+    position: sticky !important;
+    top: 16px !important;
+    float: right !important;
+    z-index: 10 !important;
+    width: 40px !important;
+    height: 40px !important;
+    border: none !important;
+    background: #fff !important;
+    cursor: pointer !important;
+    font-size: 1.2rem !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15) !important;
+    transition: 0.2s !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    margin-right: 16px !important;
+    color: #333 !important;
+    border-radius: 0 !important;
+}
+.catalog-modal-close:hover {
+    background: #f5f5f5 !important;
+    color: #000 !important;
+}
+.catalog-modal-body {
+    display: flex !important;
+    gap: 32px !important;
+    padding: 24px 28px 32px !important;
+    flex-wrap: wrap !important;
+}
+.catalog-modal-body .modal-cover-col {
+    flex: 0 0 260px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    gap: 16px !important;
+}
+.catalog-modal-body .modal-cover-col img {
+    width: 100% !important;
+    height: auto !important;
+    max-height: 100% !important;
+    object-fit: contain !important;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1) !important;
+    aspect-ratio: auto !important;
+    background: #f1f1f1 !important;
+}
+.catalog-modal-body .modal-cover-placeholder {
+    width: 100% !important;
+    aspect-ratio: 3/4 !important;
+    background: linear-gradient(135deg, #e0e8e7, #d0dcd9) !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    font-family: var(--font-serif) !important;
+    font-size: 2rem !important;
+    color: #aaa !important;
+    text-align: center !important;
+    padding: 30px !important;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1) !important;
+}
+.catalog-modal-body .modal-details-col {
+    flex: 1 !important;
+    min-width: 280px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 18px !important;
+}
+.catalog-modal-body .modal-details-col h2 {
+    font-family: var(--font-sans) !important;
+    font-size: 1.8rem !important;
+    font-weight: 700 !important;
+    color: #1a1a1a !important;
+    line-height: 1.25 !important;
+    letter-spacing: -0.3px !important;
+    margin: 0 !important;
+}
+.catalog-modal-body .subtitle {
+    font-family: var(--font-serif) !important;
+    font-size: 1.1rem !important;
+    color: #666 !important;
+    font-style: italic !important;
+    margin-top: -12px !important;
+}
+.catalog-modal-body .detail-section {
+    border-top: 1px solid #eee !important;
+    padding-top: 14px !important;
+}
+.catalog-modal-body .detail-section h4 {
+    font-size: 0.8rem !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.8px !important;
+    color: #888 !important;
+    margin-bottom: 8px !important;
+    font-weight: 600 !important;
+}
+.catalog-modal-body .detail-row {
+    display: flex !important;
+    gap: 8px !important;
+    padding: 4px 0 !important;
+    font-size: 0.9rem !important;
+    flex-wrap: wrap !important;
+}
+.catalog-modal-body .detail-row .label {
+    font-weight: 600 !important;
+    color: #444 !important;
+    min-width: 110px !important;
+    flex-shrink: 0 !important;
+}
+/* ===== NUEVO: Forzar color por defecto para campos sin enlace ===== */
+.catalog-modal-body .detail-row .value {
+    color: #1a1a1a !important;
+}
+/* ===== Los enlaces (modal-link) mantienen su color verde ===== */
+.catalog-modal-body .modal-link {
+    color: var(--uab-green) !important;
+    text-decoration: underline !important;
+    cursor: pointer !important;
+    transition: color 0.2s !important;
+}
+.catalog-modal-body .modal-link:hover {
+    color: var(--uab-green-dark) !important;
+}
+.catalog-modal-body .detail-description {
+    font-size: 0.9rem !important;
+    color: #555 !important;
+    line-height: 1.7 !important;
+    max-height: 200px !important;
+    overflow-y: auto !important;
+    padding-right: 8px !important;
+    white-space: pre-line !important;
+}
+.catalog-modal-body .detail-tags {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 8px !important;
+    margin-top: 4px !important;
+}
+.catalog-modal-body .detail-tag {
+    display: inline-block !important;
+    padding: 5px 12px !important;
+    font-size: 0.8rem !important;
+    font-weight: 500 !important;
+    background: #f0f0f0 !important;
+    color: #555 !important;
+    border-radius: 0 !important;
+}
+.catalog-modal-body .detail-tag.highlight {
+    background: var(--uab-green-pale) !important;
+    color: var(--uab-green-dark) !important;
+    font-weight: 600 !important;
+}
+.catalog-modal-body .detail-tag.highlight.modal-link {
+    text-decoration: none !important;
+    cursor: pointer !important;
+    transition: background 0.2s, color 0.2s !important;
+}
+.catalog-modal-body .detail-tag.highlight.modal-link:hover {
+    background: var(--uab-green) !important;
+    color: #fff !important;
+}
+.catalog-modal-body .detail-price-big {
+    font-size: 1.2rem !important;
+    font-weight: 700 !important;
+    color: var(--uab-green-dark) !important;
+    background: var(--uab-green-pale) !important;
+    padding: 8px 18px !important;
+    display: inline-block !important;
+}
+.catalog-modal-body .iva-inclosit {
+    font-size: 1.2rem !important;
+    color: #888 !important;
+    margin-left: 8px !important;
+}
+.catalog-modal-body .detail-action {
+    margin-top: 12px !important;
+    text-align: center !important;
+}
+.catalog-modal-body .detail-action a {
+    display: inline-block !important;
+    padding: 12px 28px !important;
+    background: var(--uab-green) !important;
+    color: #fff !important;
+    font-weight: 600 !important;
+    font-size: 1rem !important;
+    text-decoration: none !important;
+    transition: background 0.2s !important;
+    border-radius: 0 !important;
+    letter-spacing: 0.5px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+}
+.catalog-modal-body .detail-action a:hover {
+    background: var(--uab-green-dark) !important;
+}
+.catalog-modal-body .detail-action a.btn-free {
+    background: rgb(56, 92, 169) !important;
+}
+.catalog-modal-body .detail-action a.btn-free:hover {
+    background: #1a3b6e !important;
+}
+.catalog-modal-body .detail-action a.btn-buy {
+    background: var(--uab-green) !important;
+}
+.catalog-modal-body .detail-action a.btn-buy:hover {
+    background: var(--uab-green-dark) !important;
+}
+.catalog-modal-body .related-button {
+    display: inline-block !important;
+    padding: 8px 16px !important;
+    background: var(--uab-green-pale) !important;
+    color: var(--uab-green-dark) !important;
+    border: 1px solid var(--uab-green) !important;
+    cursor: pointer !important;
+    transition: 0.2s !important;
+    font-size: 0.85rem !important;
+    font-weight: 500 !important;
+    border-radius: 0 !important;
+    margin-right: 8px !important;
+    margin-bottom: 6px !important;
+}
+.catalog-modal-body .related-button:hover {
+    background: var(--uab-green) !important;
+    color: #fff !important;
+}
+.catalog-modal-body .collection-link {
+    display: inline-block !important;
+    padding: 8px 16px !important;
+    background: var(--uab-green-pale) !important;
+    color: var(--uab-green-dark) !important;
+    border: 1px solid var(--uab-green) !important;
+    cursor: pointer !important;
+    transition: 0.2s !important;
+    font-size: 0.9rem !important;
+    font-weight: 500 !important;
+    border-radius: 0 !important;
+    text-decoration: none !important;
+}
+.catalog-modal-body .collection-link:hover {
+    background: var(--uab-green) !important;
+    color: #fff !important;
 }
 
-/* ─── Precio e IVA en modal ─── */
-.detail-price-big {
-    font-size: 1.2rem;
-    font-weight: 700;
-    color: var(--uab-green-dark);
-    background: var(--uab-green-pale);
-    padding: 8px 18px;
-    display: inline-block;
-}
-.iva-inclosit {
-    font-size: 1.2rem;
-    color: #888;
-    margin-left: 8px;
-}
-
-.detail-action { margin-top:12px; text-align:center; }
-.detail-action a { display:inline-block; padding:12px 28px; background:var(--uab-green); color:#fff; font-weight:600; font-size:1rem; text-decoration:none; transition:background 0.2s; border-radius:0; letter-spacing:0.5px; width:100%; box-sizing:border-box; }
-.detail-action a:hover { background:var(--uab-green-dark); }
-.detail-action a.btn-free { background:rgb(56, 92, 169); }
-.detail-action a.btn-free:hover { background:#1a3b6e; }
-.detail-action a.btn-buy { background:var(--uab-green); }
-.detail-action a.btn-buy:hover { background:var(--uab-green-dark); }
-
-.related-link { color:var(--uab-green); text-decoration:underline; cursor:pointer; margin:2px 0; display:inline-block; }
-.related-link:hover { color:var(--uab-green-dark); }
-
-/* ─── BOTONES RELACIONADOS ─── */
-.related-button {
-    display: inline-block;
-    padding: 8px 16px;
-    background: var(--uab-green-pale);
-    color: var(--uab-green-dark);
-    border: 1px solid var(--uab-green);
-    cursor: pointer;
-    transition: 0.2s;
-    font-size: 0.85rem;
-    font-weight: 500;
-    border-radius: 0;
-    margin-right: 8px;
-    margin-bottom: 6px;
-}
-.related-button:hover {
-    background: var(--uab-green);
-    color: #fff;
-}
-
-/* ─── BOTÓN DE COLECCIÓN ─── */
-.collection-link {
-    display: inline-block;
-    padding: 8px 16px;
-    background: var(--uab-green-pale);
-    color: var(--uab-green-dark);
-    border: 1px solid var(--uab-green);
-    cursor: pointer;
-    transition: 0.2s;
-    font-size: 0.9rem;
-    font-weight: 500;
-    border-radius: 0;
-    text-decoration: none;
-}
-.collection-link:hover {
-    background: var(--uab-green);
-    color: #fff;
-}
-
-/* ─── ENLACES EN MODAL ─── */
-.modal-link {
-    color: var(--uab-green);
-    text-decoration: underline;
-    cursor: pointer;
-    transition: color 0.2s;
-}
-.modal-link:hover {
-    color: var(--uab-green-dark);
-}
-
+/* ─── FOOTER ─── */
 .site-footer { background:#2d2d2d; color:#ccc; padding:24px 0; font-size:0.85rem; text-align:center; }
 .site-footer .container { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; }
 .site-footer a { color:#ddd; text-decoration:none; }
@@ -275,8 +447,8 @@ body { font-family:var(--font-sans); background-color:#f8f9fa; color:#1a1a1a; li
         width: 100%;
     }
     .books-grid { grid-template-columns:repeat(auto-fill, minmax(180px,1fr)); gap:16px; }
-    .modal-body { flex-direction:column; padding:16px; gap:20px; }
-    .modal-cover-col { max-width:200px; margin:0 auto; }
+    .catalog-modal-body { flex-direction:column; padding:16px; gap:20px; }
+    .catalog-modal-body .modal-cover-col { max-width:200px; margin:0 auto; }
 }
 @media (max-width: 480px) {
     .books-grid { grid-template-columns:repeat(auto-fill, minmax(150px,1fr)); gap:12px; }
@@ -284,74 +456,3 @@ body { font-family:var(--font-sans); background-color:#f8f9fa; color:#1a1a1a; li
     .card-author { font-size:0.75rem; }
 }
 @media (min-width: 1600px) { .books-grid { grid-template-columns:repeat(5,1fr); } }
-
-
-/* UAB Header */
-
-/* Estils per al tema UAB */
-body {
-    font-family: 'NimbusSanL', Arial, sans-serif;
-    background-color: #f8f9fa;
-}
-
-.prenavigation {
-    background-color: #f0f0f0;
-    border-bottom: 1px solid #ddd;
-    font-size: 0.75rem;
-    padding: 4px 0;
-}
-
-.prenavigation .container {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 8px;
-}
-
-.prenavigation a {
-    color: #333;
-    text-decoration: none;
-    margin: 0 4px;
-}
-.prenavigation a:hover {
-    text-decoration: underline;
-}
-
-.navbar {
-    background: #fff !important;
-    border-bottom: 4px solid #007e11 !important;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-    padding: 10px 0;
-}
-
-.navbar-brand img {
-    max-height: 52px;
-    height: auto;
-    width: auto;
-    display: block;
-}
-
-.navbar-nav .nav-link {
-    color: #1a1a1a;
-    font-weight: 500;
-}
-.navbar-nav .nav-link:hover {
-    color: #007e11;
-}
-
-.container {
-    max-width: 1260px;
-    margin: 0 auto;
-    padding: 0 24px;
-}
-
-/* Ajustos per al menu hamburguesa en mòbils */
-@media (max-width: 768px) {
-    .navbar-brand {
-        margin-right: auto;
-    }
-    .navbar-toggler {
-        border: none;
-    }
-}
