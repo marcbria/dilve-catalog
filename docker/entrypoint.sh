@@ -21,6 +21,47 @@ cat > /usr/share/nginx/html/js/theme-config.js <<EOF
 window.THEME = "${THEME}";
 EOF
 
+# --- Función para obtener contenido de un fragmento con fallback ---
+get_fragment() {
+    local theme_dir="/usr/share/nginx/html/theme/${THEME}"
+    local default_dir="/usr/share/nginx/html/theme/default"
+    local fragment_name="$1"
+    local fragment_file="${theme_dir}/${fragment_name}"
+    local default_file="${default_dir}/${fragment_name}"
+    if [ -f "$fragment_file" ]; then
+        cat "$fragment_file"
+    elif [ -f "$default_file" ]; then
+        cat "$default_file"
+    else
+        echo ""
+    fi
+}
+
+# --- Ensamblar index.html ---
+BASE_INDEX="/usr/share/nginx/html/theme/${THEME}/index.html"
+DEFAULT_INDEX="/usr/share/nginx/html/theme/default/index.html"
+if [ -f "$BASE_INDEX" ]; then
+    INDEX_TEMPLATE="$BASE_INDEX"
+else
+    INDEX_TEMPLATE="$DEFAULT_INDEX"
+fi
+
+# Leer fragmentos
+HEADER_CONTENT=$(get_fragment "header.html")
+FOOTER_CONTENT=$(get_fragment "footer.html")
+STYLES_CONTENT=$(get_fragment "styles.css")
+HEAD_EXTRA_CONTENT=$(get_fragment "head_extra.html")
+
+# Reemplazar marcadores en la plantilla
+# Usamos un delimitador diferente para sed (|) para evitar problemas con /
+sed -e "s|{{HEADER}}|$HEADER_CONTENT|g" \
+    -e "s|{{FOOTER}}|$FOOTER_CONTENT|g" \
+    -e "s|{{STYLES}}|$STYLES_CONTENT|g" \
+    -e "s|{{HEAD_EXTRA}}|$HEAD_EXTRA_CONTENT|g" \
+    "$INDEX_TEMPLATE" > /usr/share/nginx/html/index.html
+
+echo "Index.html ensamblado para el tema: $THEME"
+
 # --- Función para obtener la fecha del último CSV ---
 get_last_csv_date() {
     local last_csv=$(ls -1 /data/catalog/*.csv 2>/dev/null | sort -r | head -n1)

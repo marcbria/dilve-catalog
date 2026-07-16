@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="ca">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <base href="{{BASE_PATH}}">
+    <title>Catàleg de Llibres | Publicacions UAB</title>
+    <link rel="stylesheet" href="css/styles.css" />
+    {{STYLES}}
+    {{HEAD_EXTRA}}
+</head>
+<body>
+    {{HEADER}}
+    <!-- ─── Controls ─── -->
+    <div class="controls-bar" id="controlsBar">
+        <div class="container controls-inner">
+            <div class="search-wrapper">
+                <input type="text" id="searchInput" placeholder="Cercar per títol, autor o ISBN..." />
+                <span class="search-icon">🔍</span>
+            </div>
+            <button class="hamburger" id="hamburgerBtn" aria-label="Menú filtres">☰</button>
+            <div class="filter-group" id="filterGroup">
+                <select id="sortSelect">
+                    <option value="date-desc" selected>Més recents</option>
+                    <option value="date-asc">Més antics</option>
+                    <option value="title-asc">Títol ▲</option>
+                    <option value="title-desc">Títol ▼</option>
+                    <option value="author-asc">Autor ▲</option>
+                    <option value="author-desc">Autor ▼</option>
+                </select>
+                <select id="langFilter">
+                    <option value="all">Tots els idiomes</option>
+                    <option value="cat">Català</option>
+                    <option value="spa">Castellà</option>
+                    <option value="eng">Anglès</option>
+                </select>
+                <select id="formatFilter">
+                    <option value="all">Tots els formats</option>
+                    <option value="paper">Paper</option>
+                    <option value="digital">Digital</option>
+                </select>
+                <select id="priceFilter">
+                    <option value="all">Tots els tipus d'accés</option>
+                    <option value="diamond">Llibres en obert</option>
+                    <option value="paid">De pagament</option>
+                </select>
+                <div id="collectionFilterWrapper">
+                    <select id="collectionFilter">
+                        <option value="all">Totes les col·leccions</option>
+                    </select>
+                </div>
+                <button id="resetFilters">Reset</button>
+                <span class="results-count" id="resultsCount"></span>
+            </div>
+        </div>
+    </div>
+
+    <!-- ─── Contingut principal ─── -->
+    <main class="main-content">
+        <div class="container">
+            <div class="file-fallback" id="fileFallback">
+                <p><strong>⚠️ No s'ha pogut carregar automàticament el catàleg.</strong></p>
+                <p style="color:#888;">Selecciona el fitxer <strong>catalog.csv</strong> del teu ordinador:</p>
+                <input type="file" id="csvFileInput" accept=".csv,.tsv,.txt" />
+            </div>
+            <div class="collection-intro" id="collectionIntro"></div>
+            <div class="books-grid" id="booksGrid">
+                <div class="scroll-sentinel" id="scrollSentinel"></div>
+                <div class="loading-indicator" id="loadingIndicator">Carregant més llibres...</div>
+            </div>
+            <div class="no-results" id="noResults" style="display:none;">
+                <div class="icon">📚</div>
+                <p>No s'han trobat llibres amb aquests criteris.</p>
+                <p style="font-size:0.9rem;color:#888;">Prova amb altres filtres o termes de cerca.</p>
+            </div>
+        </div>
+    </main>
+
+    <!-- ─── Modal ─── -->
+    <div class="modal-overlay" id="modalOverlay">
+        <div class="modal" id="modalContent">
+            <button class="modal-close" id="modalClose" title="Tancar">✕</button>
+            <div class="modal-body" id="modalBody"></div>
+        </div>
+    </div>
+
+    {{FOOTER}}
+
+    <!-- ─── Móduls JavaScript ─── -->
+    <!-- ===== CONFIGURACIÓN DEL TEMA ===== -->
+    <script src="js/theme-config.js"></script>
+    <script type="module" src="js/config.js"></script>
+    <script type="module" src="js/csvParser.js"></script>
+    <script type="module" src="js/bookTransformer.js"></script>
+    <script type="module" src="js/collections.js"></script>
+    <script type="module" src="js/filters.js"></script>
+    <script type="module" src="js/uiRenderer.js"></script>
+    <script type="module" src="js/urlManager.js"></script>
+    <script type="module" src="js/app.js"></script>
+</body>
+</html>
