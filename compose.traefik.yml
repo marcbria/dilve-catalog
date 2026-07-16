@@ -3,22 +3,15 @@ services:
     env_file:
       - .env
     labels:
-      # Enable traefik for this stack:
       - "traefik.enable=true"
-      # HTTPS routers:
       - "traefik.http.routers.cataleg.rule=Host(`publicacions.uab.cat`) && PathPrefix(`${BASE_PATH}`)"
       - "traefik.http.routers.cataleg.entrypoints=websecure"
       - "traefik.http.routers.cataleg.tls=true"
       - "traefik.http.routers.cataleg.tls.certresolver=leresolver"
       - "traefik.http.services.cataleg.loadbalancer.server.port=80"
-      # Middleware para quitar el prefijo
       - "traefik.http.middlewares.strip-cataleg.stripprefix.prefixes=${BASE_PATH}"
       - "traefik.http.routers.cataleg.middlewares=strip-cataleg"
-    volumes:
-      - ./data:/data
-      # En producción no montamos ./public porque los archivos están en la imagen
-      # - ./public:/usr/share/nginx/html
-
+    ports: []
     networks:
       - proxy
 
