@@ -1,10 +1,13 @@
 FROM python:3.12-slim
 
-# Instalar nginx, cron y otras utilidades
+# Instalar nginx, cron, jinja2 y otras utilidades
 RUN apt-get update && apt-get install -y \
     nginx \
     cron \
     && rm -rf /var/lib/apt/lists/*
+
+# Instalar Jinja2 (para el ensamblado de plantillas)
+RUN pip install --no-cache-dir jinja2
 
 # Eliminar la configuración por defecto de Nginx
 RUN rm -f /etc/nginx/sites-enabled/default
@@ -22,7 +25,7 @@ COPY docker/entrypoint.sh /entrypoint.sh
 COPY docker/update.sh /app/update.sh
 RUN chmod +x /entrypoint.sh /app/update.sh
 
-# Instalar dependencias Python
+# Instalar dependencias Python de la extracción
 RUN pip install --no-cache-dir -r /app/requirements.txt
 
 # Crear directorios de datos (volumen)

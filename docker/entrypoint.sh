@@ -21,46 +21,66 @@ cat > /usr/share/nginx/html/js/theme-config.js <<EOF
 window.THEME = "${THEME}";
 EOF
 
-# --- Función para obtener contenido de un fragmento con fallback ---
-get_fragment() {
-    local theme_dir="/usr/share/nginx/html/theme/${THEME}"
-    local default_dir="/usr/share/nginx/html/theme/default"
-    local fragment_name="$1"
-    local fragment_file="${theme_dir}/${fragment_name}"
-    local default_file="${default_dir}/${fragment_name}"
-    if [ -f "$fragment_file" ]; then
-        cat "$fragment_file"
-    elif [ -f "$default_file" ]; then
-        cat "$default_file"
-    else
-        echo ""
-    fi
+# --- Ensamblar index.html usando Jinja2 ---
+python3 <<EOF
+import os
+import sys
+from jinja2 import Environment, FileSystemLoader, TemplateNotFound
+
+theme = "$THEME"
+base_dir = "/usr/share/nginx/html/theme"
+default_theme = "default"
+
+def get_fragment_content(fragment_name):
+    theme_file = os.path.join(base_dir, theme, fragment_name)
+    default_file = os.path.join(base_dir, default_theme, fragment_name)
+    if os.path.exists(theme_file):
+        with open(theme_file, 'r', encoding='utf-8') as f:
+            return f.read()
+    elif os.path.exists(default_file):
+        with open(default_file, 'r', encoding='utf-8') as f:
+            return f.read()
+    else:
+        return ""
+
+# Contexto para la plantilla
+context = {
+    'HEADER': get_fragment_content('header.html'),
+    'FOOTER': get_fragment_content('footer.html'),
+    'STYLES': get_fragment_content('styles.css'),
+    'HEAD_EXTRA': get_fragment_content('head_extra.html'),
 }
 
-# --- Ensamblar index.html ---
-BASE_INDEX="/usr/share/nginx/html/theme/${THEME}/index.html"
-DEFAULT_INDEX="/usr/share/nginx/html/theme/default/index.html"
-if [ -f "$BASE_INDEX" ]; then
-    INDEX_TEMPLATE="$BASE_INDEX"
-else
-    INDEX_TEMPLATE="$DEFAULT_INDEX"
-fi
+# Determinar la plantilla base (layout.j2)
+theme_layout = os.path.join(base_dir, theme, "layout.j2")
+default_layout = os.path.join(base_dir, default_theme, "layout.j2")
+if os.path.exists(theme_layout):
+    template_file = theme_layout
+else:
+    template_file = default_layout
 
-# Leer fragmentos
-HEADER_CONTENT=$(get_fragment "header.html")
-FOOTER_CONTENT=$(get_fragment "footer.html")
-STYLES_CONTENT=$(get_fragment "styles.css")
-HEAD_EXTRA_CONTENT=$(get_fragment "head_extra.html")
+# Usar el directorio de la plantilla para el loader
+template_dir = os.path.dirname(template_file)
+template_name = os.path.basename(template_file)
 
-# Reemplazar marcadores en la plantilla
-# Usamos un delimitador diferente para sed (|) para evitar problemas con /
-sed -e "s|{{HEADER}}|$HEADER_CONTENT|g" \
-    -e "s|{{FOOTER}}|$FOOTER_CONTENT|g" \
-    -e "s|{{STYLES}}|$STYLES_CONTENT|g" \
-    -e "s|{{HEAD_EXTRA}}|$HEAD_EXTRA_CONTENT|g" \
-    "$INDEX_TEMPLATE" > /usr/share/nginx/html/index.html
+env = Environment(
+    loader=FileSystemLoader(template_dir),
+    autoescape=False,  # contenido HTML ya renderizado
+)
+try:
+    template = env.get_template(template_name)
+except TemplateNotFound:
+    print(f"Error: No se encontró la plantilla {template_file}")
+    sys.exit(1)
 
-echo "Index.html ensamblado para el tema: $THEME"
+# Renderizar y guardar
+output = template.render(**context)
+output_file = "/usr/share/nginx/html/index.html"
+with open(output_file, 'w', encoding='utf-8') as f:
+    f.write(output)
+
+print(f"Index.html ensamblado para el tema: {theme}")
+EOF
 
 # --- Función para obtener la fecha del último CSV ---
 get_last_csv_date() {
