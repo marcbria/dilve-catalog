@@ -10,6 +10,7 @@ export ACTIVE_STATUS_CODES="${ACTIVE_STATUS_CODES:-04,02,13,18}"
 export CRON_SCHEDULE="${CRON_SCHEDULE:-0 2 * * *}"
 export TZ="${TZ:-UTC}"
 export THEME="${THEME:-default}"
+export LOGO="${LOGO:-}"
 
 # Establecer zona horaria
 ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
@@ -21,15 +22,16 @@ cat > /usr/share/nginx/html/js/theme-config.js <<EOF
 window.THEME = "${THEME}";
 EOF
 
-# --- Ensamblar index.html usando Jinja2 ---
+# --- Ensamblar index.html usando Jinja2 con herencia ---
 python3 <<EOF
 import os
 import sys
-from jinja2 import Environment, FileSystemLoader, TemplateNotFound
+from jinja2 import Environment, FileSystemLoader, ChoiceLoader
 
 theme = "$THEME"
 base_dir = "/usr/share/nginx/html/theme"
 default_theme = "default"
+logo_env = os.environ.get("LOGO", "")
 
 def get_fragment_content(fragment_name):
     theme_file = os.path.join(base_dir, theme, fragment_name)
@@ -43,35 +45,60 @@ def get_fragment_content(fragment_name):
     else:
         return ""
 
-# Contexto para la plantilla
+# Determinar la URL del logo
+logo_url = ""
+if logo_env:
+    if logo_env.startswith(('http://', 'https://')):
+        logo_url = logo_env
+    else:
+        logo_path = os.path.join(base_dir, theme, "img", logo_env)
+        if os.path.exists(logo_path):
+            logo_url = f"/theme/{theme}/img/{logo_env}"
+        else:
+            logo_path_default = os.path.join(base_dir, default_theme, "img", logo_env)
+            if os.path.exists(logo_path_default):
+                logo_url = f"/theme/{default_theme}/img/{logo_env}"
+            else:
+                print(f"Advertencia: Logo '{logo_env}' no encontrado")
+                logo_url = ""
+else:
+    logo_url = "https://publicacions.uab.cat/sites/default/files/styles/d03/public/2024-02/logoservei-publicacions-v6-horitz-2lin-gran-negre_0.webp"
+
+logo_html = f'<img src="{logo_url}" alt="Logo" />'
+
+# Contexto con fragmentos
 context = {
     'HEADER': get_fragment_content('header.html'),
     'FOOTER': get_fragment_content('footer.html'),
     'STYLES': get_fragment_content('styles.css'),
     'HEAD_EXTRA': get_fragment_content('head_extra.html'),
+    'LOGO_URL': logo_url,
+    'LOGO_HTML': logo_html,
+    'BASE_PATH': os.environ.get('BASE_PATH', '/'),
 }
 
-# Determinar la plantilla base (layout.j2)
-theme_layout = os.path.join(base_dir, theme, "layout.j2")
-default_layout = os.path.join(base_dir, default_theme, "layout.j2")
-if os.path.exists(theme_layout):
-    template_file = theme_layout
-else:
-    template_file = default_layout
+# Configurar el loader para buscar en el directorio del tema y luego en default
+theme_dir = os.path.join(base_dir, theme)
+default_dir = os.path.join(base_dir, default_theme)
 
-# Usar el directorio de la plantilla para el loader
-template_dir = os.path.dirname(template_file)
-template_name = os.path.basename(template_file)
+# Loader que busca primero en el directorio del tema, luego en default
+loader = ChoiceLoader([
+    FileSystemLoader(theme_dir),
+    FileSystemLoader(default_dir),
+])
 
 env = Environment(
-    loader=FileSystemLoader(template_dir),
-    autoescape=False,  # contenido HTML ya renderizado
+    loader=loader,
+    autoescape=False,
 )
+
+# Determinar qué plantilla usar: primero buscar index.html.j2 en el tema, sino en default
+template_name = "index.html.j2"
 try:
     template = env.get_template(template_name)
-except TemplateNotFound:
-    print(f"Error: No se encontró la plantilla {template_file}")
-    sys.exit(1)
+except Exception:
+    # Si no existe index.html.j2 en el tema ni en default, usar layout.j2 directamente
+    template = env.get_template("layout.j2")
 
 # Renderizar y guardar
 output = template.render(**context)
@@ -80,6 +107,8 @@ with open(output_file, 'w', encoding='utf-8') as f:
     f.write(output)
 
 print(f"Index.html ensamblado para el tema: {theme}")
+if logo_url:
+    print(f"Logo: {logo_url}")
 EOF
 
 # --- Función para obtener la fecha del último CSV ---

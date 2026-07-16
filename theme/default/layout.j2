@@ -3,14 +3,23 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <base href="{{BASE_PATH}}">
+    <base href="{{ BASE_PATH }}">
     <title>Catàleg de Llibres | Publicacions UAB</title>
     <link rel="stylesheet" href="css/styles.css" />
-    {{ STYLES|safe }}
+    {% block styles %}
+    {% if STYLES %}
+    <style>{{ STYLES|safe }}</style>
+    {% endif %}
+    {% endblock %}
+    {% block head_extra %}
     {{ HEAD_EXTRA|safe }}
+    {% endblock %}
 </head>
 <body>
+    {% block header %}
     {{ HEADER|safe }}
+    {% endblock %}
+
     <!-- ─── Controls ─── -->
     <div class="controls-bar" id="controlsBar">
         <div class="container controls-inner">
@@ -84,7 +93,9 @@
         </div>
     </div>
 
+    {% block footer %}
     {{ FOOTER|safe }}
+    {% endblock %}
 
     <!-- ─── Móduls JavaScript ─── -->
     <script src="js/theme-config.js"></script>
