@@ -9,9 +9,17 @@ export BATCH_SIZE="${BATCH_SIZE:-128}"
 export ACTIVE_STATUS_CODES="${ACTIVE_STATUS_CODES:-04,02,13,18}"
 export CRON_SCHEDULE="${CRON_SCHEDULE:-0 2 * * *}"
 export TZ="${TZ:-UTC}"
+export THEME="${THEME:-default}"
 
 # Establecer zona horaria
 ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
+
+# --- Generar configuración del tema para el frontend ---
+mkdir -p /usr/share/nginx/html/js
+cat > /usr/share/nginx/html/js/theme-config.js <<EOF
+// Configuración del tema inyectada desde el contenedor
+window.THEME = "${THEME}";
+EOF
 
 # --- Función para obtener la fecha del último CSV ---
 get_last_csv_date() {
@@ -49,7 +57,6 @@ python3 main.py
 
 # --- Configurar cron ---
 echo "Configurando cron con la programación: $CRON_SCHEDULE"
-# Escribir el archivo cron con formato correcto (usando printf para evitar problemas)
 printf "%s root /app/update.sh >> /data/logs/cron.log 2>&1\n" "$CRON_SCHEDULE" > /etc/cron.d/dilve-update
 chmod 0644 /etc/cron.d/dilve-update
 crontab /etc/cron.d/dilve-update

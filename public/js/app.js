@@ -6,6 +6,56 @@ import { applyFiltersAndReset, resetAllFilters, navigateToLanguage, navigateToFo
 import { loadMoreBooks, setupIntersectionObserver, closeModal, openDetailModal } from './uiRenderer.js';
 import { applyInitialURLParams, updateURL } from './urlManager.js';
 
+// ─── Carga del tema (con fallback a default) ───────────
+async function fetchWithFallback(url, fallbackUrl) {
+    try {
+        const resp = await fetch(url);
+        if (resp.ok) return await resp.text();
+    } catch (_) { /* ignorar */ }
+    // Intentar fallback
+    try {
+        const resp = await fetch(fallbackUrl);
+        if (resp.ok) return await resp.text();
+    } catch (_) { /* ignorar */ }
+    return null;
+}
+
+async function loadTheme() {
+    const themeName = window.THEME || 'default';
+    const base = `theme/${themeName}`;
+    const defaultBase = 'theme/default';
+
+    // Header
+    const headerHtml = await fetchWithFallback(
+        `${base}/header.html`,
+        `${defaultBase}/header.html`
+    );
+    if (headerHtml) {
+        document.getElementById('header-placeholder').innerHTML = headerHtml;
+    }
+
+    // Footer
+    const footerHtml = await fetchWithFallback(
+        `${base}/footer.html`,
+        `${defaultBase}/footer.html`
+    );
+    if (footerHtml) {
+        document.getElementById('footer-placeholder').innerHTML = footerHtml;
+    }
+
+    // Styles (se inyectan como <style> adicional)
+    const cssContent = await fetchWithFallback(
+        `${base}/styles.css`,
+        `${defaultBase}/styles.css`
+    );
+    if (cssContent) {
+        const styleEl = document.createElement('style');
+        styleEl.textContent = cssContent;
+        document.head.appendChild(styleEl);
+    }
+}
+
+// ─── Carga del catálogo ──────────────────────────────────
 async function loadCatalog(csvText) {
     const raw = parseCSVText(csvText);
     let books = raw.map(transformBook).filter(b => b.titleText || b.isbn);
@@ -19,6 +69,7 @@ async function loadCatalog(csvText) {
     applyFiltersAndReset();
 }
 
+// ─── Event listeners ─────────────────────────────────────
 dom.searchInput.addEventListener('input', applyFiltersAndReset);
 dom.sortSelect.addEventListener('change', applyFiltersAndReset);
 dom.langFilter.addEventListener('change', applyFiltersAndReset);
@@ -52,9 +103,12 @@ document.getElementById('hamburgerBtn').addEventListener('click', function() {
     document.getElementById('filterGroup').classList.toggle('open');
 });
 
+// ─── Inicialización ──────────────────────────────────────
 async function init() {
+    // Cargar el tema primero (si falla, no bloquea)
+    await loadTheme();
+
     try {
-        // 🔥 Cambio clave: ruta relativa (sin barra inicial)
         const response = await fetch('data/catalog.csv');
         if (!response.ok) throw new Error(`Error en carregar el fitxer: ${response.status} ${response.statusText}`);
         const csvText = await response.text();
