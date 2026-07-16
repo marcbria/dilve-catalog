@@ -6,10 +6,11 @@
         <base href="{{BASE_PATH}}">
         <title>Catàleg de Llibres | Publicacions UAB</title>
         <link rel="stylesheet" href="css/styles.css" />
-        <link rel="stylesheet" href="{{THEME_CSS}}" />
+        <!-- El CSS del tema se inyecta dinámicamente desde app.js -->
     </head>
     <body>
-        <!-- HEADER_PLACEHOLDER -->
+        <!-- ===== HEADER PLACEHOLDER ===== -->
+        <div id="header-placeholder"></div>
 
         <!-- ─── Controls ─── -->
         <div class="controls-bar" id="controlsBar">
@@ -84,9 +85,12 @@
             </div>
         </div>
 
-        <!-- FOOTER_PLACEHOLDER -->
+        <!-- ===== FOOTER PLACEHOLDER ===== -->
+        <div id="footer-placeholder"></div>
 
         <!-- ─── Móduls JavaScript ─── -->
+        <!-- ===== CONFIGURACIÓN DEL TEMA ===== -->
+        <script src="js/theme-config.js"></script>
         <script type="module" src="js/config.js"></script>
         <script type="module" src="js/csvParser.js"></script>
         <script type="module" src="js/bookTransformer.js"></script>
