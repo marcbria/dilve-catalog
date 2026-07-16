@@ -10,19 +10,14 @@ from datetime import datetime
 from typing import Optional, List, Dict
 from logger import print_ok, print_warn, print_error, print_info
 
-# IMPORTAMOS LA LISTA DESDE CONFIG (única fuente de verdad)
 from config import CSV_COLUMNS
 
-
 def crear_directorios():
-    """Crea los directorios necesarios si no existen."""
     os.makedirs("/data/catalog", exist_ok=True)
     os.makedirs("/data/covers", exist_ok=True)
     os.makedirs("/data/logs", exist_ok=True)
 
-
 def get_last_csv_date() -> Optional[str]:
-    """Devuelve la fecha (YYYY-MM-DD) del último CSV en /data/catalog."""
     csv_files = sorted(glob.glob("/data/catalog/*.csv"), reverse=True)
     if not csv_files:
         return None
@@ -38,28 +33,33 @@ def get_last_csv_date() -> Optional[str]:
                 pass
     return None
 
+def get_last_csv_path() -> Optional[str]:
+    csv_files = sorted(glob.glob("/data/catalog/*.csv"), reverse=True)
+    return csv_files[0] if csv_files else None
+
+def leer_csv_como_dict(csv_path: str) -> Dict[str, Dict]:
+    """Lee un CSV y devuelve un diccionario {isbn13: row}."""
+    books = {}
+    with open(csv_path, 'r', encoding='utf-8-sig') as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            isbn = row.get('isbn13', '').strip()
+            if isbn:
+                books[isbn] = row
+    return books
 
 def guardar_csv(resultados: List[Dict], csv_path: str) -> None:
-    """Guarda los resultados en un CSV usando la lista de columnas de config."""
-    # Aseguramos que todas las columnas existan en cada fila
     for row in resultados:
         for col in CSV_COLUMNS:
             if col not in row:
                 row[col] = ""
-
     with open(csv_path, "w", encoding="utf-8-sig", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=CSV_COLUMNS, delimiter=",")
         writer.writeheader()
         writer.writerows(resultados)
 
-
 def create_data_symlink(csv_path: str) -> None:
-    """
-    Crea un enlace simbólico en /data/catalog.csv que apunte al último CSV.
-    De esta forma el frontend puede acceder a /data/catalog.csv.
-    """
     symlink_path = "/data/catalog.csv"
-    # Eliminar si existe (sea archivo o enlace)
     if os.path.islink(symlink_path) or os.path.exists(symlink_path):
         try:
             os.remove(symlink_path)
@@ -72,9 +72,7 @@ def create_data_symlink(csv_path: str) -> None:
     except Exception as e:
         print_error(f"Error al crear enlace simbólico para /data/catalog.csv: {e}")
 
-
 def leer_csv_ultimo() -> Optional[List[Dict]]:
-    """Lee el último CSV y devuelve las filas como lista de diccionarios."""
     csv_files = sorted(glob.glob("/data/catalog/*.csv"), reverse=True)
     if not csv_files:
         return None

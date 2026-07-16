@@ -22,9 +22,16 @@ from file_manager import (
     guardar_csv,
     create_data_symlink,
     get_last_csv_date,
+    get_last_csv_path,
+    leer_csv_como_dict,
     leer_csv_ultimo,
 )
 from image_downloader import descargar_imagen, actualizar_cubiertas_desde_csv
+
+
+def chunk_list(lst, size):
+    for i in range(0, len(lst), size):
+        yield lst[i:i + size]
 
 
 def ejecutar_descarga(
@@ -34,10 +41,12 @@ def ejecutar_descarga(
 ):
     start_time = time.time()
     fecha_mostrada = from_date
+    modo_completo = False
 
     if from_date == "all":
         print_info("Forzando modo completo (--from-date all)")
         fecha_mostrada = "el inicio"
+        modo_completo = True
     else:
         if from_date is None:
             last_date = get_last_csv_date()
@@ -48,6 +57,7 @@ def ejecutar_descarga(
             else:
                 print_info("No hay CSV previo. Se realizará modo completo.")
                 fecha_mostrada = "el inicio"
+                modo_completo = True
 
     print_info("=== Iniciando descarga del catálogo ===")
     crear_directorios()
@@ -63,7 +73,7 @@ def ejecutar_descarga(
     try:
         print_info("Obteniendo lista de ISBN de la editorial...")
         try:
-            isbns = obtener_lista_isbn(from_date=from_date)
+            isbns = obtener_lista_isbn(from_date=from_date if not modo_completo else None)
         except Exception as e:
             print_error(f"Error al obtener lista de ISBN: {e}")
             _log_message(f"ERROR: {e}")
@@ -71,27 +81,42 @@ def ejecutar_descarga(
 
         total_isbns = len(isbns)
         print_info(f"Total de ISBN encontrados: {total_isbns}")
-        if not isbns:
+
+        # Si no hay ISBN y estamos en modo incremental, no hay cambios
+        if not isbns and not modo_completo:
             if fecha_mostrada and fecha_mostrada != "el inicio":
-                print_warn(
-                    f"No se encontraron productos nuevos para la editorial desde la fecha {fecha_mostrada}."
-                )
+                print_warn(f"No se encontraron productos nuevos para la editorial desde la fecha {fecha_mostrada}.")
             else:
                 print_warn("No se encontraron productos para esta editorial.")
             _log_message("No se encontraron productos.")
+            # Actualizar symlink al último CSV existente (si hay)
             if actualizar_metadatos:
-                csv_files = sorted(glob.glob("/data/catalog/*.csv"), reverse=True)
-                if csv_files:
-                    latest = csv_files[0]
-                    create_data_symlink(latest)
-                    print_info(f"Symlink actualizado al último CSV existente: {latest}")
+                last_csv = get_last_csv_path()
+                if last_csv:
+                    create_data_symlink(last_csv)
+                    print_info(f"Symlink actualizado al último CSV existente: {last_csv}")
             return
 
-        resultados = []
+        # Si no hay ISBN y estamos en modo completo, es un error o catálogo vacío
+        if not isbns and modo_completo:
+            print_warn("No se encontraron productos para esta editorial.")
+            _log_message("No se encontraron productos.")
+            return
+
+        # Preparar el diccionario del catálogo existente (si estamos en modo incremental)
+        existing_books = {}
+        if not modo_completo and actualizar_metadatos:
+            last_csv = get_last_csv_path()
+            if last_csv:
+                existing_books = leer_csv_como_dict(last_csv)
+                print_info(f"Catálogo existente cargado: {len(existing_books)} libros")
+
+        nuevos_cambios = []
         total = len(isbns)
+
         for i, chunk in enumerate(chunk_list(isbns, BATCH_SIZE), 1):
             print_info(
-                f"Procesando lote {i} de { (total + BATCH_SIZE - 1)//BATCH_SIZE } ({len(chunk)} ISBN)..."
+                f"Procesando lote {i} de {(total + BATCH_SIZE - 1)//BATCH_SIZE} ({len(chunk)} ISBN)..."
             )
             try:
                 productos = obtener_productos_onix(chunk)
@@ -107,37 +132,41 @@ def ejecutar_descarga(
                             continue
 
                         libros_activos += 1
+                        isbn = datos.get("isbn13", "")
                         datos.pop("estado_catalogo", None)
 
+                        # Descargar cubierta si corresponde
                         if actualizar_cubiertas:
                             img = datos.get("imagen_cubierta", "")
                             url_externa = datos.pop("_url_externa", "")
-                            if img:
-                                isbn_val = datos.get("isbn13")
-                                if isbn_val:
-                                    success, origen = descargar_imagen(
-                                        isbn_val, img, url_externa
-                                    )
-                                    if success:
-                                        if origen == "dilve":
-                                            cubiertas_dilve += 1
-                                        elif origen == "externa":
-                                            cubiertas_externas += 1
+                            if img and isbn:
+                                success, origen = descargar_imagen(isbn, img, url_externa)
+                                if success:
+                                    if origen == "dilve":
+                                        cubiertas_dilve += 1
                                     else:
-                                        errores_registros += 1
+                                        cubiertas_externas += 1
+                                else:
+                                    errores_registros += 1
                         else:
                             datos.pop("_url_externa", None)
 
                         if actualizar_metadatos:
-                            resultados.append(datos)
-                            metadatos_descargados += 1
+                            if modo_completo:
+                                # En modo completo, añadir directamente
+                                nuevos_cambios.append(datos)
+                            else:
+                                # En modo incremental, actualizar el diccionario existente
+                                if isbn:
+                                    existing_books[isbn] = datos
+                        else:
+                            # Solo cubiertas, no guardamos metadatos
+                            pass
 
                         registros_procesados += 1
 
                     except Exception as e:
-                        print_error(
-                            f"Error procesando ISBN {datos.get('isbn13', 'desconocido')}: {e}"
-                        )
+                        print_error(f"Error procesando ISBN {datos.get('isbn13', 'desconocido')}: {e}")
                         errores_registros += 1
                         continue
 
@@ -149,23 +178,48 @@ def ejecutar_descarga(
 
         print_info(f"Total de registros procesados: {registros_procesados}")
         print_info(f"Libros activos encontrados: {libros_activos}")
-        print_info(f"Metadatos descargados: {metadatos_descargados}")
 
         if actualizar_metadatos:
-            if resultados:
-                timestamp = datetime.now().strftime("%Y%m%d-%H%M")
-                csv_filename = f"{timestamp}.csv"
-                csv_path = f"/data/catalog/{csv_filename}"
-                guardar_csv(resultados, csv_path)
-                create_data_symlink(csv_path)
-            else:
-                csv_files = sorted(glob.glob("/data/catalog/*.csv"), reverse=True)
-                if csv_files:
-                    latest = csv_files[0]
-                    create_data_symlink(latest)
-                    print_info(f"Symlink actualizado al último CSV existente (sin cambios): {latest}")
+            if modo_completo:
+                # Modo completo: guardar los resultados directamente
+                if nuevos_cambios:
+                    timestamp = datetime.now().strftime("%Y%m%d-%H%M")
+                    csv_filename = f"{timestamp}.csv"
+                    csv_path = f"/data/catalog/{csv_filename}"
+                    guardar_csv(nuevos_cambios, csv_path)
+                    create_data_symlink(csv_path)
+                    metadatos_descargados = len(nuevos_cambios)
+                    print_ok(f"Catálogo completo guardado: {csv_path} ({metadatos_descargados} libros)")
                 else:
-                    print_warn("No hay ningún CSV para enlazar.")
+                    # No debería ocurrir, pero por si acaso
+                    last_csv = get_last_csv_path()
+                    if last_csv:
+                        create_data_symlink(last_csv)
+                        print_info("Symlink actualizado al último CSV existente (sin cambios)")
+            else:
+                # Modo incremental: fusionar cambios con el catálogo existente
+                if existing_books:
+                    # Si hay cambios, guardar el catálogo completo actualizado
+                    timestamp = datetime.now().strftime("%Y%m%d-%H%M")
+                    csv_filename = f"{timestamp}.csv"
+                    csv_path = f"/data/catalog/{csv_filename}"
+                    # Convertir el diccionario a lista para guardar
+                    full_catalog = list(existing_books.values())
+                    guardar_csv(full_catalog, csv_path)
+                    create_data_symlink(csv_path)
+                    metadatos_descargados = len(full_catalog)
+                    print_ok(f"Catálogo completo actualizado guardado: {csv_path} ({metadatos_descargados} libros)")
+                else:
+                    # No había catálogo previo, pero estamos en modo incremental (caso raro)
+                    # Hacer como modo completo
+                    if nuevos_cambios:
+                        timestamp = datetime.now().strftime("%Y%m%d-%H%M")
+                        csv_filename = f"{timestamp}.csv"
+                        csv_path = f"/data/catalog/{csv_filename}"
+                        guardar_csv(nuevos_cambios, csv_path)
+                        create_data_symlink(csv_path)
+                        metadatos_descargados = len(nuevos_cambios)
+                        print_ok(f"Catálogo guardado (sin previo): {csv_path} ({metadatos_descargados} libros)")
 
         elapsed_time = time.time() - start_time
         print("\n" + "=" * 60)
@@ -179,7 +233,7 @@ def ejecutar_descarga(
             print_ok(f"Cubiertas descargadas de URLs externas: {cubiertas_externas}")
         print_error(f"Libros con errores: {errores_registros}")
         print_info(f"Tiempo de ejecución: {elapsed_time:.2f} segundos")
-        if actualizar_metadatos and resultados:
+        if actualizar_metadatos and (modo_completo or existing_books):
             print_info(f"CSV generado: {csv_path}")
         print("=" * 60)
 
@@ -193,7 +247,7 @@ def ejecutar_descarga(
             _log_message(f"Cubiertas externas: {cubiertas_externas}")
         _log_message(f"Errores: {errores_registros}")
         _log_message(f"Tiempo: {elapsed_time:.2f}s")
-        if actualizar_metadatos and resultados:
+        if actualizar_metadatos and (modo_completo or existing_books):
             _log_message(f"CSV: {csv_path}")
 
     except KeyboardInterrupt:
@@ -202,11 +256,6 @@ def ejecutar_descarga(
     except Exception as e:
         print_error(f"Error inesperado: {e}")
         _log_message(f"Error inesperado: {e}")
-
-
-def chunk_list(lst, size):
-    for i in range(0, len(lst), size):
-        yield lst[i : i + size]
 
 
 def main():
@@ -238,17 +287,13 @@ def main():
         try:
             datetime.strptime(from_date, "%Y-%m-%d")
         except ValueError:
-            print_error(
-                f"Formato de fecha inválido: {from_date}. Use YYYY-MM-DD o 'all'."
-            )
+            print_error(f"Formato de fecha inválido: {from_date}. Use YYYY-MM-DD o 'all'.")
             close_log()
             sys.exit(1)
 
     try:
         if not args.update_metadata and not args.update_covers:
-            print_info(
-                "Modo por defecto: metadatos + cubiertas (incremental desde último CSV o completo si no hay)"
-            )
+            print_info("Modo por defecto: metadatos + cubiertas (incremental desde último CSV o completo si no hay)")
             ejecutar_descarga(
                 actualizar_metadatos=True,
                 actualizar_cubiertas=True,
@@ -272,9 +317,7 @@ def main():
             else:
                 actualizar_cubiertas_desde_csv()
         else:
-            print_error(
-                "No se pueden usar --update-metadata y --update-covers simultáneamente."
-            )
+            print_error("No se pueden usar --update-metadata y --update-covers simultáneamente.")
             sys.exit(1)
     finally:
         close_log()
