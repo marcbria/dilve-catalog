@@ -56,6 +56,13 @@ body {
     padding: 0 24px;
 }
 
+.logo-container img {
+    max-height: 52px;
+    height: auto;
+    width: auto;
+    display: block;
+}
+
 /* Ajustos per al menu hamburguesa en mòbils */
 @media (max-width: 768px) {
     .navbar-brand {
