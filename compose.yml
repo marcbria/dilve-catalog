@@ -3,4 +3,10 @@ services:
     build: .
     env_file:
       - .env
+    ports:
+      - "8080:80"
+    volumes:
+      - ./data:/data
+      # Ya no montamos ./public porque los archivos están en la imagen
+      # - ./public:/usr/share/nginx/html
     restart: unless-stopped
