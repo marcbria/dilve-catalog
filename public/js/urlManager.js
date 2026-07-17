@@ -10,11 +10,12 @@ export function getURLParams() {
         lang: params.get("lang") || "all",
         format: params.get("format") || "all",
         price: params.get("price") || "all",
-        collection: params.get("collection") || "all"
+        collection: params.get("collection") || "all",
+        isbn: params.get("isbn") || ""
     };
 }
 
-export function updateURL() {
+export function updateURL(isbn = null) {
     const params = new URLSearchParams();
     const s = dom.searchInput.value.trim();
     if (s) params.set("search", s);
@@ -23,6 +24,8 @@ export function updateURL() {
     if (dom.formatFilter.value !== "all") params.set("format", dom.formatFilter.value);
     if (dom.priceFilter.value !== "all") params.set("price", dom.priceFilter.value);
     if (dom.collectionFilter.value !== "all") params.set("collection", dom.collectionFilter.value);
+    if (isbn) params.set("isbn", isbn);
+    
     const qs = params.toString();
     history.replaceState(null, "", window.location.pathname + (qs ? "?" + qs : ""));
 }

@@ -12,9 +12,13 @@ export TZ="${TZ:-UTC}"
 export THEME="${THEME:-default}"
 export LOGO="${LOGO:-}"
 export BASE_PATH="${BASE_PATH:-/}"
+export ORGANIZATION="${ORGANIZATION:-Universitat Autònoma de Barcelona}"
 
 # Establecer zona horaria
 ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
+
+# --- Obtener fecha de build ---
+BUILD_DATE=$(date +"%Y-%m-%d %H:%M:%S %Z")
 
 # --- Generar configuración del tema para el frontend ---
 mkdir -p /usr/share/nginx/html/js
@@ -28,6 +32,7 @@ python3 <<EOF
 import os
 import sys
 from jinja2 import Environment, FileSystemLoader, ChoiceLoader
+from datetime import datetime
 
 print("=== Iniciando ensamblado de index.html ===", flush=True)
 
@@ -36,12 +41,16 @@ base_dir = "/usr/share/nginx/html/theme"
 default_theme = "default"
 logo_env = os.environ.get("LOGO", "")
 base_path = os.environ.get("BASE_PATH", "/")
+organization = os.environ.get("ORGANIZATION", "Universitat Autònoma de Barcelona")
+build_date = "$BUILD_DATE"
 
 print(f"Tema: {theme}", flush=True)
 print(f"LOGO: {logo_env}", flush=True)
 print(f"BASE_PATH: {base_path}", flush=True)
+print(f"ORGANIZATION: {organization}", flush=True)
 
 def get_fragment_content(fragment_name):
+    """Lee el contenido de un fragmento (header, footer, styles, head_extra)."""
     theme_file = os.path.join(base_dir, theme, fragment_name)
     default_file = os.path.join(base_dir, default_theme, fragment_name)
     if os.path.exists(theme_file):
@@ -53,35 +62,40 @@ def get_fragment_content(fragment_name):
     else:
         return ""
 
-# Determinar la URL del logo
-logo_url = ""
+# Determinar la URL del logo o generar un SVG
+logo_html = ""
 if logo_env:
+    # Si se definió LOGO, usarlo como imagen
     if logo_env.startswith(('http://', 'https://')):
         logo_url = logo_env
+        logo_html = f'<img src="{logo_url}" alt="Logo" />'
     else:
         # Buscar en el tema activo y luego en default
         logo_path = os.path.join(base_dir, theme, "img", logo_env)
         if os.path.exists(logo_path):
             base = base_path.rstrip('/')
             logo_url = f"{base}/theme/{theme}/img/{logo_env}"
+            logo_html = f'<img src="{logo_url}" alt="Logo" />'
             print(f"Logo encontrado en: {logo_path}", flush=True)
         else:
             logo_path_default = os.path.join(base_dir, default_theme, "img", logo_env)
             if os.path.exists(logo_path_default):
                 base = base_path.rstrip('/')
                 logo_url = f"{base}/theme/{default_theme}/img/{logo_env}"
+                logo_html = f'<img src="{logo_url}" alt="Logo" />'
                 print(f"Logo encontrado en default: {logo_path_default}", flush=True)
             else:
-                print(f"Advertencia: Logo '{logo_env}' no encontrado", flush=True)
-                logo_url = ""
+                print(f"Advertencia: Logo '{logo_env}' no encontrado. Se generará SVG.", flush=True)
+                logo_html = ""
 else:
-    # Logo por defecto (URL externa)
-    logo_url = "https://publicacions.uab.cat/sites/default/files/styles/d03/public/2024-02/logoservei-publicacions-v6-horitz-2lin-gran-negre_0.webp"
-    print(f"Usando logo por defecto: {logo_url}", flush=True)
-
-print(f"Logo URL final: {logo_url}", flush=True)
-
-logo_html = f'<img src="{logo_url}" alt="Logo" />'
+    # Generar SVG con el nombre de la organización
+    # Escapar caracteres especiales para SVG
+    safe_org = organization.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
+    logo_html = f'''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 80" width="400" height="80" style="max-height:52px; height:auto; width:auto;">
+        <rect width="400" height="80" fill="#ffffff" rx="4"/>
+        <text x="20" y="50" font-family="Arial, sans-serif" font-size="24" font-weight="bold" fill="#007e11">{safe_org}</text>
+    </svg>'''
+    print("Logo SVG generado automáticamente", flush=True)
 
 # Contexto con fragmentos
 context = {
@@ -89,9 +103,10 @@ context = {
     'FOOTER': get_fragment_content('footer.html'),
     'STYLES': get_fragment_content('styles.css'),
     'HEAD_EXTRA': get_fragment_content('head_extra.html'),
-    'LOGO_URL': logo_url,
     'LOGO_HTML': logo_html,
     'BASE_PATH': base_path,
+    'ORGANIZATION': organization,
+    'BUILD_DATE': build_date,
 }
 
 # Configurar el loader para buscar en el tema activo y luego en default
@@ -127,11 +142,6 @@ with open(output_file, 'w', encoding='utf-8') as f:
 
 print(f"Index.html ensamblado correctamente en {output_file}", flush=True)
 
-# Mostrar primeras líneas para depuración
-lines = output.split('\n')[:15]
-print("Primeras 15 líneas del index.html generado:", flush=True)
-for line in lines:
-    print(line, flush=True)
 EOF
 
 # --- Función para obtener la fecha del último CSV ---

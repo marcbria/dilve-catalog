@@ -30,16 +30,20 @@ export function transformBook(row) {
     const isbnDigital = row["isbn13_edicion_digital"] || "";
     const isbnImpreso = row["isbn13_edicion_impresa"] || "";
     const productosRelacionados = row["productos_relacionados"] || "";
+    const alto = row["alto_cm"] || row["alto"] || "";
+    const ancho = row["ancho_cm"] || row["ancho"] || "";
+    const publico = row["publico_objetivo"] || "";
+    const editorialCode = row["editorial_code"] || "";
 
     let isDigital = false;
     if (formato === "EC" || formato === "ED" || formatoDigital.trim() !== "") {
         isDigital = true;
     }
-    const formatLabel = isDigital ? "Digital" : "Paper";
+    const formatLabel = isDigital ? "Digital" : "Papel";
 
     const authorList = authorsRaw.split(';').map(a => a.trim()).filter(a => a);
     const authors = authorList.map(a => invertirNombre(a));
-    const authorDisplay = authors.length > 0 ? authors.join('; ') : "Autor desconegut";
+    const authorDisplay = authors.length > 0 ? authors.join('; ') : "Autor desconocido";
 
     let displayDate = "";
     let sortDate = 0;
@@ -66,7 +70,7 @@ export function transformBook(row) {
         sortDate = 0;
     }
 
-    const langMap = { cat: "Català", spa: "Castellà", eng: "Anglès" };
+    const langMap = { cat: "Catalán", spa: "Castellano", eng: "Inglés" };
     const languageLabel = langMap[languageRaw] || languageRaw.toUpperCase();
     const languageCode = ["cat", "spa", "eng"].includes(languageRaw) ? languageRaw : "other";
 
@@ -77,6 +81,20 @@ export function transformBook(row) {
     let digitalFormats = [];
     if (isDigital) {
         digitalFormats.push(formato);
+    }
+
+    // Dimensiones en cm
+    let width = "";
+    let height = "";
+    if (alto) {
+        const num = parseFloat(alto);
+        if (!isNaN(num)) height = num.toFixed(1);
+        else height = alto;
+    }
+    if (ancho) {
+        const num = parseFloat(ancho);
+        if (!isNaN(num)) width = num.toFixed(1);
+        else width = ancho;
     }
 
     return {
@@ -92,7 +110,7 @@ export function transformBook(row) {
         displayDate,
         sortDate,
         year: year || (displayDate ? displayDate.slice(-4) : ""),
-        extentLabel: pages ? pages + " pàgines" : "",
+        extentLabel: pages ? pages + " páginas" : "",
         isDigital,
         formatLabel,
         publisherName: editorial,
@@ -106,7 +124,12 @@ export function transformBook(row) {
         productIDAlternative: isDigital ? isbnImpreso : isbnDigital,
         normalizedTitle: titleText.toLowerCase().trim(),
         digitalFormats: digitalFormats,
-        relatedProducts: productosRelacionados ? productosRelacionados.split("|") : []
+        relatedProducts: productosRelacionados ? productosRelacionados.split("|") : [],
+        width: width,
+        height: height,
+        targetAudience: publico,
+        editorialCode: editorialCode,
+        publisherDisplay: editorial,
     };
 }
 
@@ -131,6 +154,9 @@ export function mergeBooks(books) {
                 existing.displayPrice = book.displayPrice;
                 existing.isFree = book.isFree;
             }
+            // Fusionar dimensiones si no existen
+            if (book.width && !existing.width) existing.width = book.width;
+            if (book.height && !existing.height) existing.height = book.height;
         } else {
             map.set(key, { ...book });
         }

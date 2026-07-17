@@ -14,10 +14,21 @@ async function loadCatalog(csvText) {
     state.allBooks = books;
     state.allBooks.sort((a, b) => b.sortDate - a.sortDate);
     populateCollectionFilter();
-    console.log(`Total llibres: ${state.allBooks.length}`);
-    if (state.allBooks.length > 0) console.log("Primer llibre:", state.allBooks[0]);
+    console.log(`Total libros: ${state.allBooks.length}`);
+    if (state.allBooks.length > 0) console.log("Primer libro:", state.allBooks[0]);
     applyInitialURLParams();
     applyFiltersAndReset();
+    
+    // Comprobar si hay ISBN en la URL y abrir el modal
+    const params = new URLSearchParams(window.location.search);
+    const isbn = params.get('isbn');
+    if (isbn) {
+        const book = state.allBooks.find(b => b.isbn === isbn);
+        if (book) {
+            // Pequeño retraso para asegurar que la UI está renderizada
+            setTimeout(() => openDetailModal(book), 100);
+        }
+    }
 }
 
 // ─── Event listeners ─────────────────────────────────────
@@ -58,17 +69,17 @@ document.getElementById('hamburgerBtn').addEventListener('click', function() {
 async function init() {
     try {
         const response = await fetch('data/catalog.csv');
-        if (!response.ok) throw new Error(`Error en carregar el fitxer: ${response.status} ${response.statusText}`);
+        if (!response.ok) throw new Error(`Error al cargar el archivo: ${response.status} ${response.statusText}`);
         const csvText = await response.text();
         await fetchCollectionsCSV();
         await loadCatalog(csvText);
         setupIntersectionObserver();
     } catch (err) {
-        console.error('Error carregant catalog.csv:', err);
+        console.error('Error cargando catalog.csv:', err);
         dom.fileFallback.classList.add('active');
         await fetchCollectionsCSV();
         dom.booksGrid.innerHTML =
-            '<div class="error-message"><div class="icon">⚠️</div><p>No s\'ha pogut carregar automàticament el catàleg.</p><p style="font-size:0.9rem;">Selecciona el fitxer <strong>catalog.csv</strong> mitjançant el selector superior.</p></div>';
+            '<div class="error-message"><div class="icon">⚠️</div><p>No se ha podido cargar automáticamente el catálogo.</p><p style="font-size:0.9rem;">Selecciona el archivo <strong>catalog.csv</strong> mediante el selector superior.</p></div>';
         dom.booksGrid.style.display = 'grid';
         dom.noResults.style.display = 'none';
         dom.resultsCount.textContent = '';

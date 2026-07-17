@@ -1,4 +1,4 @@
-/* Estils per al tema UAB */
+/* Estilos para el tema UAB */
 body {
     font-family: 'NimbusSanL', Arial, sans-serif;
     background-color: #f8f9fa;
@@ -28,7 +28,7 @@ body {
     text-decoration: underline;
 }
 
-/* Header principal - sticky per sobre de la barra de controls */
+/* Header principal - sticky */
 .navbar {
     background: #fff !important;
     border-bottom: 4px solid #007e11 !important;
@@ -46,12 +46,13 @@ body {
     display: block;
 }
 
+/* Menú de navegación en negrita */
 .navbar-nav .nav-link {
-    color: #1a1a1a;
-    font-weight: 500;
+    color: #1a1a1a !important;
+    font-weight: 700 !important;
 }
 .navbar-nav .nav-link:hover {
-    color: #007e11;
+    color: #007e11 !important;
 }
 
 .container {
@@ -60,7 +61,7 @@ body {
     padding: 0 24px;
 }
 
-/* Ajustos per al menu hamburguesa en mòbils */
+/* Ajustes para el menú hamburguesa en móviles */
 @media (max-width: 768px) {
     .navbar-brand {
         margin-right: auto;
@@ -70,7 +71,7 @@ body {
     }
 }
 
-/* ===== ESTILOS DEL MODAL (respaldo amb !important) ===== */
+/* ===== ESTILOS DEL MODAL (respaldo con !important) ===== */
 .catalog-modal-overlay {
     position: fixed !important;
     inset: 0 !important;
