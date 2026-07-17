@@ -56,13 +56,6 @@ body {
     padding: 0 24px;
 }
 
-.logo-container img {
-    max-height: 52px;
-    height: auto;
-    width: auto;
-    display: block;
-}
-
 /* Ajustos per al menu hamburguesa en mòbils */
 @media (max-width: 768px) {
     .navbar-brand {
@@ -71,4 +64,40 @@ body {
     .navbar-toggler {
         border: none;
     }
+}
+
+/* ===== ESTILOS DEL MODAL (respaldo con !important) ===== */
+.catalog-modal-overlay {
+    position: fixed !important;
+    inset: 0 !important;
+    background: rgba(0, 0, 0, 0.55) !important;
+    z-index: 9999 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 24px !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+    transition: opacity 0.3s ease !important;
+    backdrop-filter: blur(3px) !important;
+}
+.catalog-modal-overlay.active {
+    opacity: 1 !important;
+    pointer-events: auto !important;
+}
+.catalog-modal-overlay .catalog-modal {
+    background: #fff !important;
+    max-width: 900px !important;
+    width: 100% !important;
+    max-height: 88vh !important;
+    overflow-y: auto !important;
+    box-shadow: 0 20px 48px rgba(0, 0, 0, 0.2) !important;
+    position: relative !important;
+    transform: translateY(20px) !important;
+    transition: transform 0.3s ease !important;
+    display: block !important;
+    margin: 0 !important;
+}
+.catalog-modal-overlay.active .catalog-modal {
+    transform: translateY(0) !important;
 }
