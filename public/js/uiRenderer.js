@@ -73,14 +73,18 @@ export function createBookCard(book) {
     }
     cardBody.appendChild(metaEl);
 
+    // Contenedor para formato y precio en la misma línea
+    const formatPriceContainer = document.createElement("div");
+    formatPriceContainer.className = "card-format-price";
+
     // Pastilla de formato (Digital/Papel)
     const formatBadge = document.createElement("span");
     formatBadge.className = `card-format-badge ${book.isDigital ? 'digital' : 'paper'}`;
     formatBadge.textContent = book.isDigital ? 'Digital' : 'Papel';
-    cardBody.appendChild(formatBadge);
+    formatPriceContainer.appendChild(formatBadge);
 
     // Precio o "En obert"
-    const priceEl = document.createElement("div");
+    const priceEl = document.createElement("span");
     priceEl.className = `card-price-text ${book.isFree ? 'free' : ''}`;
     if (book.isFree) {
         priceEl.textContent = "En obert";
@@ -88,7 +92,9 @@ export function createBookCard(book) {
         const priceFormatted = book.priceAmount.toFixed(2).replace('.', ',') + ' €';
         priceEl.textContent = priceFormatted;
     }
-    cardBody.appendChild(priceEl);
+    formatPriceContainer.appendChild(priceEl);
+
+    cardBody.appendChild(formatPriceContainer);
 
     card.appendChild(cardBody);
     return card;

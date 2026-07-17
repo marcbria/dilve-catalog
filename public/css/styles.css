@@ -81,8 +81,8 @@ body { font-family:var(--font-sans); background-color:#f8f9fa; color:#1a1a1a; li
 .collection-intro h2 { font-family:var(--font-sans); font-weight:600; color:#1e1e1e; margin-bottom:10px; font-size:1.5rem; }
 .collection-intro p { color:#525252; line-height:1.7; }
 .collection-intro .share-icons { margin-top:16px; display:flex; gap:12px; }
-.collection-intro .share-icons a { color:#525252; font-size:1.3rem; transition:color 0.2s; }
-.collection-intro .share-icons a:hover { color:#007e11; }
+.collection-intro .share-icons a { color:#525252 !important; font-size:1.3rem; transition:color 0.2s; text-decoration:none; }
+.collection-intro .share-icons a:hover { color:#007e11 !important; }
 .main-content { flex:1; padding:32px 0 60px; }
 .books-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(250px,1fr)); gap:24px; }
 .book-card {
@@ -101,19 +101,20 @@ body { font-family:var(--font-sans); background-color:#f8f9fa; color:#1a1a1a; li
 .card-cover-wrapper {
     position:relative;
     width:100%;
-    aspect-ratio:3/4;
+    aspect-ratio: 3/4;  /* Mantiene la proporción, pero la imagen se mostrará sin recortar */
     overflow:hidden;
     background:#f1f1f1;
     display:flex;
-    align-items:flex-end; /* Alinear la imagen a la parte inferior */
+    align-items:flex-end; /* Alinea la imagen a la parte inferior */
     justify-content:center;
-    border-bottom:2px solid #e0e0e0; /* Filete gris debajo de la cobertura */
+    border-bottom:2px solid #e0e0e0;
 }
 .card-cover-wrapper img {
     width:100%;
     height:100%;
-    object-fit:cover;
+    object-fit:contain;  /* En lugar de cover, muestra la imagen completa sin recortar */
     transition:transform 0.4s ease;
+    background:#f1f1f1;
 }
 .book-card:hover .card-cover-wrapper img { transform:scale(1.04); }
 .card-cover-placeholder {
@@ -147,6 +148,7 @@ body { font-family:var(--font-sans); background-color:#f8f9fa; color:#1a1a1a; li
     -webkit-line-clamp:3;
     -webkit-box-orient:vertical;
     overflow:hidden;
+    min-height: 3.9rem; /* Para alinear títulos */
 }
 .card-author {
     font-size:0.85rem;
@@ -166,6 +168,13 @@ body { font-family:var(--font-sans); background-color:#f8f9fa; color:#1a1a1a; li
     margin-top:2px;
 }
 .card-meta span { display:flex; align-items:center; gap:3px; }
+.card-format-price {
+    display:flex;
+    align-items:center;
+    gap:8px;
+    margin-top:4px;
+    flex-wrap:wrap;
+}
 .card-format-badge {
     display:inline-block;
     font-size:0.7rem;
@@ -175,8 +184,6 @@ body { font-family:var(--font-sans); background-color:#f8f9fa; color:#1a1a1a; li
     letter-spacing:0.4px;
     border-radius:0;
     color:#fff;
-    margin-top:4px;
-    align-self:flex-start;
 }
 .card-format-badge.paper {
     background:var(--color-paper);
@@ -188,7 +195,6 @@ body { font-family:var(--font-sans); background-color:#f8f9fa; color:#1a1a1a; li
     font-size:0.9rem;
     font-weight:700;
     color:#1a1a1a;
-    margin-top:4px;
 }
 .card-price-text.free {
     color:var(--color-digital);
@@ -523,12 +529,14 @@ body { font-family:var(--font-sans); background-color:#f8f9fa; color:#1a1a1a; li
 .catalog-modal-body .related-format-tag:hover {
     opacity: 0.8 !important;
 }
+/* Colección - sin borde y con colores de fondo de la home */
 .catalog-modal-body .collection-link {
     display: inline-block !important;
     padding: 8px 16px !important;
     background: var(--uab-green-pale) !important;
     color: var(--uab-green-dark) !important;
-    border: 1px solid var(--uab-green) !important;
+    /* Eliminar borde */
+    border: none !important;
     cursor: pointer !important;
     transition: 0.2s !important;
     font-size: 0.9rem !important;
@@ -539,6 +547,16 @@ body { font-family:var(--font-sans); background-color:#f8f9fa; color:#1a1a1a; li
 .catalog-modal-body .collection-link:hover {
     background: var(--uab-green) !important;
     color: #fff !important;
+}
+/* Iconos de compartir en modal y colección - color gris oscuro, no azul */
+.share-icons a {
+    color: #555 !important;
+    font-size: 1.3rem;
+    transition: color 0.2s;
+    text-decoration: none !important;
+}
+.share-icons a:hover {
+    color: #007e11 !important;
 }
 
 /* ─── FOOTER ─── */
