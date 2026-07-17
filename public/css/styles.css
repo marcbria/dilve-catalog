@@ -32,7 +32,7 @@ body { font-family:var(--font-sans); background-color:#f8f9fa; color:#1a1a1a; li
 .logo-area { display:flex; align-items:center; text-decoration:none; color:inherit; }
 .logo-area img { max-height:52px; height:auto; width:auto; display:block; }
 .container { max-width:1260px; margin:0 auto; padding:0 24px; width:100%; }
-.controls-bar { background:#fff; border-bottom:1px solid #e0e0e0; padding:14px 0; position:sticky; top:50px; z-index:90; box-shadow:0 1px 4px rgba(0,0,0,0.04); }
+.controls-bar { background:#fff; border-bottom:1px solid #e0e0e0; padding:14px 0; position:sticky; top:0; z-index:90; box-shadow:0 1px 4px rgba(0,0,0,0.04); }
 .controls-inner { display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
 .search-wrapper { position:relative; flex:1; min-width:200px; max-width:380px; }
 .search-wrapper input { width:100%; padding:10px 40px 10px 16px; border:2px solid #ddd; font-size:0.95rem; font-family:var(--font-sans); transition:0.2s; background:#fafafa; border-radius:0; }
@@ -100,7 +100,7 @@ body { font-family:var(--font-sans); background-color:#f8f9fa; color:#1a1a1a; li
     display: block;
     padding: 8px 12px;
     background: var(--uab-green);
-    color: #fff;
+    color: #fff !important;
     text-decoration: none;
     text-align: center;
     font-weight: 600;
@@ -110,6 +110,10 @@ body { font-family:var(--font-sans); background-color:#f8f9fa; color:#1a1a1a; li
     border-radius: 0;
     width: 100%;
     box-sizing: border-box;
+}
+.card-price a:hover {
+    color: #fff !important;
+    text-decoration: none !important;
 }
 .card-price a.btn-free {
     background: rgb(56, 92, 169);
@@ -196,6 +200,7 @@ body { font-family:var(--font-sans); background-color:#f8f9fa; color:#1a1a1a; li
     margin-right: 16px !important;
     color: #333 !important;
     border-radius: 0 !important;
+    line-height: 1 !important;
 }
 .catalog-modal-close:hover {
     background: #f5f5f5 !important;
@@ -285,11 +290,11 @@ body { font-family:var(--font-sans); background-color:#f8f9fa; color:#1a1a1a; li
     min-width: 110px !important;
     flex-shrink: 0 !important;
 }
-/* ===== NUEVO: Forzar color por defecto para campos sin enlace ===== */
+/* Forçar color per defecte per a tots els valors */
 .catalog-modal-body .detail-row .value {
     color: #1a1a1a !important;
 }
-/* ===== Los enlaces (modal-link) mantienen su color verde ===== */
+/* Enllaços interactius: verd i subratllat */
 .catalog-modal-body .modal-link {
     color: var(--uab-green) !important;
     text-decoration: underline !important;
@@ -298,6 +303,7 @@ body { font-family:var(--font-sans); background-color:#f8f9fa; color:#1a1a1a; li
 }
 .catalog-modal-body .modal-link:hover {
     color: var(--uab-green-dark) !important;
+    text-decoration: underline !important;
 }
 .catalog-modal-body .detail-description {
     font-size: 0.9rem !important;
@@ -337,18 +343,20 @@ body { font-family:var(--font-sans); background-color:#f8f9fa; color:#1a1a1a; li
     background: var(--uab-green) !important;
     color: #fff !important;
 }
+/* Preu: sense capsa, només text en negreta */
 .catalog-modal-body .detail-price-big {
-    font-size: 1.2rem !important;
+    font-size: 1.3rem !important;
     font-weight: 700 !important;
-    color: var(--uab-green-dark) !important;
-    background: var(--uab-green-pale) !important;
-    padding: 8px 18px !important;
-    display: inline-block !important;
+    color: #1a1a1a !important;
+    display: inline !important;
+    padding: 0 !important;
+    background: transparent !important;
 }
 .catalog-modal-body .iva-inclosit {
-    font-size: 1.2rem !important;
-    color: #888 !important;
-    margin-left: 8px !important;
+    font-size: 0.95rem !important;
+    font-weight: 400 !important;
+    color: #666 !important;
+    margin-left: 6px !important;
 }
 .catalog-modal-body .detail-action {
     margin-top: 12px !important;
@@ -370,18 +378,22 @@ body { font-family:var(--font-sans); background-color:#f8f9fa; color:#1a1a1a; li
 }
 .catalog-modal-body .detail-action a:hover {
     background: var(--uab-green-dark) !important;
+    color: #fff !important;
+    text-decoration: none !important;
 }
 .catalog-modal-body .detail-action a.btn-free {
     background: rgb(56, 92, 169) !important;
 }
 .catalog-modal-body .detail-action a.btn-free:hover {
     background: #1a3b6e !important;
+    color: #fff !important;
 }
 .catalog-modal-body .detail-action a.btn-buy {
     background: var(--uab-green) !important;
 }
 .catalog-modal-body .detail-action a.btn-buy:hover {
     background: var(--uab-green-dark) !important;
+    color: #fff !important;
 }
 .catalog-modal-body .related-button {
     display: inline-block !important;
@@ -428,7 +440,7 @@ body { font-family:var(--font-sans); background-color:#f8f9fa; color:#1a1a1a; li
 /* ─── RESPONSIVE ─── */
 @media (max-width: 768px) {
     .header-inner { flex-direction:column; align-items:flex-start; gap:8px; }
-    .controls-bar { top:104px; }
+    .controls-bar { top:0; }
     .controls-inner { flex-wrap:wrap; }
     .hamburger { display:block; }
     .filter-group {

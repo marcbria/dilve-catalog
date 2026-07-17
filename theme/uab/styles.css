@@ -28,11 +28,15 @@ body {
     text-decoration: underline;
 }
 
+/* Header principal - sticky per sobre de la barra de controls */
 .navbar {
     background: #fff !important;
     border-bottom: 4px solid #007e11 !important;
     box-shadow: 0 2px 8px rgba(0,0,0,0.05);
     padding: 10px 0;
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 100 !important;
 }
 
 .navbar-brand img {
@@ -66,7 +70,7 @@ body {
     }
 }
 
-/* ===== ESTILOS DEL MODAL (respaldo con !important) ===== */
+/* ===== ESTILOS DEL MODAL (respaldo amb !important) ===== */
 .catalog-modal-overlay {
     position: fixed !important;
     inset: 0 !important;

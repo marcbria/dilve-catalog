@@ -150,7 +150,7 @@ export function openDetailModal(book) {
             actionHTML = `<div class="detail-action"><a href="https://doi.org/10.5565/lib/${cleanIsbnValue}" target="_blank" class="btn-free">Accessible en obert</a></div>`;
         } else if (book.priceAmount > 0) {
             const priceFormatted = book.priceAmount.toFixed(2).replace('.', ',') + ' €';
-            priceHTML = `<span class="detail-price-big"><a href="https://www.unebook.es/?isbn=${cleanIsbnValue}" target="_blank">${priceFormatted}</a></span>${book.iva ? ` <span class="iva-inclosit">(IVA inclòs)</span>` : ""}`;
+            priceHTML = `<span class="detail-price-big">${priceFormatted}</span><span class="iva-inclosit">(IVA inclòs)</span>`;
             actionHTML = `<div class="detail-action"><a href="https://www.unebook.es/?isbn=${cleanIsbnValue}" target="_blank" class="btn-buy">Comprar en UNEBook</a></div>`;
         }
 
@@ -190,7 +190,7 @@ export function openDetailModal(book) {
         const modalHTML = `
         <div class="modal-cover-col">
             ${coverHTML}
-            ${priceHTML ? '<div style="text-align:center;">' + priceHTML + '</div>' : ''}
+            ${priceHTML ? `<div style="text-align:center; margin-top:4px;">${priceHTML}</div>` : ''}
             ${actionHTML}
             <div class="detail-tags">
                 <span class="detail-tag highlight modal-link" data-format="${formatDisplay}">${formatDisplay}</span>
@@ -206,7 +206,7 @@ export function openDetailModal(book) {
                 <div class="detail-row"><span class="label">ISBN:</span><span class="value">${escapeHTML(book.isbn || '—')}</span></div>
                 ${book.productIDAlternative ? `<div class="detail-row"><span class="label">ISBN alternatiu:</span><span class="value">${escapeHTML(book.productIDAlternative)}</span></div>` : ''}
                 <div class="detail-row"><span class="label">Editorial:</span><span class="value">${publisherDisplay || '—'}</span></div>
-                <div class="detail-row"><span class="label">Data publicació:</span><span class="value">${book.displayDate || '—'}</span></div>
+                <div class="detail-row"><span class="label">Publicació:</span><span class="value">${book.displayDate || '—'}</span></div>
                 <div class="detail-row"><span class="label">Idioma:</span><span class="value"><span class="modal-link" data-lang="${book.languageCode || 'other'}">${escapeHTML(langDisplay)}</span></span></div>
                 <div class="detail-row"><span class="label">Format:</span><span class="value"><span class="modal-link" data-format="${formatDisplay}">${escapeHTML(formatDisplay)}</span></span></div>
                 ${book.extentLabel ? `<div class="detail-row"><span class="label">Extensió:</span><span class="value">${book.extentLabel}</span></div>` : ''}
@@ -223,7 +223,7 @@ export function openDetailModal(book) {
         dom.modalBody.innerHTML = modalHTML;
         console.log("Modal HTML insertado correctamente");
 
-        // Forzar estilos inline en el contenedor principal para asegurar layout
+        // Forçar estils inline per al contenidor principal
         const modalContainer = document.querySelector('.catalog-modal');
         if (modalContainer) {
             modalContainer.style.display = 'block';
@@ -235,7 +235,7 @@ export function openDetailModal(book) {
             modalContainer.style.boxShadow = '0 20px 48px rgba(0,0,0,0.2)';
         }
 
-        // Forzar que el body tenga display flex
+        // Ajustar display del body del modal
         const modalBodyEl = dom.modalBody;
         if (modalBodyEl) {
             modalBodyEl.style.display = 'flex';
@@ -244,7 +244,7 @@ export function openDetailModal(book) {
             modalBodyEl.style.flexWrap = 'wrap';
         }
 
-        // Asegurar tamaño de la columna de la cubierta
+        // Asegurar grandària de la columna de coberta
         const coverCol = document.querySelector('.modal-cover-col');
         if (coverCol) {
             coverCol.style.flex = '0 0 260px';
@@ -254,7 +254,7 @@ export function openDetailModal(book) {
             coverCol.style.gap = '16px';
         }
 
-        // Asegurar que la imagen de la cubierta no se desborde
+        // Imatge de coberta
         const coverImg = document.querySelector('.modal-cover-col img');
         if (coverImg) {
             coverImg.style.width = '100%';
@@ -263,7 +263,7 @@ export function openDetailModal(book) {
             coverImg.style.objectFit = 'contain';
         }
 
-        // Asignar eventos
+        // Assignar events
         dom.modalBody.querySelectorAll('.modal-link[data-author]').forEach(el => {
             el.addEventListener('click', (e) => {
                 e.stopPropagation();

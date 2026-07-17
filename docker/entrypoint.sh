@@ -62,7 +62,6 @@ if logo_env:
         # Buscar en el tema activo y luego en default
         logo_path = os.path.join(base_dir, theme, "img", logo_env)
         if os.path.exists(logo_path):
-            # Construir URL con BASE_PATH
             base = base_path.rstrip('/')
             logo_url = f"{base}/theme/{theme}/img/{logo_env}"
             print(f"Logo encontrado en: {logo_path}", flush=True)
@@ -73,7 +72,7 @@ if logo_env:
                 logo_url = f"{base}/theme/{default_theme}/img/{logo_env}"
                 print(f"Logo encontrado en default: {logo_path_default}", flush=True)
             else:
-                print(f"Advertencia: Logo '{logo_env}' no encontrado en theme/{theme}/img/ ni en theme/{default_theme}/img/", flush=True)
+                print(f"Advertencia: Logo '{logo_env}' no encontrado", flush=True)
                 logo_url = ""
 else:
     # Logo por defecto (URL externa)
