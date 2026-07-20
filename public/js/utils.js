@@ -1,4 +1,3 @@
-// ─── Utilitats generals ──────────────────────────────────
 export function escapeHTML(str) {
     if (!str) return "";
     const d = document.createElement("div");

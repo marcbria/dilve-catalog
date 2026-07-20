@@ -57,14 +57,12 @@ document.getElementById('hamburgerBtn').addEventListener('click', function() {
 
 // ─── Inicialización ──────────────────────────────────────
 async function init() {
-    // --- Manejar compatibilidad: si hay query string con isbn, convertirlo a hash ---
+    // --- Compatibilidad: si hay query string con isbn, convertir a hash ---
     const queryIsbn = getIsbnFromQuery();
     if (queryIsbn) {
-        // Eliminar el parámetro de la query y ponerlo en el hash
         const url = new URL(window.location.href);
         url.searchParams.delete('isbn');
         url.hash = `isbn=${queryIsbn}`;
-        // Reemplazar el historial sin recargar
         history.replaceState(null, '', url.toString());
         console.log('Convertido query ?isbn a hash:', url.toString());
     }
@@ -77,11 +75,10 @@ async function init() {
         await loadCatalog(csvText);
         setupIntersectionObserver();
         
-        // --- Leer ISBN del hash (si existe) ---
+        // --- Leer ISBN del hash (ahora conservado por updateURL) ---
         const isbnFromHash = getIsbnFromHash();
         if (isbnFromHash) {
             const cleanIsbn = getCleanIsbn(isbnFromHash);
-            // Intentar abrir el modal después de que la UI esté pintada
             const tryOpenModal = (delay = 300) => {
                 setTimeout(() => {
                     const book = state.allBooks.find(b => getCleanIsbn(b.isbn) === cleanIsbn);
@@ -109,5 +106,22 @@ async function init() {
         dom.resultsCount.textContent = '';
     }
 }
+
+// ─── Listener para cambios en el hash (navegación con hash) ──
+window.addEventListener('hashchange', function() {
+    const isbn = getIsbnFromHash();
+    if (isbn) {
+        const cleanIsbn = getCleanIsbn(isbn);
+        const book = state.allBooks.find(b => getCleanIsbn(b.isbn) === cleanIsbn);
+        if (book) {
+            openDetailModal(book);
+        } else {
+            console.warn('No se encontró libro con ISBN en hashchange:', isbn);
+        }
+    } else {
+        // Si el hash se limpia (por ejemplo, al cerrar el modal), cerrar el modal
+        closeModal();
+    }
+});
 
 init();

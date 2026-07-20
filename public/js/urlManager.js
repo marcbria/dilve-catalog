@@ -1,9 +1,7 @@
 import { dom } from './config.js';
-import { applyFiltersAndReset } from './filters.js';
 
-// ─── URL params ──────────────────────────────────────────
 export function getURLParams() {
-    // Leer parámetros de la query string (para compatibilidad con enlaces antiguos)
+    // Leer parámetros de la query string y del hash (para compatibilidad)
     const params = new URLSearchParams(window.location.search);
     // Si no hay query, leer del hash
     if (params.toString() === '') {
@@ -26,8 +24,21 @@ export function getURLParams() {
 
 export function updateURL(isbn = null) {
     const url = new URL(window.location.href);
-    // Limpiar cualquier hash existente
-    url.hash = '';
+    const currentHash = window.location.hash;
+
+    // Gestionar el hash de forma inteligente
+    if (isbn) {
+        // Si se proporciona ISBN, establecer el hash
+        url.hash = `isbn=${isbn}`;
+    } else {
+        // Si no se proporciona ISBN, conservar el hash si contiene un ISBN
+        if (currentHash.startsWith('#isbn=')) {
+            url.hash = currentHash;  // mantener el hash existente
+        } else {
+            url.hash = '';  // eliminar hash si no es ISBN
+        }
+    }
+
     // Construir la query string con los filtros (sin ISBN)
     const params = new URLSearchParams();
     const s = dom.searchInput.value.trim();
@@ -38,13 +49,7 @@ export function updateURL(isbn = null) {
     if (dom.priceFilter.value !== "all") params.set("price", dom.priceFilter.value);
     if (dom.collectionFilter.value !== "all") params.set("collection", dom.collectionFilter.value);
     
-    // Establecer la query string
     url.search = params.toString();
-    
-    // Si se proporciona un ISBN, añadirlo al hash
-    if (isbn) {
-        url.hash = `isbn=${isbn}`;
-    }
     
     history.replaceState(null, '', url.toString());
 }
