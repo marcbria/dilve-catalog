@@ -25,6 +25,8 @@
     --color-cat: #f4a261;
     --color-spa: #e76f51;
     --color-eng: #457b9d;
+    --cover-aspect-ratio: 6 / 9;
+    --cover-object-fit: cover;
 }
 * { margin:0; padding:0; box-sizing:border-box; }
 body { font-family:var(--font-sans); background-color:#f8f9fa; color:#1a1a1a; line-height:1.6; min-height:100vh; display:flex; flex-direction:column; }
@@ -101,18 +103,18 @@ body { font-family:var(--font-sans); background-color:#f8f9fa; color:#1a1a1a; li
 .card-cover-wrapper {
     position:relative;
     width:100%;
-    aspect-ratio: 3/4;  /* Mantiene la proporción, pero la imagen se mostrará sin recortar */
+    aspect-ratio: var(--cover-aspect-ratio);
     overflow:hidden;
     background:#f1f1f1;
     display:flex;
-    align-items:flex-end; /* Alinea la imagen a la parte inferior */
+    align-items:flex-end;
     justify-content:center;
     border-bottom:2px solid #e0e0e0;
 }
 .card-cover-wrapper img {
     width:100%;
     height:100%;
-    object-fit:contain;  /* En lugar de cover, muestra la imagen completa sin recortar */
+    object-fit: var(--cover-object-fit);
     transition:transform 0.4s ease;
     background:#f1f1f1;
 }
@@ -148,7 +150,7 @@ body { font-family:var(--font-sans); background-color:#f8f9fa; color:#1a1a1a; li
     -webkit-line-clamp:3;
     -webkit-box-orient:vertical;
     overflow:hidden;
-    min-height: 3.9rem; /* Para alinear títulos */
+    min-height: 3.9rem;
 }
 .card-author {
     font-size:0.85rem;
@@ -322,7 +324,7 @@ body { font-family:var(--font-sans); background-color:#f8f9fa; color:#1a1a1a; li
 }
 .catalog-modal-body .modal-cover-placeholder {
     width: 100% !important;
-    aspect-ratio: 3/4 !important;
+    aspect-ratio: var(--cover-aspect-ratio) !important;
     background: linear-gradient(135deg, #e0e8e7, #d0dcd9) !important;
     display: none !important;
     align-items: center !important;
@@ -529,13 +531,12 @@ body { font-family:var(--font-sans); background-color:#f8f9fa; color:#1a1a1a; li
 .catalog-modal-body .related-format-tag:hover {
     opacity: 0.8 !important;
 }
-/* Colección - sin borde y con colores de fondo de la home */
+/* Colección - sin borde */
 .catalog-modal-body .collection-link {
     display: inline-block !important;
     padding: 8px 16px !important;
     background: var(--uab-green-pale) !important;
     color: var(--uab-green-dark) !important;
-    /* Eliminar borde */
     border: none !important;
     cursor: pointer !important;
     transition: 0.2s !important;
@@ -548,7 +549,7 @@ body { font-family:var(--font-sans); background-color:#f8f9fa; color:#1a1a1a; li
     background: var(--uab-green) !important;
     color: #fff !important;
 }
-/* Iconos de compartir en modal y colección - color gris oscuro, no azul */
+/* Iconos de compartir en modal y colección */
 .share-icons a {
     color: #555 !important;
     font-size: 1.3rem;
@@ -557,6 +558,96 @@ body { font-family:var(--font-sans); background-color:#f8f9fa; color:#1a1a1a; li
 }
 .share-icons a:hover {
     color: #007e11 !important;
+}
+
+/* ─── Estilos para prenavigation (header UAB) ─── */
+.prenavigation {
+    background-color: #f0f0f0;
+    border-bottom: 1px solid #ddd;
+    font-size: 0.75rem;
+    padding: 4px 0;
+}
+.prenavigation .container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+.prenavigation .region-prenavigation {
+    display: flex;
+    flex-direction: row;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 16px;
+    width: 100%;
+}
+.prenavigation .region-prenavigation > * {
+    display: flex;
+    align-items: center;
+}
+.prenavigation .directori a {
+    color: #333;
+    text-decoration: none;
+    font-weight: normal;
+}
+.prenavigation .directori a:hover {
+    text-decoration: underline;
+}
+/* Idiomas */
+.prenavigation .language-switcher-language-url nav {
+    display: flex;
+    gap: 4px;
+}
+.prenavigation .prenav-lang-item {
+    display: inline;
+}
+.prenavigation .prenav-lang-item:not(:last-child)::after {
+    content: "|";
+    color: #999;
+    margin: 0 4px;
+}
+.prenavigation .prenav-lang-item a {
+    color: #333;
+    text-decoration: none;
+    font-weight: normal;
+}
+.prenavigation .prenav-lang-item.active a {
+    color: var(--uab-green) !important;
+    font-weight: normal !important;
+}
+.prenavigation .prenav-lang-item a:hover {
+    text-decoration: underline;
+}
+
+/* ─── Estilos para el menú principal ─── */
+.prenav-menu-item {
+    list-style: none;
+}
+.prenav-menu-item .nav-link {
+    color: #1a1a1a;
+    font-weight: 500;
+    text-decoration: none;
+    padding: 8px 0;
+    display: block;
+}
+.prenav-menu-item.active .nav-link {
+    color: var(--uab-green) !important;
+    font-weight: 700 !important;
+}
+.prenav-menu-item.active .nav-link::after {
+    content: " ▾";
+    font-size: 0.7rem;
+    color: var(--uab-green);
+}
+.prenav-menu-item .nav-link:hover {
+    color: var(--uab-green);
+}
+/* Separadores con pipe */
+.navbar-nav .prenav-menu-item:not(:last-child)::after {
+    content: "|";
+    color: #ccc;
+    margin: 0 8px;
 }
 
 /* ─── FOOTER ─── */
@@ -590,6 +681,15 @@ body { font-family:var(--font-sans); background-color:#f8f9fa; color:#1a1a1a; li
     .catalog-modal-body { flex-direction:column; padding:16px; gap:20px; }
     .catalog-modal-body .modal-cover-col { max-width:200px; margin:0 auto; }
     .catalog-modal-close { top:12px !important; right:12px !important; width:36px !important; height:36px !important; font-size:1.2rem !important; }
+    /* Ajustes para prenavigation en móvil */
+    .prenavigation .region-prenavigation {
+        flex-wrap: wrap;
+        gap: 4px;
+    }
+    .navbar-nav .prenav-menu-item:not(:last-child)::after {
+        content: "";
+        margin: 0;
+    }
 }
 @media (max-width: 480px) {
     .books-grid { grid-template-columns:repeat(auto-fill, minmax(150px,1fr)); gap:12px; }

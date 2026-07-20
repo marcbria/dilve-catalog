@@ -95,7 +95,6 @@ export function createBookCard(book) {
     formatPriceContainer.appendChild(priceEl);
 
     cardBody.appendChild(formatPriceContainer);
-
     card.appendChild(cardBody);
     return card;
 }
@@ -192,7 +191,7 @@ export function openDetailModal(book) {
             `<div class="detail-section"><button class="collection-link" data-collection="${escapeHTML(book.collectionTitle)}">Ver todos los libros de «${escapeHTML(book.collectionTitle)}»</button></div>` :
             "";
 
-        // Botones de compartir en el modal (orden: email, Mastodon, Instagram, Bluesky)
+        // Botones de compartir en el modal (orden: email, Mastodon, Instagram, Bluesky, Copiar URL)
         const shareHTML = `
             <div class="detail-section share-section">
                 <h4>Compartir</h4>
@@ -209,6 +208,9 @@ export function openDetailModal(book) {
                     <a href="https://bsky.app/intent/compose?text=${shareText}%20${shareUrl}" target="_blank" rel="noopener" aria-label="Compartir en Bluesky">
                         <i class="fa-brands fa-bluesky"></i>
                     </a>
+                    <button class="copy-url-btn" aria-label="Copiar URL" title="Copiar enlace al portapapeles">
+                        <i class="fa-solid fa-link"></i>
+                    </button>
                 </div>
             </div>
         `;
@@ -324,7 +326,7 @@ export function openDetailModal(book) {
             coverImg.style.objectFit = 'contain';
         }
 
-        // Asignar eventos
+        // Asignar eventos para enlaces
         dom.modalBody.querySelectorAll('.modal-link[data-author]').forEach(el => {
             el.addEventListener('click', (e) => {
                 e.stopPropagation();
@@ -385,6 +387,34 @@ export function openDetailModal(book) {
                 const colTitle = collectionLink.getAttribute('data-collection');
                 closeModal();
                 navigateToCollection(colTitle);
+            });
+        }
+
+        // Evento para copiar URL
+        const copyBtn = dom.modalBody.querySelector('.copy-url-btn');
+        if (copyBtn) {
+            copyBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const url = window.location.href;
+                navigator.clipboard.writeText(url).then(() => {
+                    // Feedback visual: cambiar icono temporalmente
+                    const icon = copyBtn.querySelector('i');
+                    if (icon) {
+                        icon.className = 'fa-solid fa-check';
+                        setTimeout(() => {
+                            icon.className = 'fa-solid fa-link';
+                        }, 2000);
+                    }
+                }).catch(err => {
+                    console.error('Error al copiar URL:', err);
+                    // Fallback: seleccionar y copiar manualmente
+                    const textArea = document.createElement('textarea');
+                    textArea.value = url;
+                    document.body.appendChild(textArea);
+                    textArea.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(textArea);
+                });
             });
         }
 
