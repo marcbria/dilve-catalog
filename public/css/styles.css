@@ -697,3 +697,26 @@ body { font-family:var(--font-sans); background-color:#f8f9fa; color:#1a1a1a; li
     .card-author { font-size:0.75rem; }
 }
 @media (min-width: 1600px) { .books-grid { grid-template-columns:repeat(5,1fr); } }
+
+/* ===== ESTILOS PARA EL BOTÓN DE COPIAR URL ===== */
+.share-icons .copy-url-btn {
+    background: none;
+    border: none;
+    color: #555;
+    font-size: 1.3rem;
+    cursor: pointer;
+    padding: 0;
+    transition: color 0.2s;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+    margin: 0;
+}
+.share-icons .copy-url-btn:hover {
+    color: #007e11;
+}
+.share-icons .copy-url-btn:focus-visible {
+    outline: 2px solid #007e11;
+    outline-offset: 2px;
+}

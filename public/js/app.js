@@ -5,6 +5,7 @@ import { fetchCollectionsCSV, populateCollectionFilter, updateCollectionIntro, n
 import { applyFiltersAndReset, resetAllFilters, navigateToLanguage, navigateToFormat, navigateToAuthor } from './filters.js';
 import { loadMoreBooks, setupIntersectionObserver, closeModal, openDetailModal } from './uiRenderer.js';
 import { applyInitialURLParams, updateURL } from './urlManager.js';
+import { getCleanIsbn } from './utils.js';
 
 // ─── Carga del catálogo ──────────────────────────────────
 async function loadCatalog(csvText) {
@@ -18,17 +19,6 @@ async function loadCatalog(csvText) {
     if (state.allBooks.length > 0) console.log("Primer libro:", state.allBooks[0]);
     applyInitialURLParams();
     applyFiltersAndReset();
-    
-    // Comprobar si hay ISBN en la URL y abrir el modal
-    const params = new URLSearchParams(window.location.search);
-    const isbn = params.get('isbn');
-    if (isbn) {
-        const book = state.allBooks.find(b => b.isbn === isbn);
-        if (book) {
-            // Pequeño retraso para asegurar que la UI está renderizada
-            setTimeout(() => openDetailModal(book), 100);
-        }
-    }
 }
 
 // ─── Event listeners ─────────────────────────────────────
@@ -74,6 +64,30 @@ async function init() {
         await fetchCollectionsCSV();
         await loadCatalog(csvText);
         setupIntersectionObserver();
+        
+        // --- Procesar ISBN desde la URL (mejorado) ---
+        const params = new URLSearchParams(window.location.search);
+        const isbnParam = params.get('isbn');
+        if (isbnParam) {
+            const cleanIsbn = getCleanIsbn(isbnParam);
+            // Intentar abrir el modal después de que la UI esté pintada
+            const tryOpenModal = (delay = 300) => {
+                setTimeout(() => {
+                    const book = state.allBooks.find(b => getCleanIsbn(b.isbn) === cleanIsbn);
+                    if (book) {
+                        console.log('Abriendo modal para ISBN:', book.isbn);
+                        openDetailModal(book);
+                    } else {
+                        console.warn('No se encontró libro con ISBN:', isbnParam);
+                        // Reintentar una vez más con más tiempo (por si el libro no estaba en la vista inicial)
+                        if (delay < 600) {
+                            tryOpenModal(600);
+                        }
+                    }
+                }, delay);
+            };
+            tryOpenModal(300);
+        }
     } catch (err) {
         console.error('Error cargando catalog.csv:', err);
         dom.fileFallback.classList.add('active');

@@ -192,6 +192,7 @@ export function openDetailModal(book) {
             "";
 
         // Botones de compartir en el modal (orden: email, Mastodon, Instagram, Bluesky, Copiar URL)
+        // Ahora el botón de copiar usa la misma clase que los enlaces y tiene estilos CSS específicos
         const shareHTML = `
             <div class="detail-section share-section">
                 <h4>Compartir</h4>
