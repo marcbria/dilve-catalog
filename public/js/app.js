@@ -5,7 +5,7 @@ import { fetchCollectionsCSV, populateCollectionFilter, updateCollectionIntro, n
 import { applyFiltersAndReset, resetAllFilters, navigateToLanguage, navigateToFormat, navigateToAuthor } from './filters.js';
 import { loadMoreBooks, setupIntersectionObserver, closeModal, openDetailModal } from './uiRenderer.js';
 import { applyInitialURLParams, updateURL } from './urlManager.js';
-import { getCleanIsbn } from './utils.js';
+import { getCleanIsbn, getIsbnFromHash, getIsbnFromQuery } from './utils.js';
 
 // ─── Carga del catálogo ──────────────────────────────────
 async function loadCatalog(csvText) {
@@ -57,6 +57,18 @@ document.getElementById('hamburgerBtn').addEventListener('click', function() {
 
 // ─── Inicialización ──────────────────────────────────────
 async function init() {
+    // --- Manejar compatibilidad: si hay query string con isbn, convertirlo a hash ---
+    const queryIsbn = getIsbnFromQuery();
+    if (queryIsbn) {
+        // Eliminar el parámetro de la query y ponerlo en el hash
+        const url = new URL(window.location.href);
+        url.searchParams.delete('isbn');
+        url.hash = `isbn=${queryIsbn}`;
+        // Reemplazar el historial sin recargar
+        history.replaceState(null, '', url.toString());
+        console.log('Convertido query ?isbn a hash:', url.toString());
+    }
+
     try {
         const response = await fetch('data/catalog.csv');
         if (!response.ok) throw new Error(`Error al cargar el archivo: ${response.status} ${response.statusText}`);
@@ -65,21 +77,19 @@ async function init() {
         await loadCatalog(csvText);
         setupIntersectionObserver();
         
-        // --- Procesar ISBN desde la URL (mejorado) ---
-        const params = new URLSearchParams(window.location.search);
-        const isbnParam = params.get('isbn');
-        if (isbnParam) {
-            const cleanIsbn = getCleanIsbn(isbnParam);
+        // --- Leer ISBN del hash (si existe) ---
+        const isbnFromHash = getIsbnFromHash();
+        if (isbnFromHash) {
+            const cleanIsbn = getCleanIsbn(isbnFromHash);
             // Intentar abrir el modal después de que la UI esté pintada
             const tryOpenModal = (delay = 300) => {
                 setTimeout(() => {
                     const book = state.allBooks.find(b => getCleanIsbn(b.isbn) === cleanIsbn);
                     if (book) {
-                        console.log('Abriendo modal para ISBN:', book.isbn);
+                        console.log('Abriendo modal para ISBN (hash):', book.isbn);
                         openDetailModal(book);
                     } else {
-                        console.warn('No se encontró libro con ISBN:', isbnParam);
-                        // Reintentar una vez más con más tiempo (por si el libro no estaba en la vista inicial)
+                        console.warn('No se encontró libro con ISBN:', isbnFromHash);
                         if (delay < 600) {
                             tryOpenModal(600);
                         }

@@ -3,7 +3,16 @@ import { applyFiltersAndReset } from './filters.js';
 
 // ─── URL params ──────────────────────────────────────────
 export function getURLParams() {
+    // Leer parámetros de la query string (para compatibilidad con enlaces antiguos)
     const params = new URLSearchParams(window.location.search);
+    // Si no hay query, leer del hash
+    if (params.toString() === '') {
+        const hash = window.location.hash;
+        if (hash.startsWith('#isbn=')) {
+            const isbn = hash.substring(6);
+            params.set('isbn', isbn);
+        }
+    }
     return {
         search: params.get("search") || "",
         sort: params.get("sort") || "date-desc",
@@ -16,6 +25,10 @@ export function getURLParams() {
 }
 
 export function updateURL(isbn = null) {
+    const url = new URL(window.location.href);
+    // Limpiar cualquier hash existente
+    url.hash = '';
+    // Construir la query string con los filtros (sin ISBN)
     const params = new URLSearchParams();
     const s = dom.searchInput.value.trim();
     if (s) params.set("search", s);
@@ -24,10 +37,16 @@ export function updateURL(isbn = null) {
     if (dom.formatFilter.value !== "all") params.set("format", dom.formatFilter.value);
     if (dom.priceFilter.value !== "all") params.set("price", dom.priceFilter.value);
     if (dom.collectionFilter.value !== "all") params.set("collection", dom.collectionFilter.value);
-    if (isbn) params.set("isbn", isbn);
     
-    const qs = params.toString();
-    history.replaceState(null, "", window.location.pathname + (qs ? "?" + qs : ""));
+    // Establecer la query string
+    url.search = params.toString();
+    
+    // Si se proporciona un ISBN, añadirlo al hash
+    if (isbn) {
+        url.hash = `isbn=${isbn}`;
+    }
+    
+    history.replaceState(null, '', url.toString());
 }
 
 export function applyInitialURLParams() {

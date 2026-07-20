@@ -156,7 +156,7 @@ export function openDetailModal(book) {
         return;
     }
 
-    // Actualizar URL con el ISBN
+    // Actualizar URL con el ISBN (usando hash)
     updateURL(book.isbn);
 
     try {
@@ -192,7 +192,6 @@ export function openDetailModal(book) {
             "";
 
         // Botones de compartir en el modal (orden: email, Mastodon, Instagram, Bluesky, Copiar URL)
-        // Ahora el botón de copiar usa la misma clase que los enlaces y tiene estilos CSS específicos
         const shareHTML = `
             <div class="detail-section share-section">
                 <h4>Compartir</h4>
@@ -434,11 +433,10 @@ export function openDetailModal(book) {
 }
 
 export function closeModal() {
-    // Limpiar el ISBN de la URL al cerrar el modal
-    const params = new URLSearchParams(window.location.search);
-    params.delete('isbn');
-    const newUrl = window.location.pathname + (params.toString() ? '?' + params.toString() : '');
-    history.replaceState(null, '', newUrl);
+    // Limpiar el ISBN del hash al cerrar el modal
+    const url = new URL(window.location.href);
+    url.hash = '';
+    history.replaceState(null, '', url.toString());
     
     dom.modalOverlay.classList.remove('active');
     document.body.style.overflow = '';
