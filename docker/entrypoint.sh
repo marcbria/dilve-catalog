@@ -14,11 +14,25 @@ export LOGO="${LOGO:-}"
 export BASE_PATH="${BASE_PATH:-/}"
 export ORGANIZATION="${ORGANIZATION:-Universitat Autònoma de Barcelona}"
 
-# Establecer zona horaria
-ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
+# --- Guardar variables de entorno para el cron ---
+mkdir -p /etc
+cat > /etc/dilve-env <<EOF
+export DILVE_USER="$DILVE_USER"
+export DILVE_PASS="$DILVE_PASS"
+export EDITORIAL_CODE="$EDITORIAL_CODE"
+export BATCH_SIZE="$BATCH_SIZE"
+export ACTIVE_STATUS_CODES="$ACTIVE_STATUS_CODES"
+export CRON_SCHEDULE="$CRON_SCHEDULE"
+export TZ="$TZ"
+export THEME="$THEME"
+export LOGO="$LOGO"
+export BASE_PATH="$BASE_PATH"
+export ORGANIZATION="$ORGANIZATION"
+EOF
+chmod 644 /etc/dilve-env
 
-# --- Obtener fecha de build ---
-BUILD_DATE=$(date +"%Y-%m-%d %H:%M:%S %Z")
+# --- Establecer zona horaria ---
+ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 
 # --- Generar configuración del tema para el frontend ---
 mkdir -p /usr/share/nginx/html/js
@@ -26,6 +40,9 @@ cat > /usr/share/nginx/html/js/theme-config.js <<EOF
 // Configuración del tema inyectada desde el contenedor
 window.THEME = "${THEME}";
 EOF
+
+# --- Obtener fecha de build ---
+BUILD_DATE=$(date +"%Y-%m-%d %H:%M:%S %Z")
 
 # --- Ensamblar index.html usando Jinja2 con herencia ---
 python3 <<EOF
@@ -89,7 +106,6 @@ if logo_env:
                 logo_html = ""
 else:
     # Generar SVG con el nombre de la organización
-    # Escapar caracteres especiales para SVG
     safe_org = organization.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
     logo_html = f'''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 80" width="400" height="80" style="max-height:52px; height:auto; width:auto;">
         <rect width="400" height="80" fill="#ffffff" rx="4"/>
