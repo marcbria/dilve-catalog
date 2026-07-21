@@ -196,7 +196,7 @@ python3 main.py
 
 # --- Configurar cron ---
 echo "Configurando cron con la programación: $CRON_SCHEDULE"
-printf "%s root /app/update.sh >> /data/logs/cron.log 2>&1\n" "$CRON_SCHEDULE" > /etc/cron.d/dilve-update
+printf "%s root bash -c '/app/update.sh 2>&1 | tee -a /data/logs/cron.log'\n" "$CRON_SCHEDULE" > /etc/cron.d/dilve-update
 chmod 0644 /etc/cron.d/dilve-update
 crontab /etc/cron.d/dilve-update
 

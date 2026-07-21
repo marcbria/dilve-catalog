@@ -1,9 +1,10 @@
 FROM python:3.12-slim
 
-# Instalar nginx, cron, jinja2 y otras utilidades
+# Instalar nginx, cron, coreutils (tee) y jinja2
 RUN apt-get update && apt-get install -y \
     nginx \
     cron \
+    coreutils \
     && rm -rf /var/lib/apt/lists/*
 
 # Instalar Jinja2 (para el ensamblado de plantillas)
