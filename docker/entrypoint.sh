@@ -14,7 +14,7 @@ export LOGO="${LOGO:-}"
 export BASE_PATH="${BASE_PATH:-/}"
 export ORGANIZATION="${ORGANIZATION:-Universitat Autònoma de Barcelona}"
 
-# --- Guardar variables de entorno para el cron ---
+# --- Guardar variables de entorno para el script de actualización ---
 mkdir -p /etc
 cat > /etc/dilve-env <<EOF
 export DILVE_USER="$DILVE_USER"
@@ -67,7 +67,6 @@ print(f"BASE_PATH: {base_path}", flush=True)
 print(f"ORGANIZATION: {organization}", flush=True)
 
 def get_fragment_content(fragment_name):
-    """Lee el contenido de un fragmento (header, footer, styles, head_extra)."""
     theme_file = os.path.join(base_dir, theme, fragment_name)
     default_file = os.path.join(base_dir, default_theme, fragment_name)
     if os.path.exists(theme_file):
@@ -79,15 +78,12 @@ def get_fragment_content(fragment_name):
     else:
         return ""
 
-# Determinar la URL del logo o generar un SVG
 logo_html = ""
 if logo_env:
-    # Si se definió LOGO, usarlo como imagen
     if logo_env.startswith(('http://', 'https://')):
         logo_url = logo_env
         logo_html = f'<img src="{logo_url}" alt="Logo" />'
     else:
-        # Buscar en el tema activo y luego en default
         logo_path = os.path.join(base_dir, theme, "img", logo_env)
         if os.path.exists(logo_path):
             base = base_path.rstrip('/')
@@ -105,7 +101,6 @@ if logo_env:
                 print(f"Advertencia: Logo '{logo_env}' no encontrado. Se generará SVG.", flush=True)
                 logo_html = ""
 else:
-    # Generar SVG con el nombre de la organización
     safe_org = organization.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
     logo_html = f'''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 80" width="400" height="80" style="max-height:52px; height:auto; width:auto;">
         <rect width="400" height="80" fill="#ffffff" rx="4"/>
@@ -113,7 +108,6 @@ else:
     </svg>'''
     print("Logo SVG generado automáticamente", flush=True)
 
-# Contexto con fragmentos
 context = {
     'HEADER': get_fragment_content('header.html'),
     'FOOTER': get_fragment_content('footer.html'),
@@ -125,21 +119,14 @@ context = {
     'BUILD_DATE': build_date,
 }
 
-# Configurar el loader para buscar en el tema activo y luego en default
 theme_dir = os.path.join(base_dir, theme)
 default_dir = os.path.join(base_dir, default_theme)
-
 loader = ChoiceLoader([
     FileSystemLoader(theme_dir),
     FileSystemLoader(default_dir),
 ])
+env = Environment(loader=loader, autoescape=False)
 
-env = Environment(
-    loader=loader,
-    autoescape=False,
-)
-
-# Determinar qué plantilla usar
 template_name = "index.html.j2"
 try:
     template = env.get_template(template_name)
@@ -148,10 +135,7 @@ except Exception as e:
     print(f"No se encontró {template_name}, usando layout.j2: {e}", flush=True)
     template = env.get_template("layout.j2")
 
-# Renderizar
 output = template.render(**context)
-
-# Guardar en la ubicación final
 output_file = "/usr/share/nginx/html/index.html"
 with open(output_file, 'w', encoding='utf-8') as f:
     f.write(output)
@@ -194,15 +178,56 @@ fi
 cd /app
 python3 main.py
 
-# --- Configurar cron ---
-echo "Configurando cron con la programación: $CRON_SCHEDULE"
-printf "%s root bash -c '/app/update.sh 2>&1 | tee -a /data/logs/cron.log'\n" "$CRON_SCHEDULE" > /etc/cron.d/dilve-update
-chmod 0644 /etc/cron.d/dilve-update
-crontab /etc/cron.d/dilve-update
-
-# Arrancar cron en segundo plano
-cron
-
-# Arrancar nginx en primer plano
+# --- Arrancar nginx en segundo plano ---
 echo "Iniciando servidor web Nginx..."
-nginx -g "daemon off;"
+nginx -g "daemon off;" &
+NGINX_PID=$!
+
+# --- Función para parsear CRON_SCHEDULE (formato: minuto hora dia mes dia_semana) ---
+parse_cron_schedule() {
+    local cron_expr="$1"
+    # Dividir por espacios
+    local fields=($cron_expr)
+    if [ ${#fields[@]} -lt 5 ]; then
+        echo "0 2 * * *"  # fallback
+        return
+    fi
+    echo "${fields[1]} ${fields[0]} * * *"  # devolvemos "hora minuto * * *" para usar con date
+}
+
+# --- Obtener hora y minuto del cron ---
+CRON_HOUR_MINUTE=$(parse_cron_schedule "$CRON_SCHEDULE")
+# Ejemplo: "2 0 * * *" -> "2 0" (hora minuto)
+# parse_cron_schedule devuelve "hora minuto * * *" -> extraemos los dos primeros
+SCHEDULE_TIME=$(echo "$CRON_HOUR_MINUTE" | awk '{print $1":"$2}')
+if [ -z "$SCHEDULE_TIME" ] || [ "$SCHEDULE_TIME" = ":" ]; then
+    SCHEDULE_TIME="02:00"
+fi
+echo "Programación de actualización: $SCHEDULE_TIME"
+
+# --- Bucle de actualización programada ---
+while true; do
+    # Calcular el tiempo hasta la próxima ejecución
+    current_time=$(date +%s)
+    next_time=$(date -d "$SCHEDULE_TIME" +%s 2>/dev/null || echo "")
+    if [ -z "$next_time" ]; then
+        # Si falla la fecha, usar 2:00 AM del día siguiente
+        next_time=$(date -d "tomorrow 02:00" +%s)
+    fi
+    # Si la hora ya pasó hoy, sumar un día
+    if [ $current_time -ge $next_time ]; then
+        next_time=$(date -d "tomorrow $SCHEDULE_TIME" +%s 2>/dev/null || date -d "tomorrow 02:00" +%s)
+    fi
+    sleep_seconds=$((next_time - current_time))
+    echo "Próxima actualización programada para: $(date -d @$next_time '+%Y-%m-%d %H:%M:%S %Z') (en $((sleep_seconds / 3600))h $(( (sleep_seconds % 3600) / 60 ))m)"
+    sleep $sleep_seconds
+
+    echo "=== Ejecutando actualización programada ==="
+    # Ejecutar update.sh y mostrar la salida (que incluye el resumen)
+    /app/update.sh
+    echo "=== Fin de la actualización programada ==="
+done
+
+# Nota: este bucle nunca termina, pero si falla, el contenedor se reiniciará.
+# Esperar a que nginx termine (no debería ocurrir)
+wait $NGINX_PID
