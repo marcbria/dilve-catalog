@@ -15,6 +15,7 @@ COLOR_BOLD = "\033[1m"
 
 _log_file = None
 _log_filename = None
+_quiet = os.environ.get('LOG_QUIET', '') != ''
 
 def init_log() -> bool:
     """Inicializa el archivo de log con timestamp YYYYMMDD-HHMM.log."""
@@ -49,17 +50,21 @@ def _log_message(msg: str):
         _log_file.flush()
 
 def print_ok(msg: str):
-    print(f"{COLOR_GREEN}✓ {msg}{COLOR_RESET}")
+    if not _quiet:
+        print(f"{COLOR_GREEN}✓ {msg}{COLOR_RESET}")
     _log_message(f"✓ {msg}")
 
 def print_warn(msg: str):
-    print(f"{COLOR_YELLOW}⚠ {msg}{COLOR_RESET}")
+    if not _quiet:
+        print(f"{COLOR_YELLOW}⚠ {msg}{COLOR_RESET}")
     _log_message(f"⚠ {msg}")
 
 def print_error(msg: str):
-    print(f"{COLOR_RED}✗ {msg}{COLOR_RESET}")
+    if not _quiet:
+        print(f"{COLOR_RED}✗ {msg}{COLOR_RESET}")
     _log_message(f"✗ {msg}")
 
 def print_info(msg: str):
-    print(f"{COLOR_BOLD}{msg}{COLOR_RESET}")
+    if not _quiet:
+        print(f"{COLOR_BOLD}{msg}{COLOR_RESET}")
     _log_message(msg)

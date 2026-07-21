@@ -44,7 +44,7 @@ def ejecutar_descarga(
     modo_completo = False
 
     if from_date == "all":
-        print_info("Forzando modo completo (--from-date all)")
+        print_info("Modo: completo")
         fecha_mostrada = "el inicio"
         modo_completo = True
     else:
@@ -52,12 +52,21 @@ def ejecutar_descarga(
             last_date = get_last_csv_date()
             if last_date:
                 from_date = last_date
-                print_info(f"Usando fecha del último CSV: {from_date}")
+                print_info(f"Modo: incremental (descargando cambios desde {from_date})")
                 fecha_mostrada = from_date
             else:
-                print_info("No hay CSV previo. Se realizará modo completo.")
+                print_info("No hay CSV previo. Modo completo.")
                 fecha_mostrada = "el inicio"
                 modo_completo = True
+
+    # Determinar el tipo de descarga
+    if actualizar_metadatos and actualizar_cubiertas:
+        modo_descarga = "metadatos + cubiertas"
+    elif actualizar_metadatos:
+        modo_descarga = "solo metadatos"
+    else:
+        modo_descarga = "solo cubiertas"
+    print_info(f"Modo descarga: {modo_descarga}")
 
     print_info("=== Iniciando descarga del catálogo ===")
     crear_directorios()
@@ -71,7 +80,11 @@ def ejecutar_descarga(
     registros_procesados = 0
 
     try:
-        print_info("Obteniendo lista de ISBN de la editorial...")
+        if modo_completo:
+            print_info("Obteniendo lista de ISBN de la editorial...")
+        else:
+            print_info(f"Obteniendo lista de ISBN de la editorial desde {from_date}...")
+
         try:
             isbns = obtener_lista_isbn(from_date=from_date if not modo_completo else None)
         except Exception as e:
@@ -80,7 +93,7 @@ def ejecutar_descarga(
             return
 
         total_isbns = len(isbns)
-        print_info(f"Total de ISBN encontrados: {total_isbns}")
+        print_info(f"Total de registros nuevos: {total_isbns}")
 
         # Si no hay ISBN y estamos en modo incremental, no hay cambios
         if not isbns and not modo_completo:
@@ -89,7 +102,6 @@ def ejecutar_descarga(
             else:
                 print_warn("No se encontraron productos para esta editorial.")
             _log_message("No se encontraron productos.")
-            # Actualizar symlink al último CSV existente (si hay)
             if actualizar_metadatos:
                 last_csv = get_last_csv_path()
                 if last_csv:
@@ -109,7 +121,7 @@ def ejecutar_descarga(
             last_csv = get_last_csv_path()
             if last_csv:
                 existing_books = leer_csv_como_dict(last_csv)
-                print_info(f"Catálogo existente cargado: {len(existing_books)} libros")
+                # No imprimir el número de libros cargados
 
         nuevos_cambios = []
         total = len(isbns)
@@ -153,10 +165,8 @@ def ejecutar_descarga(
 
                         if actualizar_metadatos:
                             if modo_completo:
-                                # En modo completo, añadir directamente
                                 nuevos_cambios.append(datos)
                             else:
-                                # En modo incremental, actualizar el diccionario existente
                                 if isbn:
                                     existing_books[isbn] = datos
                         else:
@@ -177,11 +187,9 @@ def ejecutar_descarga(
             time.sleep(0.5)
 
         print_info(f"Total de registros procesados: {registros_procesados}")
-        print_info(f"Libros activos encontrados: {libros_activos}")
 
         if actualizar_metadatos:
             if modo_completo:
-                # Modo completo: guardar los resultados directamente
                 if nuevos_cambios:
                     timestamp = datetime.now().strftime("%Y%m%d-%H%M")
                     csv_filename = f"{timestamp}.csv"
@@ -191,27 +199,21 @@ def ejecutar_descarga(
                     metadatos_descargados = len(nuevos_cambios)
                     print_ok(f"Catálogo completo guardado: {csv_path} ({metadatos_descargados} libros)")
                 else:
-                    # No debería ocurrir, pero por si acaso
                     last_csv = get_last_csv_path()
                     if last_csv:
                         create_data_symlink(last_csv)
                         print_info("Symlink actualizado al último CSV existente (sin cambios)")
             else:
-                # Modo incremental: fusionar cambios con el catálogo existente
                 if existing_books:
-                    # Si hay cambios, guardar el catálogo completo actualizado
                     timestamp = datetime.now().strftime("%Y%m%d-%H%M")
                     csv_filename = f"{timestamp}.csv"
                     csv_path = f"/data/catalog/{csv_filename}"
-                    # Convertir el diccionario a lista para guardar
                     full_catalog = list(existing_books.values())
                     guardar_csv(full_catalog, csv_path)
                     create_data_symlink(csv_path)
                     metadatos_descargados = len(full_catalog)
-                    print_ok(f"Catálogo completo actualizado guardado: {csv_path} ({metadatos_descargados} libros)")
+                    print_ok(f"✓ Enlace simbólico creado: /data/catalog.csv -> {csv_path} ({metadatos_descargados} libros)")
                 else:
-                    # No había catálogo previo, pero estamos en modo incremental (caso raro)
-                    # Hacer como modo completo
                     if nuevos_cambios:
                         timestamp = datetime.now().strftime("%Y%m%d-%H%M")
                         csv_filename = f"{timestamp}.csv"
@@ -224,10 +226,8 @@ def ejecutar_descarga(
         elapsed_time = time.time() - start_time
         print("\n" + "=" * 60)
         print_info("=== RESUMEN DE EJECUCIÓN ===")
-        print(f"Obras del catálogo: {total_isbns}")
-        print(f"Libros activos: {libros_activos}")
-        if actualizar_metadatos:
-            print_ok(f"Metadatos descargados: {metadatos_descargados}")
+        print(f"✓ Actualizaciones: {total_isbns}")
+        print(f"✓ Catálogo actual: {libros_activos}")
         if actualizar_cubiertas:
             print_ok(f"Cubiertas descargadas de DILVE: {cubiertas_dilve}")
             print_ok(f"Cubiertas descargadas de URLs externas: {cubiertas_externas}")
@@ -238,10 +238,8 @@ def ejecutar_descarga(
         print("=" * 60)
 
         _log_message("=== RESUMEN ===")
-        _log_message(f"Obras del catálogo: {total_isbns}")
-        _log_message(f"Libros activos: {libros_activos}")
-        if actualizar_metadatos:
-            _log_message(f"Metadatos descargados: {metadatos_descargados}")
+        _log_message(f"Actualizaciones: {total_isbns}")
+        _log_message(f"Catálogo actual: {libros_activos}")
         if actualizar_cubiertas:
             _log_message(f"Cubiertas DILVE: {cubiertas_dilve}")
             _log_message(f"Cubiertas externas: {cubiertas_externas}")
