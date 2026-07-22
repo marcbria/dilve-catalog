@@ -59,16 +59,17 @@ def guardar_csv(resultados: List[Dict], csv_path: str) -> None:
         writer.writerows(resultados)
 
 def create_data_symlink(csv_path: str) -> None:
+    """Crea el enlace simbólico /data/catalog.csv apuntando a csv_path."""
     symlink_path = "/data/catalog.csv"
     if os.path.islink(symlink_path) or os.path.exists(symlink_path):
         try:
             os.remove(symlink_path)
-            print_info(f"Enlace antiguo eliminado: {symlink_path}")
         except OSError as e:
             print_warn(f"No se pudo eliminar el enlace antiguo {symlink_path}: {e}")
     try:
         os.symlink(csv_path, symlink_path)
-        print_ok(f"Enlace simbólico creado: {symlink_path} -> {csv_path}")
+        # El mensaje se imprime desde main.py para evitar duplicados.
+        # Esta función ya no imprime nada.
     except Exception as e:
         print_error(f"Error al crear enlace simbólico para /data/catalog.csv: {e}")
 

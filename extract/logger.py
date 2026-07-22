@@ -11,7 +11,7 @@ COLOR_RESET = "\033[0m"
 COLOR_GREEN = "\033[92m"
 COLOR_YELLOW = "\033[93m"
 COLOR_RED = "\033[91m"
-COLOR_BOLD = "\033[1m"
+COLOR_BOLD = "\033[1m"   # Blanco brillante (negrita)
 
 _log_file = None
 _log_filename = None
@@ -49,6 +49,12 @@ def _log_message(msg: str):
         _log_file.write(f"[{timestamp}] {msg}\n")
         _log_file.flush()
 
+def print_title(msg: str):
+    """Imprime en blanco brillante (negrita) para títulos principales."""
+    if not _quiet:
+        print(f"{COLOR_BOLD}{msg}{COLOR_RESET}")
+    _log_message(msg)
+
 def print_ok(msg: str):
     if not _quiet:
         print(f"{COLOR_GREEN}✓ {msg}{COLOR_RESET}")
@@ -65,6 +71,7 @@ def print_error(msg: str):
     _log_message(f"✗ {msg}")
 
 def print_info(msg: str):
+    """Imprime en color por defecto (sin negrita) para información general."""
     if not _quiet:
-        print(f"{COLOR_BOLD}{msg}{COLOR_RESET}")
+        print(msg)  # Color por defecto
     _log_message(msg)

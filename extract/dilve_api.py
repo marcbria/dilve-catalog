@@ -28,7 +28,7 @@ def obtener_lista_isbn(from_date: Optional[str] = None) -> List[str]:
     """
     # Si from_date es "all" o None, modo completo
     if from_date is None or from_date == "all":
-        print_info("Modo completo: obteniendo todo el catálogo")
+        # Ya no se imprime "Modo completo: obteniendo todo el catálogo" porque ya se muestra en main.py
         params = {
             "publisher": EDITORIAL_CODE,
             "type": "L",
@@ -50,7 +50,8 @@ def obtener_lista_isbn(from_date: Optional[str] = None) -> List[str]:
         return isbns
 
     # Si llegamos aquí, tenemos una fecha (incremental)
-    print_info(f"Modo incremental: obteniendo cambios desde {from_date}")
+    # Ya no se imprime "Modo incremental: obteniendo cambios desde {from_date}"
+    # porque ya se muestra en main.py
     params = {
         "publisher": EDITORIAL_CODE,
         "fromDate": from_date,

@@ -14,7 +14,7 @@ from config import (
     BATCH_SIZE,
     CATALOG_STATUS_DESCRIPTIONS,
 )
-from logger import init_log, close_log, print_info, print_ok, print_warn, print_error, _log_message
+from logger import init_log, close_log, print_title, print_ok, print_warn, print_error, print_info, _log_message
 from dilve_api import obtener_lista_isbn, obtener_productos_onix
 from onix_parser import parsear_producto
 from file_manager import (
@@ -43,8 +43,9 @@ def ejecutar_descarga(
     fecha_mostrada = from_date
     modo_completo = False
 
+    # Determinar el modo de descarga (incremental/completo)
     if from_date == "all":
-        print_info("Modo: completo")
+        modo_descarga_texto = "completo"
         fecha_mostrada = "el inicio"
         modo_completo = True
     else:
@@ -52,23 +53,30 @@ def ejecutar_descarga(
             last_date = get_last_csv_date()
             if last_date:
                 from_date = last_date
-                print_info(f"Modo: incremental (descargando cambios desde {from_date})")
+                modo_descarga_texto = f"incremental (descargando cambios desde {from_date})"
                 fecha_mostrada = from_date
             else:
-                print_info("No hay CSV previo. Modo completo.")
+                modo_descarga_texto = "completo"
                 fecha_mostrada = "el inicio"
                 modo_completo = True
+        else:
+            modo_descarga_texto = f"incremental (descargando cambios desde {from_date})"
+            fecha_mostrada = from_date
 
-    # Determinar el tipo de descarga
+    # Determinar el tipo de descarga (metadatos, cubiertas, ambos)
     if actualizar_metadatos and actualizar_cubiertas:
-        modo_descarga = "metadatos + cubiertas"
+        tipo_descarga = "metadatos + cubiertas"
     elif actualizar_metadatos:
-        modo_descarga = "solo metadatos"
+        tipo_descarga = "solo metadatos"
     else:
-        modo_descarga = "solo cubiertas"
-    print_info(f"Modo descarga: {modo_descarga}")
+        tipo_descarga = "solo cubiertas"
 
-    print_info("=== Iniciando descarga del catálogo ===")
+    # Mostrar la sección de inicialización con el nuevo formato
+    print_title("=== Inicializando catálogo ===")
+    print_info(f"Modo de descarga: {modo_descarga_texto}")
+    print_info(f"Tipo de descarga: {tipo_descarga}")
+
+    print_title("=== Iniciando descarga del catálogo ===")
     crear_directorios()
 
     total_isbns = 0
@@ -106,7 +114,7 @@ def ejecutar_descarga(
                 last_csv = get_last_csv_path()
                 if last_csv:
                     create_data_symlink(last_csv)
-                    print_info(f"Symlink actualizado al último CSV existente: {last_csv}")
+                    print_ok(f"Enlace simbólico actualizado: /data/catalog.csv -> {last_csv}")
             return
 
         # Si no hay ISBN y estamos en modo completo, es un error o catálogo vacío
@@ -121,7 +129,6 @@ def ejecutar_descarga(
             last_csv = get_last_csv_path()
             if last_csv:
                 existing_books = leer_csv_como_dict(last_csv)
-                # No imprimir el número de libros cargados
 
         nuevos_cambios = []
         total = len(isbns)
@@ -197,12 +204,12 @@ def ejecutar_descarga(
                     guardar_csv(nuevos_cambios, csv_path)
                     create_data_symlink(csv_path)
                     metadatos_descargados = len(nuevos_cambios)
-                    print_ok(f"Catálogo completo guardado: {csv_path} ({metadatos_descargados} libros)")
+                    print_ok(f"Enlace simbólico creado: /data/catalog.csv -> {csv_path} ({metadatos_descargados} libros)")
                 else:
                     last_csv = get_last_csv_path()
                     if last_csv:
                         create_data_symlink(last_csv)
-                        print_info("Symlink actualizado al último CSV existente (sin cambios)")
+                        print_ok(f"Enlace simbólico actualizado: /data/catalog.csv -> {last_csv}")
             else:
                 if existing_books:
                     timestamp = datetime.now().strftime("%Y%m%d-%H%M")
@@ -212,7 +219,7 @@ def ejecutar_descarga(
                     guardar_csv(full_catalog, csv_path)
                     create_data_symlink(csv_path)
                     metadatos_descargados = len(full_catalog)
-                    print_ok(f"✓ Enlace simbólico creado: /data/catalog.csv -> {csv_path} ({metadatos_descargados} libros)")
+                    print_ok(f"Enlace simbólico creado: /data/catalog.csv -> {csv_path} ({metadatos_descargados} libros)")
                 else:
                     if nuevos_cambios:
                         timestamp = datetime.now().strftime("%Y%m%d-%H%M")
@@ -225,21 +232,24 @@ def ejecutar_descarga(
 
         elapsed_time = time.time() - start_time
         print("\n" + "=" * 60)
-        print_info("=== RESUMEN DE EJECUCIÓN ===")
-        print(f"✓ Actualizaciones: {total_isbns}")
-        print(f"✓ Catálogo actual: {libros_activos}")
+        print_title("=== RESUMEN DE EJECUCIÓN ===")
+        print_ok(f"Catálogo actual: {metadatos_descargados}")
+        print_ok(f"Actualizaciones: {total_isbns}")
         if actualizar_cubiertas:
             print_ok(f"Cubiertas descargadas de DILVE: {cubiertas_dilve}")
             print_ok(f"Cubiertas descargadas de URLs externas: {cubiertas_externas}")
-        print_error(f"Libros con errores: {errores_registros}")
+        if errores_registros == 0:
+            print_ok(f"Libros con errores: {errores_registros}")
+        else:
+            print_error(f"Libros con errores: {errores_registros}")
         print_info(f"Tiempo de ejecución: {elapsed_time:.2f} segundos")
         if actualizar_metadatos and (modo_completo or existing_books):
             print_info(f"CSV generado: {csv_path}")
         print("=" * 60)
 
         _log_message("=== RESUMEN ===")
+        _log_message(f"Catálogo actual: {metadatos_descargados}")
         _log_message(f"Actualizaciones: {total_isbns}")
-        _log_message(f"Catálogo actual: {libros_activos}")
         if actualizar_cubiertas:
             _log_message(f"Cubiertas DILVE: {cubiertas_dilve}")
             _log_message(f"Cubiertas externas: {cubiertas_externas}")
@@ -291,7 +301,7 @@ def main():
 
     try:
         if not args.update_metadata and not args.update_covers:
-            print_info("Modo por defecto: metadatos + cubiertas (incremental desde último CSV o completo si no hay)")
+            # Ya no se imprime "Modo por defecto", se gestiona dentro de ejecutar_descarga
             ejecutar_descarga(
                 actualizar_metadatos=True,
                 actualizar_cubiertas=True,

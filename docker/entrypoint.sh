@@ -45,16 +45,37 @@ EOF
 BUILD_DATE=$(date +"%Y-%m-%d %H:%M:%S %Z")
 
 # --- Ensamblar index.html con Jinja2 ---
-echo "=== Configuración ==="
+echo -e "\033[1m=== Configuración ===\033[0m"
+echo "ORGANIZATION: $ORGANIZATION"
+echo "THEME: $THEME"
+echo "BASE_PATH: $BASE_PATH"
+
+# Determinar la ruta del logo
+if [ -n "$LOGO" ]; then
+    if [[ "$LOGO" =~ ^https?:// ]]; then
+        echo "LOGO: $LOGO"
+    else
+        LOGO_PATH=""
+        if [ -f "/usr/share/nginx/html/theme/$THEME/img/$LOGO" ]; then
+            LOGO_PATH="/usr/share/nginx/html/theme/$THEME/img/$LOGO"
+        elif [ -f "/usr/share/nginx/html/theme/default/img/$LOGO" ]; then
+            LOGO_PATH="/usr/share/nginx/html/theme/default/img/$LOGO"
+        fi
+        if [ -n "$LOGO_PATH" ]; then
+            echo "LOGO: $LOGO_PATH"
+        else
+            echo "LOGO: SVG generado automáticamente"
+        fi
+    fi
+else
+    echo "LOGO: SVG generado automáticamente"
+fi
+
 python3 <<EOF
 import os
 import sys
 from jinja2 import Environment, FileSystemLoader, ChoiceLoader
 from datetime import datetime
-
-print(f"THEME: $THEME")
-print(f"BASE_PATH: $BASE_PATH")
-print(f"ORGANIZATION: $ORGANIZATION")
 
 theme = "$THEME"
 base_dir = "/usr/share/nginx/html/theme"
@@ -87,14 +108,12 @@ if logo_env:
             base = base_path.rstrip('/')
             logo_url = f"{base}/theme/{theme}/img/{logo_env}"
             logo_html = f'<img src="{logo_url}" alt="Logo" />'
-            print(f"LOGO: {logo_path}")
         else:
             logo_path_default = os.path.join(base_dir, default_theme, "img", logo_env)
             if os.path.exists(logo_path_default):
                 base = base_path.rstrip('/')
                 logo_url = f"{base}/theme/{default_theme}/img/{logo_env}"
                 logo_html = f'<img src="{logo_url}" alt="Logo" />'
-                print(f"LOGO: {logo_path_default}")
             else:
                 print(f"Advertencia: Logo '{logo_env}' no encontrado. Se generará SVG.", flush=True)
                 logo_html = ""
@@ -104,7 +123,6 @@ else:
         <rect width="400" height="80" fill="#ffffff" rx="4"/>
         <text x="20" y="50" font-family="Arial, sans-serif" font-size="24" font-weight="bold" fill="#007e11">{safe_org}</text>
     </svg>'''
-    print("LOGO: SVG generado automáticamente")
 
 context = {
     'HEADER': get_fragment_content('header.html'),
@@ -144,38 +162,7 @@ with open(output_file, 'w', encoding='utf-8') as f:
 
 EOF
 
-echo "=== Inicializando catálogo ==="
-
-# --- Función para obtener la fecha del último CSV ---
-get_last_csv_date() {
-    local last_csv=$(ls -1 /data/catalog/*.csv 2>/dev/null | sort -r | head -n1)
-    if [ -n "$last_csv" ]; then
-        local basename=$(basename "$last_csv" .csv)
-        local date_part=${basename%-*}
-        if [[ $date_part =~ ^([0-9]{4})([0-9]{2})([0-9]{2})$ ]]; then
-            echo "${BASH_REMATCH[1]}-${BASH_REMATCH[2]}-${BASH_REMATCH[3]}"
-            return 0
-        fi
-    fi
-    return 1
-}
-
-# --- Determinar modo de ejecución ---
-if [ -n "$(ls -1 /data/catalog/*.csv 2>/dev/null)" ]; then
-    last_date=$(get_last_csv_date)
-    if [ -n "$last_date" ]; then
-        echo "Modo: incremental (descargando cambios desde $last_date)"
-        export FROM_DATE="$last_date"
-    else
-        echo "No se pudo determinar la fecha del último CSV. Se ejecutará modo completo."
-        export FROM_DATE=""
-    fi
-else
-    echo "No se encontró ningún CSV previo. Modo completo."
-    export FROM_DATE=""
-fi
-
-# --- Ejecutar descarga inicial (con logs detallados) ---
+# --- Ejecutar descarga inicial ---
 cd /app
 python3 main.py
 
@@ -188,5 +175,5 @@ chmod 0644 /etc/cron.d/dilve-update
 cron
 
 echo "============================================================"
-echo "Iniciando servidor web Nginx..."
+echo -e "\033[1mIniciando servidor web Nginx...\033[0m"
 nginx -g "daemon off;"
