@@ -32,14 +32,12 @@ LATEST_LOG=$(ls -1 /data/logs/*.log 2>/dev/null | sort -r | head -1)
 
 if [ $EXIT_CODE -eq 0 ]; then
     if [ -n "$LATEST_LOG" ]; then
-        # Extraer los datos del log
         ACTUALIZACIONES=$(grep "Actualizaciones:" "$LATEST_LOG" | tail -1 | sed 's/.*: //')
         CATALOGO=$(grep "Catálogo actual:" "$LATEST_LOG" | tail -1 | sed 's/.*: //')
         CUBIERTAS_DILVE=$(grep "Cubiertas descargadas de DILVE:" "$LATEST_LOG" | tail -1 | sed 's/.*: //')
         CUBIERTAS_EXTERNAS=$(grep "Cubiertas descargadas de URLs externas:" "$LATEST_LOG" | tail -1 | sed 's/.*: //')
         ERRORES=$(grep "Libros con errores:" "$LATEST_LOG" | tail -1 | sed 's/.*: //')
         
-        # Sumar cubiertas
         CUBIERTAS=$((CUBIERTAS_DILVE + CUBIERTAS_EXTERNAS))
         
         echo -e "${GREEN}✅ OK${NC} (catalogo: $CATALOGO, metadatos: $ACTUALIZACIONES, cubiertas: $CUBIERTAS, errores: $ERRORES)"
@@ -54,4 +52,11 @@ else
     fi
 fi
 
+# Actualizar el enlace simbólico al último CSV (por si main.py no lo hizo)
+LATEST_CSV=$(find /data/catalog -maxdepth 1 -type f -name "*.csv" 2>/dev/null | sort | tail -1)
+if [ -n "$LATEST_CSV" ]; then
+    ln -sf "$LATEST_CSV" /data/catalog.csv
+fi
+
+# Salir con el código de retorno de main.py
 exit $EXIT_CODE

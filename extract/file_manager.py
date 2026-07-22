@@ -49,17 +49,24 @@ def leer_csv_como_dict(csv_path: str) -> Dict[str, Dict]:
     return books
 
 def guardar_csv(resultados: List[Dict], csv_path: str) -> None:
+    # Filtrar cada fila para quedarse solo con las columnas definidas en CSV_COLUMNS
+    filtered_rows = []
     for row in resultados:
-        for col in CSV_COLUMNS:
-            if col not in row:
-                row[col] = ""
+        filtered_row = {col: row.get(col, "") for col in CSV_COLUMNS}
+        filtered_rows.append(filtered_row)
+
     with open(csv_path, "w", encoding="utf-8-sig", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=CSV_COLUMNS, delimiter=",")
         writer.writeheader()
-        writer.writerows(resultados)
+        writer.writerows(filtered_rows)
+
+    # Asegurar permisos de lectura para Nginx
+    os.chmod(csv_path, 0o644)
 
 def create_data_symlink(csv_path: str) -> None:
-    """Crea el enlace simbólico /data/catalog.csv apuntando a csv_path."""
+    """
+    Crea el enlace simbólico /data/catalog.csv apuntando a csv_path.
+    """
     symlink_path = "/data/catalog.csv"
     if os.path.islink(symlink_path) or os.path.exists(symlink_path):
         try:
@@ -67,11 +74,11 @@ def create_data_symlink(csv_path: str) -> None:
         except OSError as e:
             print_warn(f"No se pudo eliminar el enlace antiguo {symlink_path}: {e}")
     try:
+        # Asegurar que el directorio padre existe
+        os.makedirs(os.path.dirname(symlink_path), exist_ok=True)
         os.symlink(csv_path, symlink_path)
-        # El mensaje se imprime desde main.py para evitar duplicados.
-        # Esta función ya no imprime nada.
     except Exception as e:
-        print_error(f"Error al crear enlace simbólico para /data/catalog.csv: {e}")
+        print_error(f"Error al crear enlace simbólico para {symlink_path}: {e}")
 
 def leer_csv_ultimo() -> Optional[List[Dict]]:
     csv_files = sorted(glob.glob("/data/catalog/*.csv"), reverse=True)

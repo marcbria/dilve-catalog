@@ -162,9 +162,24 @@ with open(output_file, 'w', encoding='utf-8') as f:
 
 EOF
 
-# --- Ejecutar descarga inicial ---
+# --- Mensaje informativo y ejecución de la descarga inicial ---
+echo -e "\033[1m=== Iniciando la descarga del catálogo ===\033[0m"
+echo "Este proceso puede tardar varios minutos. Los mensajes de progreso se mostrarán en tiempo real."
+
 cd /app
-python3 main.py
+python3 -u main.py
+
+# --- Asegurar el enlace simbólico al último CSV (fallback) ---
+LATEST_CSV=$(find /data/catalog -maxdepth 1 -type f -name "*.csv" 2>/dev/null | sort | tail -1)
+if [ -n "$LATEST_CSV" ]; then
+    ln -sf "$LATEST_CSV" /data/catalog.csv
+    echo "Enlace simbólico actualizado: /data/catalog.csv -> $LATEST_CSV"
+fi
+
+# --- Ajustar permisos para que Nginx pueda leer los archivos ---
+chown -R www-data:www-data /data 2>/dev/null || true
+chmod -R 755 /data 2>/dev/null || true
+find /data -type f -exec chmod 644 {} \; 2>/dev/null || true
 
 # --- Configurar cron ---
 echo "Configurando cron con la programación: $CRON_SCHEDULE"

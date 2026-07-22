@@ -34,6 +34,14 @@ export function transformBook(row) {
     const ancho = row["ancho_cm"] || row["ancho"] || "";
     const publico = row["publico_objetivo"] || "";
     const editorialCode = row["editorial_code"] || "";
+    
+    // Nuevos campos
+    const digitalFormat = row["formato_edicion_digital"] || "";
+    const themaCode = row["codigo_thema_materia"] || "";
+    const themaDesc = row["codigo_thema_cargada"] || "";
+    const editionNumber = row["num_edic"] || "";
+    const binding = row["encuad"] || "";
+    const isHardcover = binding === "HB" || binding === "BB" || binding === "BC" || binding === "BD";
 
     let isDigital = false;
     if (formato === "EC" || formato === "ED" || formatoDigital.trim() !== "") {
@@ -130,6 +138,13 @@ export function transformBook(row) {
         targetAudience: publico,
         editorialCode: editorialCode,
         publisherDisplay: editorial,
+        // Nuevos campos
+        digitalFormat: digitalFormat,
+        themaCode: themaCode,
+        themaDesc: themaDesc,
+        editionNumber: editionNumber,
+        binding: binding,
+        isHardcover: isHardcover
     };
 }
 
@@ -154,9 +169,15 @@ export function mergeBooks(books) {
                 existing.displayPrice = book.displayPrice;
                 existing.isFree = book.isFree;
             }
-            // Fusionar dimensiones si no existen
             if (book.width && !existing.width) existing.width = book.width;
             if (book.height && !existing.height) existing.height = book.height;
+            // Fusionar nuevos campos
+            if (book.digitalFormat && !existing.digitalFormat) existing.digitalFormat = book.digitalFormat;
+            if (book.themaCode && !existing.themaCode) existing.themaCode = book.themaCode;
+            if (book.themaDesc && !existing.themaDesc) existing.themaDesc = book.themaDesc;
+            if (book.editionNumber && !existing.editionNumber) existing.editionNumber = book.editionNumber;
+            if (book.binding && !existing.binding) existing.binding = book.binding;
+            if (book.isHardcover && !existing.isHardcover) existing.isHardcover = book.isHardcover;
         } else {
             map.set(key, { ...book });
         }
