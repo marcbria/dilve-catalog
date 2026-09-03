@@ -3,7 +3,6 @@ import { updateCollectionIntro, navigateToCollection } from './collections.js';
 import { updateURL, getURLParams } from './urlManager.js';
 import { loadMoreBooks, renderNoResults, resetPagination } from './uiRenderer.js';
 
-// ─── Aplicar filtres i renderitzar ──────────────────────
 export function applyFiltersAndReset() {
     const searchTerm = dom.searchInput.value.toLowerCase().trim();
     const langVal = dom.langFilter.value;
@@ -28,10 +27,10 @@ export function applyFiltersAndReset() {
         if (priceVal === "diamond" && !book.isFree) return false;
         if (priceVal === "paid" && book.isFree) return false;
         if (collectionVal !== "all" && book.collectionTitle !== collectionVal) return false;
+        if (state.themaFilter && book.themaCode !== state.themaFilter) return false;
         return true;
     });
 
-    // Ordenació
     switch (sortVal) {
         case "title-asc":
             state.filteredBooks.sort((a, b) => a.titleText.localeCompare(b.titleText, "ca"));
@@ -58,7 +57,7 @@ export function applyFiltersAndReset() {
     resetPagination();
     updateCollectionIntro();
     updateURL();
-    updateFilterActiveState(); // Resaltar filtros activos
+    updateFilterActiveState();
 
     const count = state.filteredBooks.length;
     dom.resultsCount.textContent = count + " llibre" + (count !== 1 ? "s" : "");
@@ -70,22 +69,13 @@ export function applyFiltersAndReset() {
     }
 }
 
-// ─── Resaltar filtros activos ──────────────────────────
 function updateFilterActiveState() {
-    // Search input
     if (dom.searchInput.value.trim()) {
         dom.searchInput.classList.add('filter-active');
     } else {
         dom.searchInput.classList.remove('filter-active');
     }
-
-    // Selects
-    const selects = [
-        dom.langFilter,
-        dom.formatFilter,
-        dom.priceFilter,
-        dom.collectionFilter
-    ];
+    const selects = [dom.langFilter, dom.formatFilter, dom.priceFilter, dom.collectionFilter];
     selects.forEach(select => {
         if (select.value !== 'all') {
             select.classList.add('filter-active');
@@ -102,11 +92,13 @@ export function resetAllFilters() {
     dom.formatFilter.value = "all";
     dom.priceFilter.value = "all";
     dom.collectionFilter.value = "all";
+    state.themaFilter = null;
     applyFiltersAndReset();
 }
 
 export function navigateToLanguage(langCode) {
     dom.langFilter.value = langCode;
+    state.themaFilter = null;
     applyFiltersAndReset();
     dom.controlsBar.scrollIntoView({ behavior: "smooth" });
 }
@@ -114,12 +106,25 @@ export function navigateToLanguage(langCode) {
 export function navigateToFormat(formatLabel) {
     if (formatLabel === "Paper") dom.formatFilter.value = "paper";
     else if (formatLabel === "Digital") dom.formatFilter.value = "digital";
+    state.themaFilter = null;
     applyFiltersAndReset();
     dom.controlsBar.scrollIntoView({ behavior: "smooth" });
 }
 
 export function navigateToAuthor(authorName) {
     dom.searchInput.value = authorName;
+    state.themaFilter = null;
+    applyFiltersAndReset();
+    dom.controlsBar.scrollIntoView({ behavior: "smooth" });
+}
+
+export function navigateToThema(themaCode) {
+    state.themaFilter = themaCode;
+    dom.searchInput.value = "";
+    dom.langFilter.value = "all";
+    dom.formatFilter.value = "all";
+    dom.priceFilter.value = "all";
+    dom.collectionFilter.value = "all";
     applyFiltersAndReset();
     dom.controlsBar.scrollIntoView({ behavior: "smooth" });
 }

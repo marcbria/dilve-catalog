@@ -1,9 +1,7 @@
-import { dom } from './config.js';
+import { dom, state } from './config.js';
 
 export function getURLParams() {
-    // Leer parámetros de la query string y del hash (para compatibilidad)
     const params = new URLSearchParams(window.location.search);
-    // Si no hay query, leer del hash
     if (params.toString() === '') {
         const hash = window.location.hash;
         if (hash.startsWith('#isbn=')) {
@@ -18,7 +16,8 @@ export function getURLParams() {
         format: params.get("format") || "all",
         price: params.get("price") || "all",
         collection: params.get("collection") || "all",
-        isbn: params.get("isbn") || ""
+        isbn: params.get("isbn") || "",
+        thema: params.get("thema") || ""
     };
 }
 
@@ -26,20 +25,16 @@ export function updateURL(isbn = null) {
     const url = new URL(window.location.href);
     const currentHash = window.location.hash;
 
-    // Gestionar el hash de forma inteligente
     if (isbn) {
-        // Si se proporciona ISBN, establecer el hash
         url.hash = `isbn=${isbn}`;
     } else {
-        // Si no se proporciona ISBN, conservar el hash si contiene un ISBN
         if (currentHash.startsWith('#isbn=')) {
-            url.hash = currentHash;  // mantener el hash existente
+            url.hash = currentHash;
         } else {
-            url.hash = '';  // eliminar hash si no es ISBN
+            url.hash = '';
         }
     }
 
-    // Construir la query string con los filtros (sin ISBN)
     const params = new URLSearchParams();
     const s = dom.searchInput.value.trim();
     if (s) params.set("search", s);
@@ -48,9 +43,9 @@ export function updateURL(isbn = null) {
     if (dom.formatFilter.value !== "all") params.set("format", dom.formatFilter.value);
     if (dom.priceFilter.value !== "all") params.set("price", dom.priceFilter.value);
     if (dom.collectionFilter.value !== "all") params.set("collection", dom.collectionFilter.value);
-    
+    if (state.themaFilter) params.set("thema", state.themaFilter);
+
     url.search = params.toString();
-    
     history.replaceState(null, '', url.toString());
 }
 
@@ -70,5 +65,8 @@ export function applyInitialURLParams() {
             dom.collectionFilter.appendChild(opt);
         }
         dom.collectionFilter.value = p.collection;
+    }
+    if (p.thema) {
+        state.themaFilter = p.thema;
     }
 }

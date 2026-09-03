@@ -131,16 +131,19 @@ body {
     list-style: none;
     padding-left: 0;
     margin-bottom: 0;
-    gap: 8px;
+    gap: 0;
 }
 
 .nav-item {
     padding: 0 8px;
+    display: flex;
+    align-items: center;
 }
 
 .nav-link {
     color: #1a1a1a;
     font-weight: 700;
+    font-size: 1.2rem;
     text-decoration: none;
     padding: 8px 0;
     display: block;
@@ -151,8 +154,13 @@ body {
     color: #007e11;
 }
 
-.nav-item:last-child {
-    border-right: none;
+.nav-item:not(:last-child)::after {
+    content: "";
+    border-right: 1px solid #000;
+    margin: 0 8px;
+    display: inline-block;
+    height: 1.2rem;
+    vertical-align: middle;
 }
 
 /* --- Colapso del menú en móviles --- */
@@ -186,10 +194,19 @@ body {
     .nav-item {
         border-right: none;
         padding: 4px 0;
+        display: block;
+    }
+
+    .nav-item:not(:last-child)::after {
+        display: none;
     }
 
     .navbar-brand {
         margin-right: auto;
+    }
+
+    .nav-link {
+        font-size: 1.1rem;
     }
 }
 

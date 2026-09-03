@@ -664,10 +664,12 @@ body { font-family:var(--font-sans); background-color:#f8f9fa; color:#1a1a1a; li
     color: var(--uab-green);
 }
 .navbar-nav .prenav-menu-item:not(:last-child)::after {
-    content: "|";
-    color: #333;
+    content: "";
+    border-right: 1px solid #000;
     margin: 0 8px;
     vertical-align: middle;
+    display: inline-block;
+    height: 1.2rem;
 }
 
 /* ─── FOOTER ─── */

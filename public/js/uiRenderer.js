@@ -1,11 +1,10 @@
 import { dom, state, BOOKS_PER_PAGE } from './config.js';
 import { navigateToCollection } from './collections.js';
-import { navigateToLanguage, navigateToFormat, navigateToAuthor, applyFiltersAndReset } from './filters.js';
+import { navigateToLanguage, navigateToFormat, navigateToAuthor, navigateToThema } from './filters.js';
 import { escapeHTML, getCleanIsbn } from './utils.js';
 import { updateURL } from './urlManager.js';
 import { getThemaDescription } from './dictionaries/thema.js';
 
-// ─── Crear tarjeta ──────────────────────────────────────
 export function createBookCard(book) {
     const card = document.createElement("div");
     card.className = "book-card";
@@ -64,7 +63,15 @@ export function createBookCard(book) {
 
     if (book.collectionNumber) {
         const numSpan = document.createElement("span");
-        numSpan.textContent = `📚 ${book.collectionNumber}`;
+        const square = document.createElement("span");
+        square.style.display = "inline-block";
+        square.style.width = "10px";
+        square.style.height = "10px";
+        square.style.backgroundColor = "#888";
+        square.style.marginRight = "4px";
+        square.style.borderRadius = "2px";
+        numSpan.appendChild(square);
+        numSpan.appendChild(document.createTextNode(` ${book.collectionNumber}`));
         metaEl.appendChild(numSpan);
     }
     cardBody.appendChild(metaEl);
@@ -92,7 +99,6 @@ export function createBookCard(book) {
     return card;
 }
 
-// ─── Carga de más libros (infinite scroll) ──────────
 export function loadMoreBooks() {
     if (state.displayedCount >= state.filteredBooks.length) {
         dom.scrollSentinel.style.display = "none";
@@ -136,7 +142,6 @@ export function setupIntersectionObserver() {
     if (dom.scrollSentinel) state.observer.observe(dom.scrollSentinel);
 }
 
-// ─── Modal ──────────────────────────────────────────────
 export function openDetailModal(book) {
     console.log("openDetailModal called with book:", book);
     if (!book) {
@@ -178,7 +183,7 @@ export function openDetailModal(book) {
         const relatedHTML = createRelatedProductsHTML(related);
 
         const collectionLinkHTML = book.collectionTitle ?
-            `<div class="detail-section"><button class="collection-link" data-collection="${escapeHTML(book.collectionTitle)}">Ver todos los libros de «${escapeHTML(book.collectionTitle)}»</button></div>` :
+            `<div class="detail-section"><a href="?collection=${encodeURIComponent(book.collectionTitle)}" class="collection-link" data-collection="${escapeHTML(book.collectionTitle)}">Ver todos los libros de «${escapeHTML(book.collectionTitle)}»</a></div>` :
             "";
 
         const shareHTML = `
@@ -205,8 +210,8 @@ export function openDetailModal(book) {
         `;
 
         let digitalDetailHTML = "";
-        if (book.digitalFormat && book.digitalFormat !== "") {
-            digitalDetailHTML = `<div class="detail-row"><span class="label">Formato digital:</span><span class="value">${escapeHTML(book.digitalFormat)}</span></div>`;
+        if (book.isDigital && book.digitalFormat && book.digitalFormat !== "") {
+            digitalDetailHTML = `<div class="detail-row"><span class="label">Formato:</span><span class="value">Digital (${escapeHTML(book.digitalFormat)})</span></div>`;
         }
 
         let collectionDisplay = "";
@@ -236,12 +241,16 @@ export function openDetailModal(book) {
             dimensionsHTML = `<div class="detail-row"><span class="label">Tamaño:</span><span class="value">${book.width} x ${book.height} cm</span></div>`;
         }
 
-        // Thema con descripción desde diccionario
         let themaHTML = "";
         if (book.themaCode) {
             const desc = getThemaDescription(book.themaCode);
-            const themaDisplay = desc ? `${book.themaCode} - ${desc}` : book.themaCode;
-            themaHTML = `<div class="detail-row"><span class="label">Materia Thema:</span><span class="value">${escapeHTML(themaDisplay)}</span></div>`;
+            let themaDisplay;
+            if (desc) {
+                themaDisplay = `${desc} (Thema: ${book.themaCode})`;
+            } else {
+                themaDisplay = `Thema: ${book.themaCode}`;
+            }
+            themaHTML = `<div class="detail-row"><span class="label">Materia:</span><span class="value"><span class="modal-link" data-thema="${escapeHTML(book.themaCode)}">${escapeHTML(themaDisplay)}</span></span></div>`;
         }
 
         let editionHTML = "";
@@ -361,6 +370,22 @@ export function openDetailModal(book) {
         });
         dom.modalBody.querySelectorAll('.modal-link[data-collection]').forEach(el => {
             el.addEventListener('click', (e) => {
+                e.stopPropagation();
+                closeModal();
+                navigateToCollection(el.dataset.collection);
+            });
+        });
+        dom.modalBody.querySelectorAll('.modal-link[data-thema]').forEach(el => {
+            el.addEventListener('click', (e) => {
+                e.stopPropagation();
+                closeModal();
+                navigateToThema(el.dataset.thema);
+            });
+        });
+
+        dom.modalBody.querySelectorAll('a.collection-link').forEach(el => {
+            el.addEventListener('click', (e) => {
+                e.preventDefault();
                 e.stopPropagation();
                 closeModal();
                 navigateToCollection(el.dataset.collection);

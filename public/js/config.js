@@ -24,11 +24,11 @@ export const dom = {
 
 export const BOOKS_PER_PAGE = 12;
 
-// Estado global (compartido entre módulos)
 export const state = {
     allBooks: [],
     filteredBooks: [],
     collectionsData: [],
     displayedCount: 0,
     observer: null,
+    themaFilter: null,
 };
