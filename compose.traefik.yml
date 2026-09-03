@@ -11,7 +11,7 @@ services:
       - "traefik.http.services.cataleg.loadbalancer.server.port=80"
       - "traefik.http.middlewares.strip-cataleg.stripprefix.prefixes=${BASE_PATH}"
       - "traefik.http.routers.cataleg.middlewares=strip-cataleg"
-    ports: []
+    ports: !reset []
     networks:
       - proxy
 
