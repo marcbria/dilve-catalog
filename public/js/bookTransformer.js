@@ -23,7 +23,6 @@ export function transformBook(row) {
     const sello = row["sello"] || "";
     const formato = (row["formato_libro_3.0"] || "").toUpperCase();
     const formatoDigital = row["formato_edicion_digital"] || "";
-    const fechaPublic = row["fecha_public"] || "";
     const fechaPublicDMA = row["fecha_public_dma"] || "";
     const year = row["año_public"] || "";
     const precioVenta = row["precio_venta_publico"] || "";
@@ -33,32 +32,33 @@ export function transformBook(row) {
     const isbnDigital = row["isbn13_edicion_digital"] || "";
     const isbnImpreso = row["isbn13_edicion_impresa"] || "";
     const productosRelacionados = row["productos_relacionados"] || "";
-    const alto = row["alto_cm"] || row["alto"] || "";
-    const ancho = row["ancho_cm"] || row["ancho"] || "";
+    const altoCm = row["alto_cm"] || "";
+    const anchoCm = row["ancho_cm"] || "";
     const publico = row["publico_objetivo"] || "";
     const editorialCode = row["editorial_code"] || "";
     
-    const digitalFormat = row["formato_edicion_digital"] || "";
+    const digitalFormatRaw = row["formato_edicion_digital"] || "";
     const themaCode = row["codigo_thema_materia"] || "";
     const themaDesc = row["codigo_thema_cargada"] || "";
     const editionNumber = row["num_edic"] || "";
     const binding = row["encuad"] || "";
 
-    // Determinar si es digital (incluye EB, EC, ED, EA)
+    // Determinar si es digital (códigos EB, EC, ED, EA)
     const digitalCodes = ["EB", "EC", "ED", "EA"];
     let isDigital = false;
-    if (digitalCodes.includes(formato) || digitalFormat.trim() !== "") {
+    if (digitalCodes.includes(formato) || digitalFormatRaw.trim() !== "") {
         isDigital = true;
     }
     const formatLabel = isDigital ? "Digital" : "Papel";
 
     const bindingName = BINDING_MAP[binding] || "";
-    const digitalFormatName = DIGITAL_FORMAT_MAP[digitalFormat] || digitalFormat;
+    const digitalFormatName = DIGITAL_FORMAT_MAP[digitalFormatRaw] || digitalFormatRaw;
 
     const authorList = authorsRaw.split(';').map(a => a.trim()).filter(a => a);
     const authors = authorList.map(a => invertirNombre(a));
     const authorDisplay = authors.length > 0 ? authors.join('; ') : "Autor desconocido";
 
+    // Fechas: usar fecha_public_dma y año_public
     let displayDate = "";
     let sortDate = 0;
     if (fechaPublicDMA && fechaPublicDMA.includes("/")) {
@@ -70,18 +70,12 @@ export function transformBook(row) {
             displayDate = `${d}-${m}-${y}`;
             sortDate = parseInt(y + m + d) || 0;
         }
-    } else if (fechaPublic && /^\d{8}$/.test(fechaPublic)) {
-        const y = fechaPublic.substring(0, 4);
-        const m = fechaPublic.substring(4, 6);
-        const d = fechaPublic.substring(6, 8);
-        displayDate = `${d}-${m}-${y}`;
-        sortDate = parseInt(fechaPublic) || 0;
-    } else if (fechaPublic && /^\d{4}$/.test(fechaPublic)) {
-        displayDate = fechaPublic;
-        sortDate = parseInt(fechaPublic + "0000") || 0;
-    } else if (fechaPublic) {
-        displayDate = fechaPublic;
+    } else if (fechaPublicDMA) {
+        displayDate = fechaPublicDMA;
         sortDate = 0;
+    } else if (year && /^\d{4}$/.test(year)) {
+        displayDate = year;
+        sortDate = parseInt(year + "0000") || 0;
     }
 
     const langMap = { cat: "Catalán", spa: "Castellano", eng: "Inglés" };
@@ -97,18 +91,9 @@ export function transformBook(row) {
         digitalFormats.push(formato);
     }
 
-    let width = "";
-    let height = "";
-    if (alto) {
-        const num = parseFloat(alto);
-        if (!isNaN(num)) height = num.toFixed(1);
-        else height = alto;
-    }
-    if (ancho) {
-        const num = parseFloat(ancho);
-        if (!isNaN(num)) width = num.toFixed(1);
-        else width = ancho;
-    }
+    // Dimensiones: usar valores en cm (como strings)
+    let width = anchoCm ? parseFloat(anchoCm).toFixed(1) : "";
+    let height = altoCm ? parseFloat(altoCm).toFixed(1) : "";
 
     return {
         isbn,
@@ -144,7 +129,7 @@ export function transformBook(row) {
         editorialCode: editorialCode,
         publisherDisplay: editorial,
         digitalFormat: digitalFormatName,
-        digitalFormatRaw: digitalFormat,
+        digitalFormatRaw: digitalFormatRaw,
         themaCode: themaCode,
         themaDesc: themaDesc,
         editionNumber: editionNumber,

@@ -72,34 +72,50 @@ def parsear_producto(product: ET.Element) -> Dict[str, str]:
     # DescriptiveDetail
     descriptive = product.find("onix:DescriptiveDetail", NS)
     if descriptive is not None:
+        # --- Títulos y subtítulos (CORREGIDO) ---
         titulo = ""
         subtitulo = ""
         for title_elem in descriptive.findall("onix:TitleDetail", NS):
             title_type = safe_find_text(title_elem, "onix:TitleType", "")
+            title_elem2 = title_elem.find("onix:TitleElement", NS)
+            if title_elem2 is None:
+                continue
             if title_type == "01":
-                title_elem2 = title_elem.find("onix:TitleElement", NS)
-                if title_elem2 is not None:
-                    titulo = safe_find_text(title_elem2, "onix:TitleText", "")
+                titulo = safe_find_text(title_elem2, "onix:TitleText", "")
+                sub = title_elem2.find("onix:Subtitle", NS)
+                if sub is not None and sub.text:
+                    subtitulo = sub.text.strip()
             elif title_type == "02":
-                title_elem2 = title_elem.find("onix:TitleElement", NS)
-                if title_elem2 is not None:
-                    subtitulo = safe_find_text(title_elem2, "onix:TitleText", "")
+                subtitulo = safe_find_text(title_elem2, "onix:TitleText", "")
         datos["titulo"] = titulo
         datos["subtitulo"] = subtitulo
 
-        datos["formato_libro_3.0"] = safe_find_text(descriptive, "onix:ProductForm", "")
+        # --- ProductForm y ProductFormDetail (CORREGIDO) ---
+        product_form = safe_find_text(descriptive, "onix:ProductForm", "")
+        datos["formato_libro_3.0"] = product_form
+
         pfd = descriptive.find("onix:ProductFormDetail", NS)
-        datos["encuad"] = pfd.text if pfd is not None else ""
+        pfd_value = pfd.text.strip() if pfd is not None else ""
 
-        # ---------- NÚMERO DE PÁGINAS (mejorado) ----------
-        num_pags = ""
+        # Códigos digitales según ONIX Lista 150
+        digital_forms = ["EB", "EC", "ED", "EA"]
 
-        # 1. Buscar en NumberOfPages (ONIX 2.1)
-        num_pags = safe_find_text(descriptive, "onix:NumberOfPages", "")
-        if num_pags:
-            datos["num_pags"] = num_pags
+        if product_form in digital_forms:
+            # Es digital: guardar el detalle en formato_edicion_digital
+            datos["formato_edicion_digital"] = pfd_value
+            datos["encuad"] = ""   # No se usa para digital
         else:
-            # 2. Buscar en Extent con tipos de páginas (00 o 11) y unidad 03 o 19 (páginas)
+            # Es papel: si hay detalle de encuadernación, se guarda en encuad; si no, se deja vacío
+            datos["formato_edicion_digital"] = ""
+            if pfd_value and pfd_value != product_form:
+                datos["encuad"] = pfd_value
+            else:
+                datos["encuad"] = ""   # Evita duplicar el código de ProductForm
+
+        # Número de páginas
+        num_pags = ""
+        num_pags = safe_find_text(descriptive, "onix:NumberOfPages", "")
+        if not num_pags:
             for extent in descriptive.findall("onix:Extent", NS):
                 extent_type = safe_find_text(extent, "onix:ExtentType", "")
                 extent_unit = safe_find_text(extent, "onix:ExtentUnit", "")
@@ -107,18 +123,17 @@ def parsear_producto(product: ET.Element) -> Dict[str, str]:
                     num_pags = safe_find_text(extent, "onix:ExtentValue", "")
                     if num_pags:
                         break
-            # 3. Fallback: buscar cualquier Extent con unidad 03 o 19 y valor entero
             if not num_pags:
                 for extent in descriptive.findall("onix:Extent", NS):
                     extent_unit = safe_find_text(extent, "onix:ExtentUnit", "")
                     if extent_unit in ["03", "19"]:
                         value = safe_find_text(extent, "onix:ExtentValue", "")
-                        if value and re.match(r'^\d+$', value):  # solo dígitos
+                        if value and re.match(r'^\d+$', value):
                             num_pags = value
                             break
-            datos["num_pags"] = num_pags
+        datos["num_pags"] = num_pags
 
-        # Dimensiones
+        # Dimensiones (solo guardamos versiones en cm)
         measure_list = descriptive.findall("onix:Measure", NS)
         alto_mm = ancho_mm = grueso_mm = ""
         for measure in measure_list:
@@ -129,11 +144,8 @@ def parsear_producto(product: ET.Element) -> Dict[str, str]:
                 ancho_mm = safe_find_text(measure, "onix:Measurement", "")
             elif measure_type == "03":
                 grueso_mm = safe_find_text(measure, "onix:Measurement", "")
-        datos["alto"] = alto_mm
         datos["alto_cm"] = convertir_mm_a_cm(alto_mm)
-        datos["ancho"] = ancho_mm
         datos["ancho_cm"] = convertir_mm_a_cm(ancho_mm)
-        datos["grueso"] = grueso_mm
         datos["grueso_cm"] = convertir_mm_a_cm(grueso_mm)
 
         peso_elem = descriptive.find("onix:Measure[@onix:MeasureType='08']", NS)
@@ -143,8 +155,8 @@ def parsear_producto(product: ET.Element) -> Dict[str, str]:
         collection = descriptive.find("onix:Collection", NS)
         if collection is not None:
             datos["coleccion"] = safe_find_text(collection, "onix:TitleDetail/onix:TitleElement/onix:TitleText", "")
-            part = collection.find("onix:PartNumber", NS)
-            datos["num_en_coleccion"] = part.text if part is not None else ""
+            part = collection.find(".//onix:PartNumber", NS)
+            datos["num_en_coleccion"] = part.text.strip() if part is not None and part.text else ""
         else:
             datos["coleccion"] = ""
             datos["num_en_coleccion"] = ""
@@ -184,13 +196,16 @@ def parsear_producto(product: ET.Element) -> Dict[str, str]:
         # Edición
         edition = descriptive.find("onix:EditionNumber", NS)
         datos["num_edic"] = edition.text if edition is not None else ""
+        edition_type = safe_find_text(descriptive, "onix:EditionType", "")
+        datos["edition_type"] = edition_type
+
     else:
         for k in ["titulo", "subtitulo", "formato_libro_3.0", "encuad", "num_pags",
-                  "alto", "alto_cm", "ancho", "ancho_cm", "grueso", "grueso_cm",
+                  "alto_cm", "ancho_cm", "grueso_cm",
                   "peso", "coleccion", "num_en_coleccion", "idioma",
                   "codigo_bic_materia", "codigo_thema_materia",
                   "codigo_ibic_cargada", "codigo_thema_cargada",
-                  "publico_objetivo", "num_edic"]:
+                  "publico_objetivo", "num_edic", "edition_type"]:
             datos[k] = ""
 
     # ---------- AUTORES ----------
@@ -233,7 +248,7 @@ def parsear_producto(product: ET.Element) -> Dict[str, str]:
                 if role == "01":
                     fecha_public = safe_find_text(pubdate, "onix:Date", "")
                     break
-    datos["fecha_public"] = fecha_public
+    # Solo guardamos la versión formateada y el año
     if fecha_public:
         try:
             if 'T' in fecha_public:
@@ -275,6 +290,35 @@ def parsear_producto(product: ET.Element) -> Dict[str, str]:
             elif role == "06":
                 fecha_disponibilidad = date_val
 
+        # Guardamos fechas en formato DMA para visualización
+        if fecha_disponibilidad:
+            try:
+                if 'T' in fecha_disponibilidad:
+                    fecha_disponibilidad = fecha_disponibilidad.split('T')[0]
+                parts = fecha_disponibilidad.split('-')
+                if len(parts) == 3:
+                    datos["fecha_disponibilidad_dma"] = f"{parts[2]}/{parts[1]}/{parts[0]}"
+                else:
+                    datos["fecha_disponibilidad_dma"] = fecha_disponibilidad
+            except:
+                datos["fecha_disponibilidad_dma"] = fecha_disponibilidad
+        else:
+            datos["fecha_disponibilidad_dma"] = ""
+
+        if fecha_puesta_venta:
+            try:
+                if 'T' in fecha_puesta_venta:
+                    fecha_puesta_venta = fecha_puesta_venta.split('T')[0]
+                parts = fecha_puesta_venta.split('-')
+                if len(parts) == 3:
+                    datos["fecha_puesta_venta_dma"] = f"{parts[2]}/{parts[1]}/{parts[0]}"
+                else:
+                    datos["fecha_puesta_venta_dma"] = fecha_puesta_venta
+            except:
+                datos["fecha_puesta_venta_dma"] = fecha_puesta_venta
+        else:
+            datos["fecha_puesta_venta_dma"] = ""
+
         for price_elem in supply_detail.findall("onix:Price", NS):
             price_type = safe_find_text(price_elem, "onix:PriceType", "")
             amount = safe_find_text(price_elem, "onix:PriceAmount", "")
@@ -315,34 +359,6 @@ def parsear_producto(product: ET.Element) -> Dict[str, str]:
 
     datos["disponibilidad"] = disponibilidad
     datos["situ_catalogo_editorial"] = situ_catalogo
-    datos["fecha_disponibilidad"] = fecha_disponibilidad
-    if fecha_disponibilidad:
-        try:
-            if 'T' in fecha_disponibilidad:
-                fecha_disponibilidad = fecha_disponibilidad.split('T')[0]
-            parts = fecha_disponibilidad.split('-')
-            if len(parts) == 3:
-                datos["fecha_disponibilidad_dma"] = f"{parts[2]}/{parts[1]}/{parts[0]}"
-            else:
-                datos["fecha_disponibilidad_dma"] = fecha_disponibilidad
-        except:
-            datos["fecha_disponibilidad_dma"] = fecha_disponibilidad
-    else:
-        datos["fecha_disponibilidad_dma"] = ""
-    datos["fecha_puesta_venta"] = fecha_puesta_venta
-    if fecha_puesta_venta:
-        try:
-            if 'T' in fecha_puesta_venta:
-                fecha_puesta_venta = fecha_puesta_venta.split('T')[0]
-            parts = fecha_puesta_venta.split('-')
-            if len(parts) == 3:
-                datos["fecha_puesta_venta_dma"] = f"{parts[2]}/{parts[1]}/{parts[0]}"
-            else:
-                datos["fecha_puesta_venta_dma"] = fecha_puesta_venta
-        except:
-            datos["fecha_puesta_venta_dma"] = fecha_puesta_venta
-    else:
-        datos["fecha_puesta_venta_dma"] = ""
     datos["iva"] = iva
     datos["precio_sin_iva"] = precio_sin_iva
     datos["precio_venta_publico"] = precio_venta_publico
@@ -402,7 +418,7 @@ def parsear_producto(product: ET.Element) -> Dict[str, str]:
                             else:
                                 imagen_cubierta = ""
     datos["imagen_cubierta"] = imagen_cubierta
-    datos["imagen_cubierta_normalizada"] = ""
+    # No guardamos imagen_cubierta_normalizada
     datos["formato_imagen_cubierta"] = formato_imagen
     datos["formato_imagen_cubierta_3.0"] = formato_imagen_3_0
     datos["fecha_mod_imagen_cubierta"] = ""

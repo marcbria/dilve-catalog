@@ -1,4 +1,5 @@
 export const BINDING_MAP = {
+    // Códigos de ProductFormDetail (Lista 79) – encuadernaciones detalladas
     "AA": "Tapa dura",
     "AB": "Tapa blanda",
     "AC": "Tapa blanda con solapas",
@@ -43,5 +44,30 @@ export const BINDING_MAP = {
     "BP": "Tapa dura (corte)",
     "BQ": "Tapa blanda (corte)",
     "BR": "Tapa dura (otro)",
-    "BS": "Tapa blanda (otro)"
+    "BS": "Tapa blanda (otro)",
+
+    // Códigos de ProductForm (Lista 150) – usados como fallback cuando no hay ProductFormDetail
+    // y el producto es en papel.
+    "BC": "Tapa blanda (bolsillo)",
+    "BD": "Tapa dura",
+    "BE": "Tapa blanda (rústica)",
+    "BF": "Tapa dura (piel)",
+    "BG": "Tapa blanda (plástico)",
+    "BH": "Tapa dura (plástico)",
+    "BI": "Tapa blanda (grapa)",
+    "BJ": "Tapa dura (anillas)",
+    "BK": "Tapa blanda (anillas)",
+    "BL": "Tapa dura (cosida)",
+    "BM": "Tapa blanda (cosida)",
+    "BN": "Tapa dura (pegada)",
+    "BO": "Tapa blanda (pegada)",
+    "BP": "Tapa dura (corte)",
+    "BQ": "Tapa blanda (corte)",
+    "BR": "Tapa dura (otro)",
+    "BS": "Tapa blanda (otro)",
+    "CA": "Folleto",
+    "CB": "Lámina",
+    "CC": "Mapa",
+    "CD": "Tarjeta postal",
+    "CE": "Otro formato",
 };
