@@ -3,6 +3,7 @@ import { navigateToCollection } from './collections.js';
 import { navigateToLanguage, navigateToFormat, navigateToAuthor, applyFiltersAndReset } from './filters.js';
 import { escapeHTML, getCleanIsbn } from './utils.js';
 import { updateURL } from './urlManager.js';
+import { getThemaDescription } from './dictionaries/thema.js';
 
 // ─── Crear tarjeta ──────────────────────────────────────
 export function createBookCard(book) {
@@ -11,7 +12,6 @@ export function createBookCard(book) {
     card.setAttribute("data-isbn", book.isbn);
     card.addEventListener("click", () => openDetailModal(book));
 
-    // Wrapper de la cubierta (contenedor de la imagen)
     const coverWrapper = document.createElement("div");
     coverWrapper.className = "card-cover-wrapper";
     if (book.coverLink) {
@@ -35,23 +35,19 @@ export function createBookCard(book) {
     }
     card.appendChild(coverWrapper);
 
-    // Cuerpo de la tarjeta
     const cardBody = document.createElement("div");
     cardBody.className = "card-body";
 
-    // Título
     const titleEl = document.createElement("div");
     titleEl.className = "card-title";
     titleEl.textContent = book.titleText || "Sin título";
     cardBody.appendChild(titleEl);
 
-    // Autor
     const authorEl = document.createElement("div");
     authorEl.className = "card-author";
     authorEl.textContent = book.authorDisplay || "Autor desconocido";
     cardBody.appendChild(authorEl);
 
-    // Meta (año - idioma)
     const metaEl = document.createElement("div");
     metaEl.className = "card-meta";
     if (book.year) {
@@ -73,17 +69,14 @@ export function createBookCard(book) {
     }
     cardBody.appendChild(metaEl);
 
-    // Contenedor para formato y precio en la misma línea
     const formatPriceContainer = document.createElement("div");
     formatPriceContainer.className = "card-format-price";
 
-    // Pastilla de formato (Digital/Papel)
     const formatBadge = document.createElement("span");
     formatBadge.className = `card-format-badge ${book.isDigital ? 'digital' : 'paper'}`;
     formatBadge.textContent = book.isDigital ? 'Digital' : 'Papel';
     formatPriceContainer.appendChild(formatBadge);
 
-    // Precio o "En obert"
     const priceEl = document.createElement("span");
     priceEl.className = `card-price-text ${book.isFree ? 'free' : ''}`;
     if (book.isFree) {
@@ -156,7 +149,6 @@ export function openDetailModal(book) {
         return;
     }
 
-    // Actualizar URL con el ISBN (usando hash)
     updateURL(book.isbn);
 
     try {
@@ -165,7 +157,6 @@ export function openDetailModal(book) {
         const shareTitle = encodeURIComponent(book.titleText || "Libro");
         const shareText = encodeURIComponent(`📖 ${book.titleText} - ${book.authorDisplay || ''}`);
 
-        // Construir la portada
         let coverHTML = '';
         if (book.coverLink) {
             coverHTML = `<img src="${escapeHTML(book.coverLink)}" alt="${escapeHTML(book.titleText || 'Portada')}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';this.nextElementSibling.classList.add('active');"><div class="modal-cover-placeholder">${escapeHTML((book.titleText || '?').substring(0,80))}</div>`;
@@ -180,19 +171,16 @@ export function openDetailModal(book) {
         } else if (book.priceAmount > 0) {
             const priceFormatted = book.priceAmount.toFixed(2).replace('.', ',') + ' €';
             priceHTML = `<span class="detail-price-big">${priceFormatted}</span><span class="iva-inclosit">(IVA incluido)</span>`;
-            // Cambio de texto: "Comprar en UNEBook" -> "Comprar"
             actionHTML = `<div class="detail-action"><a href="https://www.unebook.es/?isbn=${cleanIsbnValue}" target="_blank" class="btn-buy">Comprar</a></div>`;
         }
 
         const related = getRelatedBooks(book);
-        const otherFormatsHTML = createRelatedFormatsHTML(related.otherFormats, "Otros formatos");
-        const translationsHTML = createRelatedTranslationsHTML(related.translations, "Traducciones");
+        const relatedHTML = createRelatedProductsHTML(related);
 
         const collectionLinkHTML = book.collectionTitle ?
             `<div class="detail-section"><button class="collection-link" data-collection="${escapeHTML(book.collectionTitle)}">Ver todos los libros de «${escapeHTML(book.collectionTitle)}»</button></div>` :
             "";
 
-        // Botones de compartir en el modal (orden: email, Mastodon, Instagram, Bluesky, Copiar URL)
         const shareHTML = `
             <div class="detail-section share-section">
                 <h4>Compartir</h4>
@@ -216,14 +204,8 @@ export function openDetailModal(book) {
             </div>
         `;
 
-        let digitalFormatsHTML = "";
-        if (book.digitalFormats && book.digitalFormats.length > 1) {
-            digitalFormatsHTML = `<div class="detail-section"><h4>Formatos digitales</h4><div class="detail-row"><span class="value">${book.digitalFormats.join(", ")}</span></div></div>`;
-        }
-
-        // Nuevo: Formato digital detallado
         let digitalDetailHTML = "";
-        if (book.digitalFormat) {
+        if (book.digitalFormat && book.digitalFormat !== "") {
             digitalDetailHTML = `<div class="detail-row"><span class="label">Formato digital:</span><span class="value">${escapeHTML(book.digitalFormat)}</span></div>`;
         }
 
@@ -231,7 +213,7 @@ export function openDetailModal(book) {
         if (book.collectionTitle) {
             collectionDisplay = escapeHTML(book.collectionTitle);
             if (book.collectionNumber) {
-                collectionDisplay += ` — Núm. ${escapeHTML(book.collectionNumber)}`;
+                collectionDisplay += ` — ${escapeHTML(book.collectionNumber)}`;
             }
         }
 
@@ -249,32 +231,29 @@ export function openDetailModal(book) {
             publisherDisplay = `<a href="https://publicacions.uab.cat" target="_blank" style="text-decoration:none;color:#007e11;">Servei de Publicacions de la UAB</a>`;
         }
 
-        // Dimensiones (renombrar "Formato:" a "Tamaño:")
         let dimensionsHTML = "";
         if (book.width && book.height) {
             dimensionsHTML = `<div class="detail-row"><span class="label">Tamaño:</span><span class="value">${book.width} x ${book.height} cm</span></div>`;
         }
 
-        // Nuevo: Materia Thema
+        // Thema con descripción desde diccionario
         let themaHTML = "";
         if (book.themaCode) {
-            const themaDisplay = book.themaDesc ? `${book.themaCode} - ${book.themaDesc}` : book.themaCode;
-            themaHTML = `<div class="detail-row"><span class="label">Materia:</span><span class="value">${escapeHTML(themaDisplay)}</span></div>`;
+            const desc = getThemaDescription(book.themaCode);
+            const themaDisplay = desc ? `${book.themaCode} - ${desc}` : book.themaCode;
+            themaHTML = `<div class="detail-row"><span class="label">Materia Thema:</span><span class="value">${escapeHTML(themaDisplay)}</span></div>`;
         }
 
-        // Nuevo: Edición
         let editionHTML = "";
-        if (book.editionNumber) {
+        if (book.editionNumber && book.editionNumber !== "1" && book.editionNumber !== "01") {
             editionHTML = `<div class="detail-row"><span class="label">Edición:</span><span class="value">${escapeHTML(book.editionNumber)}</span></div>`;
         }
 
-        // Nuevo: Tapa dura
-        let hardcoverHTML = "";
-        if (book.isHardcover) {
-            hardcoverHTML = `<div class="detail-row"><span class="label">Encuadernación:</span><span class="value">Tapa dura</span></div>`;
+        let bindingHTML = "";
+        if (!book.isDigital && book.bindingName && book.binding !== "BC") {
+            bindingHTML = `<div class="detail-row"><span class="label">Encuadernación:</span><span class="value">${escapeHTML(book.bindingName)}</span></div>`;
         }
 
-        // Nuevo: Coedición (detectar si hay múltiples editoriales separadas por "|" o ";" en el campo editorial)
         let coeditionHTML = "";
         const publishers = book.publisherName.split(/[|;]/).map(s => s.trim()).filter(s => s);
         if (publishers.length > 1) {
@@ -282,7 +261,6 @@ export function openDetailModal(book) {
             coeditionHTML = `<div class="detail-row"><span class="label">Coedición:</span><span class="value">${escapeHTML(coeditionText)}</span></div>`;
         }
 
-        // Construir el HTML del modal
         const modalHTML = `
         <div class="modal-cover-col">
             ${coverHTML}
@@ -295,7 +273,7 @@ export function openDetailModal(book) {
         </div>
         <div class="modal-details-col">
             <h2>${escapeHTML(book.titleText || 'Sin título')}</h2>
-            ${book.subtitle ? `<div class="subtitle">${escapeHTML(book.subtitle)}</div>` : ''}
+            ${book.subtitle ? `<div class="modal-subtitle">${escapeHTML(book.subtitle)}</div>` : ''}
             <div class="detail-section">
                 <h4>Información general</h4>
                 <div class="detail-row"><span class="label">Autor/es:</span><span class="value">${authorLinks || '—'}</span></div>
@@ -306,18 +284,16 @@ export function openDetailModal(book) {
                 <div class="detail-row"><span class="label">Idioma:</span><span class="value"><span class="modal-link" data-lang="${langCode}">${escapeHTML(langDisplay)}</span></span></div>
                 <div class="detail-row"><span class="label">Formato:</span><span class="value"><span class="modal-link" data-format="${formatDisplay}">${escapeHTML(formatDisplay)}</span></span></div>
                 ${dimensionsHTML}
-                ${hardcoverHTML}
-                ${book.extentLabel ? `<div class="detail-row"><span class="label">Extensión:</span><span class="value">${book.extentLabel}</span></div>` : ''}
+                ${bindingHTML}
+                ${book.extentLabel ? `<div class="detail-row"><span class="label">Páginas:</span><span class="value">${book.extentLabel.replace(' páginas', '')}</span></div>` : ''}
                 ${book.collectionTitle ? `<div class="detail-row"><span class="label">Colección:</span><span class="value"><span class="modal-link" data-collection="${escapeHTML(book.collectionTitle)}">${collectionDisplay}</span></span></div>` : ''}
                 ${editionHTML}
                 ${themaHTML}
                 ${coeditionHTML}
                 ${digitalDetailHTML}
             </div>
-            ${digitalFormatsHTML}
             ${book.abstractText ? `<div class="detail-section"><h4>Descripción</h4><div class="detail-description">${escapeHTML(book.abstractText)}</div></div>` : ''}
-            ${otherFormatsHTML}
-            ${translationsHTML}
+            ${relatedHTML}
             ${shareHTML}
             ${collectionLinkHTML}
         </div>
@@ -326,7 +302,6 @@ export function openDetailModal(book) {
         dom.modalBody.innerHTML = modalHTML;
         console.log("Modal HTML insertado correctamente");
 
-        // Forzar estilos inline para el contenedor principal
         const modalContainer = document.querySelector('.catalog-modal');
         if (modalContainer) {
             modalContainer.style.display = 'block';
@@ -338,7 +313,6 @@ export function openDetailModal(book) {
             modalContainer.style.boxShadow = '0 20px 48px rgba(0,0,0,0.2)';
         }
 
-        // Ajustar display del body del modal
         const modalBodyEl = dom.modalBody;
         if (modalBodyEl) {
             modalBodyEl.style.display = 'flex';
@@ -347,7 +321,6 @@ export function openDetailModal(book) {
             modalBodyEl.style.flexWrap = 'wrap';
         }
 
-        // Asegurar tamaño de la columna de cubierta
         const coverCol = document.querySelector('.modal-cover-col');
         if (coverCol) {
             coverCol.style.flex = '0 0 260px';
@@ -357,7 +330,6 @@ export function openDetailModal(book) {
             coverCol.style.gap = '16px';
         }
 
-        // Imagen de cubierta
         const coverImg = document.querySelector('.modal-cover-col img');
         if (coverImg) {
             coverImg.style.width = '100%';
@@ -366,7 +338,6 @@ export function openDetailModal(book) {
             coverImg.style.objectFit = 'contain';
         }
 
-        // Asignar eventos para enlaces
         dom.modalBody.querySelectorAll('.modal-link[data-author]').forEach(el => {
             el.addEventListener('click', (e) => {
                 e.stopPropagation();
@@ -396,48 +367,25 @@ export function openDetailModal(book) {
             });
         });
 
-        // Eventos para las etiquetas de formatos relacionados
-        dom.modalBody.querySelectorAll('.related-format-tag').forEach(el => {
+        dom.modalBody.querySelectorAll('.related-product-btn').forEach(el => {
             el.addEventListener('click', (e) => {
                 e.stopPropagation();
-                const format = el.dataset.format;
-                if (format) {
-                    closeModal();
-                    navigateToFormat(format);
+                const isbn = el.dataset.isbn;
+                if (isbn) {
+                    const relatedBook = state.allBooks.find(b => b.isbn === isbn);
+                    if (relatedBook) {
+                        openDetailModal(relatedBook);
+                    }
                 }
             });
         });
 
-        // Eventos para las etiquetas de traducciones (idiomas)
-        dom.modalBody.querySelectorAll('.related-lang-tag').forEach(el => {
-            el.addEventListener('click', (e) => {
-                e.stopPropagation();
-                const lang = el.dataset.lang;
-                if (lang) {
-                    closeModal();
-                    navigateToLanguage(lang);
-                }
-            });
-        });
-
-        const collectionLink = dom.modalBody.querySelector('.collection-link');
-        if (collectionLink) {
-            collectionLink.addEventListener('click', (e) => {
-                e.stopPropagation();
-                const colTitle = collectionLink.getAttribute('data-collection');
-                closeModal();
-                navigateToCollection(colTitle);
-            });
-        }
-
-        // Evento para copiar URL
         const copyBtn = dom.modalBody.querySelector('.copy-url-btn');
         if (copyBtn) {
             copyBtn.addEventListener('click', (e) => {
                 e.stopPropagation();
                 const url = window.location.href;
                 navigator.clipboard.writeText(url).then(() => {
-                    // Feedback visual: cambiar icono temporalmente
                     const icon = copyBtn.querySelector('i');
                     if (icon) {
                         icon.className = 'fa-solid fa-check';
@@ -447,7 +395,6 @@ export function openDetailModal(book) {
                     }
                 }).catch(err => {
                     console.error('Error al copiar URL:', err);
-                    // Fallback: seleccionar y copiar manualmente
                     const textArea = document.createElement('textarea');
                     textArea.value = url;
                     document.body.appendChild(textArea);
@@ -473,16 +420,13 @@ export function openDetailModal(book) {
 }
 
 export function closeModal() {
-    // Limpiar el ISBN del hash al cerrar el modal
     const url = new URL(window.location.href);
     url.hash = '';
     history.replaceState(null, '', url.toString());
-    
     dom.modalOverlay.classList.remove('active');
     document.body.style.overflow = '';
 }
 
-// ─── Relacionados ──────────────────────────────────────────
 function getRelatedBooks(book) {
     const sameTitleBooks = state.allBooks.filter(b => 
         b.normalizedTitle && book.normalizedTitle && 
@@ -495,29 +439,24 @@ function getRelatedBooks(book) {
     };
 }
 
-// Otros formatos: mostrar solo el formato con el color correspondiente
-function createRelatedFormatsHTML(books, label) {
-    if (!books || books.length === 0) return "";
-    let html = `<div class="detail-section"><h4>${label}</h4><div class="related-formats">`;
-    books.forEach((b) => {
-        const isDigital = b.isDigital || false;
-        const formatLabel = isDigital ? 'Digital' : 'Papel';
-        const cssClass = isDigital ? 'digital' : 'paper';
-        html += `<span class="related-format-tag ${cssClass}" data-format="${formatLabel}">${formatLabel}</span>`;
-    });
-    html += `</div></div>`;
-    return html;
-}
+function createRelatedProductsHTML(related) {
+    const { otherFormats, translations } = related;
+    if (otherFormats.length === 0 && translations.length === 0) return "";
 
-// Traducciones: mostrar solo el idioma con el color correspondiente
-function createRelatedTranslationsHTML(books, label) {
-    if (!books || books.length === 0) return "";
-    let html = `<div class="detail-section"><h4>${label}</h4><div class="related-formats">`;
-    books.forEach((b) => {
-        const langCode = b.languageCode || 'other';
-        const langLabel = b.languageLabel || 'Idioma';
-        html += `<span class="related-format-tag lang-${langCode}" data-lang="${langCode}">${langLabel}</span>`;
+    let html = `<div class="detail-section"><h4>Productos relacionados</h4><div class="related-products">`;
+
+    otherFormats.forEach(b => {
+        const label = b.isDigital ? 'Digital' : 'Papel';
+        const cssClass = b.isDigital ? 'digital' : 'paper';
+        html += `<button class="related-product-btn ${cssClass}" data-isbn="${b.isbn}">${label}</button>`;
     });
+
+    translations.forEach(b => {
+        const langLabel = b.languageLabel || 'Idioma';
+        const langCode = b.languageCode || 'other';
+        html += `<button class="related-product-btn lang-${langCode}" data-isbn="${b.isbn}">${langLabel}</button>`;
+    });
+
     html += `</div></div>`;
     return html;
 }

@@ -46,7 +46,6 @@ body { font-family:var(--font-sans); background-color:#f8f9fa; color:#1a1a1a; li
 .search-wrapper input:focus { outline:none; border-color:var(--uab-green); background:#fff; box-shadow:0 0 0 3px rgba(0,126,17,0.1); }
 .search-wrapper .search-icon { position:absolute; right:16px; top:50%; transform:translateY(-50%); color:#999; pointer-events:none; font-size:1.1rem; }
 
-/* ─── Hamburguesa ─── */
 .hamburger {
     display: none;
     background: none;
@@ -67,7 +66,6 @@ body { font-family:var(--font-sans); background-color:#f8f9fa; color:#1a1a1a; li
 .filter-group button:hover { background:var(--uab-green-pale); border-color:var(--uab-green); }
 .filter-group select:focus, .filter-group button:focus { outline:none; border-color:var(--uab-green); box-shadow:0 0 0 3px rgba(0,126,17,0.1); background:#fff; }
 
-/* ─── Filtros activos (verde claro) ─── */
 .filter-active {
     background-color: #d4edda !important;
     border-color: #28a745 !important;
@@ -260,7 +258,6 @@ body { font-family:var(--font-sans); background-color:#f8f9fa; color:#1a1a1a; li
 .catalog-modal-overlay.active .catalog-modal {
     transform: translateY(0) !important;
 }
-/* Scrollbar más visible para el modal */
 .catalog-modal::-webkit-scrollbar {
     width: 8px;
 }
@@ -355,12 +352,15 @@ body { font-family:var(--font-sans); background-color:#f8f9fa; color:#1a1a1a; li
     letter-spacing: -0.3px !important;
     margin: 0 !important;
 }
-.catalog-modal-body .subtitle {
+/* Subtítulo en modal */
+.catalog-modal-body .modal-subtitle {
     font-family: var(--font-serif) !important;
-    font-size: 1.1rem !important;
+    font-size: 1.0rem !important;
     color: #666 !important;
+    font-weight: 400 !important;
+    margin-top: -8px !important;
+    margin-bottom: 4px !important;
     font-style: italic !important;
-    margin-top: -12px !important;
 }
 .catalog-modal-body .detail-section {
     border-top: 1px solid #eee !important;
@@ -508,30 +508,41 @@ body { font-family:var(--font-sans); background-color:#f8f9fa; color:#1a1a1a; li
     background: var(--uab-green-dark) !important;
     color: #fff !important;
 }
-/* Estilos para formatos relacionados (sin borde) */
-.catalog-modal-body .related-formats {
+/* Productos relacionados */
+.catalog-modal-body .related-products {
     display: flex !important;
     flex-wrap: wrap !important;
     gap: 8px !important;
 }
-.catalog-modal-body .related-format-tag {
+.related-product-btn {
     display: inline-block !important;
-    padding: 4px 12px !important;
-    font-size: 0.8rem !important;
-    font-weight: 500 !important;
+    padding: 6px 16px !important;
+    margin: 4px !important;
+    border: none !important;
     border-radius: 0 !important;
+    font-size: 0.85rem !important;
+    font-weight: 500 !important;
     cursor: pointer !important;
     transition: 0.2s !important;
     color: #fff !important;
     background: var(--color-paper) !important;
+    line-height: 1.4 !important;
 }
-.catalog-modal-body .related-format-tag.digital {
+.related-product-btn.digital {
     background: var(--color-digital) !important;
 }
-.catalog-modal-body .related-format-tag:hover {
+.related-product-btn.lang-cat {
+    background: var(--color-cat) !important;
+}
+.related-product-btn.lang-spa {
+    background: var(--color-spa) !important;
+}
+.related-product-btn.lang-eng {
+    background: var(--color-eng) !important;
+}
+.related-product-btn:hover {
     opacity: 0.8 !important;
 }
-/* Colección - sin borde */
 .catalog-modal-body .collection-link {
     display: inline-block !important;
     padding: 8px 16px !important;
@@ -549,7 +560,6 @@ body { font-family:var(--font-sans); background-color:#f8f9fa; color:#1a1a1a; li
     background: var(--uab-green) !important;
     color: #fff !important;
 }
-/* Iconos de compartir en modal y colección */
 .share-icons a {
     color: #555 !important;
     font-size: 1.3rem;
@@ -558,6 +568,18 @@ body { font-family:var(--font-sans); background-color:#f8f9fa; color:#1a1a1a; li
 }
 .share-icons a:hover {
     color: #007e11 !important;
+}
+.share-icons {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+.share-icons a, .share-icons button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
 }
 
 /* ─── Estilos para prenavigation (header UAB) ─── */
@@ -603,9 +625,7 @@ body { font-family:var(--font-sans); background-color:#f8f9fa; color:#1a1a1a; li
     display: inline;
 }
 .prenavigation .prenav-lang-item:not(:last-child)::after {
-    content: "|";
-    color: #999;
-    margin: 0 4px;
+    content: none;
 }
 .prenavigation .prenav-lang-item a {
     color: #333;
@@ -643,11 +663,11 @@ body { font-family:var(--font-sans); background-color:#f8f9fa; color:#1a1a1a; li
 .prenav-menu-item .nav-link:hover {
     color: var(--uab-green);
 }
-/* Separadores con pipe */
 .navbar-nav .prenav-menu-item:not(:last-child)::after {
     content: "|";
-    color: #ccc;
+    color: #333;
     margin: 0 8px;
+    vertical-align: middle;
 }
 
 /* ─── FOOTER ─── */
@@ -681,7 +701,6 @@ body { font-family:var(--font-sans); background-color:#f8f9fa; color:#1a1a1a; li
     .catalog-modal-body { flex-direction:column; padding:16px; gap:20px; }
     .catalog-modal-body .modal-cover-col { max-width:200px; margin:0 auto; }
     .catalog-modal-close { top:12px !important; right:12px !important; width:36px !important; height:36px !important; font-size:1.2rem !important; }
-    /* Ajustes para prenavigation en móvil */
     .prenavigation .region-prenavigation {
         flex-wrap: wrap;
         gap: 4px;

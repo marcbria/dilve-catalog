@@ -1,3 +1,6 @@
+import { BINDING_MAP } from './dictionaries/binding.js';
+import { DIGITAL_FORMAT_MAP } from './dictionaries/digitalFormat.js';
+
 export function invertirNombre(nombre) {
     if (!nombre) return "";
     if (nombre.includes(',')) {
@@ -35,19 +38,22 @@ export function transformBook(row) {
     const publico = row["publico_objetivo"] || "";
     const editorialCode = row["editorial_code"] || "";
     
-    // Nuevos campos
     const digitalFormat = row["formato_edicion_digital"] || "";
     const themaCode = row["codigo_thema_materia"] || "";
     const themaDesc = row["codigo_thema_cargada"] || "";
     const editionNumber = row["num_edic"] || "";
     const binding = row["encuad"] || "";
-    const isHardcover = binding === "HB" || binding === "BB" || binding === "BC" || binding === "BD";
 
+    // Determinar si es digital (incluye EB, EC, ED, EA)
+    const digitalCodes = ["EB", "EC", "ED", "EA"];
     let isDigital = false;
-    if (formato === "EC" || formato === "ED" || formatoDigital.trim() !== "") {
+    if (digitalCodes.includes(formato) || digitalFormat.trim() !== "") {
         isDigital = true;
     }
     const formatLabel = isDigital ? "Digital" : "Papel";
+
+    const bindingName = BINDING_MAP[binding] || "";
+    const digitalFormatName = DIGITAL_FORMAT_MAP[digitalFormat] || digitalFormat;
 
     const authorList = authorsRaw.split(';').map(a => a.trim()).filter(a => a);
     const authors = authorList.map(a => invertirNombre(a));
@@ -91,7 +97,6 @@ export function transformBook(row) {
         digitalFormats.push(formato);
     }
 
-    // Dimensiones en cm
     let width = "";
     let height = "";
     if (alto) {
@@ -138,13 +143,13 @@ export function transformBook(row) {
         targetAudience: publico,
         editorialCode: editorialCode,
         publisherDisplay: editorial,
-        // Nuevos campos
-        digitalFormat: digitalFormat,
+        digitalFormat: digitalFormatName,
+        digitalFormatRaw: digitalFormat,
         themaCode: themaCode,
         themaDesc: themaDesc,
         editionNumber: editionNumber,
         binding: binding,
-        isHardcover: isHardcover
+        bindingName: bindingName,
     };
 }
 
@@ -171,13 +176,13 @@ export function mergeBooks(books) {
             }
             if (book.width && !existing.width) existing.width = book.width;
             if (book.height && !existing.height) existing.height = book.height;
-            // Fusionar nuevos campos
             if (book.digitalFormat && !existing.digitalFormat) existing.digitalFormat = book.digitalFormat;
+            if (book.digitalFormatRaw && !existing.digitalFormatRaw) existing.digitalFormatRaw = book.digitalFormatRaw;
             if (book.themaCode && !existing.themaCode) existing.themaCode = book.themaCode;
             if (book.themaDesc && !existing.themaDesc) existing.themaDesc = book.themaDesc;
             if (book.editionNumber && !existing.editionNumber) existing.editionNumber = book.editionNumber;
             if (book.binding && !existing.binding) existing.binding = book.binding;
-            if (book.isHardcover && !existing.isHardcover) existing.isHardcover = book.isHardcover;
+            if (book.bindingName && !existing.bindingName) existing.bindingName = book.bindingName;
         } else {
             map.set(key, { ...book });
         }
