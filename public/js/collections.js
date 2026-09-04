@@ -20,7 +20,6 @@ export async function fetchCollectionsCSV() {
         if (resp.ok) {
             const text = await resp.text();
             await loadCollections(text);
-            // No ocultamos el wrapper aquí, lo gestionaremos en populateCollectionFilter
         } else {
             console.log("collections.csv no encontrado (no es crítico)");
             state.collectionsData = [];
@@ -29,7 +28,6 @@ export async function fetchCollectionsCSV() {
         console.log("collections.csv no accesible (no es crítico)");
         state.collectionsData = [];
     }
-    // Después de intentar cargar, actualizar la visibilidad en populateCollectionFilter
 }
 
 // ─── Poblar filtro de colección ─────────────────────────
@@ -44,11 +42,15 @@ export function populateCollectionFilter() {
         opt.textContent = c;
         dom.collectionFilter.appendChild(opt);
     });
-    // Mostrar el wrapper solo si hay colecciones
-    if (sorted.length > 0) {
-        dom.collectionWrapper.style.display = "block";
+    // Mostrar/ocultar el wrapper según si hay colecciones
+    if (dom.collectionWrapper) {
+        if (sorted.length > 0) {
+            dom.collectionWrapper.style.display = "block";
+        } else {
+            dom.collectionWrapper.style.display = "none";
+        }
     } else {
-        dom.collectionWrapper.style.display = "none";
+        console.warn("dom.collectionWrapper no encontrado en el DOM");
     }
 }
 

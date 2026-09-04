@@ -1,4 +1,4 @@
-import { dom, state, BOOKS_PER_PAGE } from './config.js';
+import { dom, state, BOOKS_PER_PAGE, initDom } from './config.js';
 import { parseCSVText } from './csvParser.js';
 import { transformBook, mergeBooks } from './bookTransformer.js';
 import { fetchCollectionsCSV, populateCollectionFilter, updateCollectionIntro, navigateToCollection } from './collections.js';
@@ -60,6 +60,9 @@ document.getElementById('hamburgerBtn').addEventListener('click', function() {
 
 // ─── Inicialización ──────────────────────────────────────
 async function init() {
+    // Inicializar referencias DOM antes de cualquier uso
+    initDom();
+
     // --- Compatibilidad: si hay query string con isbn, convertir a hash ---
     const queryIsbn = getIsbnFromQuery();
     if (queryIsbn) {
