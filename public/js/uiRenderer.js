@@ -218,18 +218,14 @@ export function openDetailModal(book) {
             </div>
         `;
 
-        let digitalDetailHTML = "";
+        // --- UNIFICACIÓN DEL CAMPO FORMATO ---
+        // Calculamos el texto completo del formato
+        const formatDisplay = book.formatLabel || 'Papel';
+        let formatoCompleto = formatDisplay;
         if (book.isDigital && book.digitalFormat && book.digitalFormat !== "") {
-            digitalDetailHTML = `<div class="detail-row"><span class="label">Formato:</span><span class="value">Digital (${escapeHTML(book.digitalFormat)})</span></div>`;
+            formatoCompleto = `Digital (${escapeHTML(book.digitalFormat)})`;
         }
-
-        let collectionDisplay = "";
-        if (book.collectionTitle) {
-            collectionDisplay = escapeHTML(book.collectionTitle);
-            if (book.collectionNumber) {
-                collectionDisplay += ` — ${escapeHTML(book.collectionNumber)}`;
-            }
-        }
+        // (Eliminamos la variable digitalDetailHTML que se usaba antes)
 
         const authorLinks = (book.authors || []).map(a => {
             return `<span class="modal-link" data-author="${escapeHTML(a)}">${escapeHTML(a)}</span>`;
@@ -237,7 +233,6 @@ export function openDetailModal(book) {
 
         const langDisplay = book.languageLabel || '';
         const langCode = book.languageCode || 'other';
-        const formatDisplay = book.formatLabel || 'Papel';
         const isDigital = book.isDigital || false;
 
         let publisherDisplay = book.publisherName || '';
@@ -279,6 +274,14 @@ export function openDetailModal(book) {
             coeditionHTML = `<div class="detail-row"><span class="label">Coedición:</span><span class="value">${escapeHTML(coeditionText)}</span></div>`;
         }
 
+        let collectionDisplay = "";
+        if (book.collectionTitle) {
+            collectionDisplay = escapeHTML(book.collectionTitle);
+            if (book.collectionNumber) {
+                collectionDisplay += ` — ${escapeHTML(book.collectionNumber)}`;
+            }
+        }
+
         const modalHTML = `
         <div class="modal-cover-col">
             ${coverHTML}
@@ -300,7 +303,8 @@ export function openDetailModal(book) {
                 <div class="detail-row"><span class="label">Editorial:</span><span class="value">${publisherDisplay || '—'}</span></div>
                 <div class="detail-row"><span class="label">Publicación:</span><span class="value">${book.displayDate || '—'}</span></div>
                 <div class="detail-row"><span class="label">Idioma:</span><span class="value"><span class="modal-link" data-lang="${langCode}">${escapeHTML(langDisplay)}</span></span></div>
-                <div class="detail-row"><span class="label">Formato:</span><span class="value"><span class="modal-link" data-format="${formatDisplay}">${escapeHTML(formatDisplay)}</span></span></div>
+                <!-- Línea de formato unificada -->
+                <div class="detail-row"><span class="label">Formato:</span><span class="value"><span class="modal-link" data-format="${formatDisplay}">${escapeHTML(formatoCompleto)}</span></span></div>
                 ${dimensionsHTML}
                 ${bindingHTML}
                 ${book.extentLabel ? `<div class="detail-row"><span class="label">Páginas:</span><span class="value">${book.extentLabel.replace(' páginas', '')}</span></div>` : ''}
@@ -308,7 +312,6 @@ export function openDetailModal(book) {
                 ${editionHTML}
                 ${themaHTML}
                 ${coeditionHTML}
-                ${digitalDetailHTML}
             </div>
             ${book.abstractText ? `<div class="detail-section"><h4>Descripción</h4><div class="detail-description">${escapeHTML(book.abstractText)}</div></div>` : ''}
             ${relatedHTML}
