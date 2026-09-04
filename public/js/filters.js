@@ -134,3 +134,19 @@ export function navigateToThema(themaCode) {
     applyFiltersAndReset();
     dom.controlsBar.scrollIntoView({ behavior: "smooth" });
 }
+
+// --- Nueva función para navegar a un autor (ahora aquí) ---
+export function navigateToAuthor(authorName) {
+    if (!authorName) return;
+    state.authorFilter = authorName;
+    // Limpiamos otros filtros contextuales para evitar conflictos
+    state.themaFilter = null;
+    dom.searchInput.value = "";
+    dom.langFilter.value = "all";
+    dom.formatFilter.value = "all";
+    dom.priceFilter.value = "all";
+    dom.collectionFilter.value = "all";
+    updateURL();
+    applyFiltersAndReset();
+    dom.controlsBar.scrollIntoView({ behavior: 'smooth' });
+}

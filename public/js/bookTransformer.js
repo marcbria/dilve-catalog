@@ -43,6 +43,11 @@ export function transformBook(row) {
     const editionNumber = row["num_edic"] || "";
     const binding = row["encuad"] || "";
 
+    // === NOTAS BIOGRÁFICAS DE AUTORES (NUEVO) ===
+    const notaBiografica1 = row["nota_biografica_autor1"] || "";
+    const notaBiografica2 = row["nota_biografica_autor2"] || "";
+    const notaBiografica3 = row["nota_biografica_autor3"] || "";
+
     // Determinar si es digital (códigos EB, EC, ED, EA)
     const digitalCodes = ["EB", "EC", "ED", "EA"];
     let isDigital = false;
@@ -144,6 +149,10 @@ export function transformBook(row) {
         editionNumber: editionNumber,
         binding: binding,
         bindingName: bindingName,
+        // === NOTAS BIOGRÁFICAS (NUEVO) ===
+        nota_biografica_autor1: notaBiografica1,
+        nota_biografica_autor2: notaBiografica2,
+        nota_biografica_autor3: notaBiografica3,
     };
 }
 
@@ -177,7 +186,18 @@ export function mergeBooks(books) {
             if (book.editionNumber && !existing.editionNumber) existing.editionNumber = book.editionNumber;
             if (book.binding && !existing.binding) existing.binding = book.binding;
             if (book.bindingName && !existing.bindingName) existing.bindingName = book.bindingName;
-            // Asegurar que sortDate se actualice con la más reciente
+            // === COMBINAR NOTAS BIOGRÁFICAS (NUEVO) ===
+            // Conservar la que tenga contenido, priorizando la que tenga texto
+            if (book.nota_biografica_autor1 && !existing.nota_biografica_autor1) {
+                existing.nota_biografica_autor1 = book.nota_biografica_autor1;
+            }
+            if (book.nota_biografica_autor2 && !existing.nota_biografica_autor2) {
+                existing.nota_biografica_autor2 = book.nota_biografica_autor2;
+            }
+            if (book.nota_biografica_autor3 && !existing.nota_biografica_autor3) {
+                existing.nota_biografica_autor3 = book.nota_biografica_autor3;
+            }
+            // Actualizar sortDate con la más reciente
             if (book.sortDate > existing.sortDate) {
                 existing.sortDate = book.sortDate;
                 existing.displayDate = book.displayDate;

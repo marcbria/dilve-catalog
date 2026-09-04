@@ -1,6 +1,4 @@
 import { dom, state } from './config.js';
-import { applyFiltersAndReset } from './filters.js';
-import { updateURL } from './urlManager.js';
 
 function escapeHTML(str) {
     if (!str) return '';
@@ -59,16 +57,7 @@ export function updateAuthorIntro() {
     }
 }
 
-// Navega a un autor (desde el modal)
-export function navigateToAuthor(authorName) {
-    if (!authorName) return;
-    state.authorFilter = authorName;
-    updateURL();
-    applyFiltersAndReset();
-    dom.controlsBar.scrollIntoView({ behavior: 'smooth' });
-}
-
-// Limpia el filtro de autor
+// Función para limpiar el filtro de autor (se puede usar desde reset)
 export function resetAuthorFilter() {
     state.authorFilter = null;
     updateAuthorIntro();

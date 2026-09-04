@@ -3,7 +3,7 @@ import { parseCSVText } from './csvParser.js';
 import { transformBook, mergeBooks } from './bookTransformer.js';
 import { fetchCollectionsCSV, populateCollectionFilter, updateCollectionIntro, navigateToCollection } from './collections.js';
 import { buildAuthorBioMap, updateAuthorIntro } from './authors.js';
-import { applyFiltersAndReset, resetAllFilters, navigateToLanguage, navigateToFormat } from './filters.js';
+import { applyFiltersAndReset, resetAllFilters, navigateToLanguage, navigateToFormat, navigateToAuthor } from './filters.js';
 import { loadMoreBooks, setupIntersectionObserver, closeModal, openDetailModal } from './uiRenderer.js';
 import { applyInitialURLParams, updateURL } from './urlManager.js';
 import { getCleanIsbn, getIsbnFromHash, getIsbnFromQuery } from './utils.js';
@@ -28,10 +28,8 @@ async function loadCatalog(csvText) {
 
 // ─── Inicialización ──────────────────────────────────────
 async function init() {
-    // 1. Inicializar referencias DOM
     initDom();
 
-    // 2. Registrar event listeners (ahora dom está lleno)
     dom.searchInput.addEventListener('input', applyFiltersAndReset);
     dom.sortSelect.addEventListener('change', applyFiltersAndReset);
     dom.langFilter.addEventListener('change', applyFiltersAndReset);
@@ -65,7 +63,6 @@ async function init() {
         document.getElementById('filterGroup').classList.toggle('open');
     });
 
-    // 3. Compatibilidad: si hay query string con isbn, convertir a hash
     const queryIsbn = getIsbnFromQuery();
     if (queryIsbn) {
         const url = new URL(window.location.href);
@@ -75,7 +72,6 @@ async function init() {
         console.log('Convertido query ?isbn a hash:', url.toString());
     }
 
-    // 4. Cargar catálogo
     try {
         console.log('Intentando cargar data/catalog.csv...');
         const response = await fetch('data/catalog.csv');
@@ -88,7 +84,6 @@ async function init() {
         await loadCatalog(csvText);
         setupIntersectionObserver();
         
-        // --- Leer ISBN del hash ---
         const isbnFromHash = getIsbnFromHash();
         if (isbnFromHash) {
             const cleanIsbn = getCleanIsbn(isbnFromHash);
@@ -120,7 +115,6 @@ async function init() {
     }
 }
 
-// ─── Listener para cambios en el hash (navegación con hash) ──
 window.addEventListener('hashchange', function() {
     const isbn = getIsbnFromHash();
     if (isbn) {
@@ -132,7 +126,6 @@ window.addEventListener('hashchange', function() {
             console.warn('No se encontró libro con ISBN en hashchange:', isbn);
         }
     } else {
-        // Si el hash se limpia (por ejemplo, al cerrar el modal), cerrar el modal
         closeModal();
     }
 });

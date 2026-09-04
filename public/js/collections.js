@@ -4,12 +4,41 @@ import { parseCSVText } from './csvParser.js';
 // ─── Carga de colecciones (opcional) ────────────────────
 export async function loadCollections(csvText) {
     const raw = parseCSVText(csvText);
-    state.collectionsData = raw
-        .map(row => ({
-            titulo: row["titulo"] || "",
-            intro: row["intro"] || ""
-        }))
-        .filter(c => c.titulo);
+    
+    // Si no hay datos, salir
+    if (raw.length === 0) {
+        console.warn("No se encontraron datos en collections.csv");
+        state.collectionsData = [];
+        return false;
+    }
+
+    // Detectar si la primera fila contiene las columnas esperadas
+    const firstRow = raw[0];
+    const hasTitulo = 'titulo' in firstRow || 'Titulo' in firstRow;
+    const hasIntro = 'intro' in firstRow || 'Intro' in firstRow;
+
+    let collections = [];
+    if (hasTitulo && hasIntro) {
+        // Usar las columnas normales
+        const tituloKey = 'titulo' in firstRow ? 'titulo' : 'Titulo';
+        const introKey = 'intro' in firstRow ? 'intro' : 'Intro';
+        collections = raw.map(row => ({
+            titulo: row[tituloKey] || "",
+            intro: row[introKey] || ""
+        }));
+    } else {
+        // Si no hay cabecera, asumir que la primera columna es el título y la segunda la intro
+        console.warn("No se encontraron columnas 'titulo' e 'intro'. Usando primera columna como título y segunda como intro.");
+        collections = raw.map(row => {
+            const keys = Object.keys(row);
+            const titulo = keys.length > 0 ? row[keys[0]] : "";
+            const intro = keys.length > 1 ? row[keys[1]] : "";
+            return { titulo, intro };
+        });
+    }
+
+    // Filtrar entradas vacías o que no tengan título
+    state.collectionsData = collections.filter(c => c.titulo && c.titulo.trim() !== "");
     console.log(`Colecciones cargadas: ${state.collectionsData.length}`);
     return state.collectionsData.length > 0;
 }
@@ -44,11 +73,7 @@ export function populateCollectionFilter() {
     });
     // Mostrar/ocultar el wrapper según si hay colecciones
     if (dom.collectionWrapper) {
-        if (sorted.length > 0) {
-            dom.collectionWrapper.style.display = "block";
-        } else {
-            dom.collectionWrapper.style.display = "none";
-        }
+        dom.collectionWrapper.style.display = sorted.length > 0 ? "block" : "none";
     } else {
         console.warn("dom.collectionWrapper no encontrado en el DOM");
     }
@@ -62,7 +87,7 @@ export function updateCollectionIntro() {
 
     if (selected && selected !== "all" && state.collectionsData.length > 0) {
         const found = state.collectionsData.find(c => 
-            c.titulo.toLowerCase() === selected.toLowerCase()
+            c.titulo && c.titulo.toLowerCase() === selected.toLowerCase()
         );
         if (found && found.intro) {
             dom.collectionIntro.innerHTML = `

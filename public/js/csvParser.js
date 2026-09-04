@@ -1,4 +1,4 @@
-// ─── Parser CSV amb detecció de delimitador ──────────────
+// ─── Parser CSV robusto (RFC 4180) ─────────────────────
 export function detectDelimiter(firstLine) {
     if (!firstLine) return ",";
     const commaCount = (firstLine.match(/,/g) || []).length;
@@ -7,57 +7,83 @@ export function detectDelimiter(firstLine) {
 }
 
 export function parseCSVText(csvText) {
+    // Eliminar BOM si existe
     if (csvText.charCodeAt(0) === 0xfeff) csvText = csvText.slice(1);
-    const lines = csvText.split(/\r?\n/);
-    const firstLine = lines[0] || "";
+
+    // Detectar delimitador basado en la primera línea
+    const firstLineEnd = csvText.indexOf('\n');
+    const firstLine = firstLineEnd !== -1 ? csvText.slice(0, firstLineEnd) : csvText;
     const delim = detectDelimiter(firstLine);
-    console.log("Delimitador detectat:", delim);
 
     const rows = [];
     let currentRow = [];
     let currentField = "";
     let inQuotes = false;
+    let i = 0;
     const len = csvText.length;
 
-    for (let i = 0; i < len; i++) {
+    while (i < len) {
         const char = csvText[i];
-        const nextChar = csvText[i + 1];
+        const nextChar = csvText[i + 1] || '';
+
         if (inQuotes) {
             if (char === '"') {
                 if (nextChar === '"') {
+                    // Comillas dobles escapadas
                     currentField += '"';
-                    i++;
+                    i += 2;
                 } else {
+                    // Fin de comillas
                     inQuotes = false;
+                    i++;
                 }
             } else {
                 currentField += char;
+                i++;
             }
         } else {
             if (char === '"') {
                 inQuotes = true;
+                i++;
             } else if (char === delim) {
-                currentRow.push(currentField);
+                currentRow.push(currentField.trim());
                 currentField = "";
-            } else if (char === "\n") {
-                currentRow.push(currentField);
+                i++;
+            } else if (char === '\n') {
+                // Fin de línea
+                currentRow.push(currentField.trim());
                 currentField = "";
-                rows.push(currentRow);
+                if (currentRow.some(field => field !== "")) {
+                    rows.push(currentRow);
+                }
                 currentRow = [];
-            } else if (char === "\r") {
-                if (nextChar === "\n") i++;
-                currentRow.push(currentField);
+                i++;
+            } else if (char === '\r') {
+                // Ignorar \r, pero si va seguido de \n, saltarlo
+                if (nextChar === '\n') {
+                    i++;
+                }
+                // Forzar fin de línea
+                currentRow.push(currentField.trim());
                 currentField = "";
-                rows.push(currentRow);
+                if (currentRow.some(field => field !== "")) {
+                    rows.push(currentRow);
+                }
                 currentRow = [];
+                i++;
             } else {
                 currentField += char;
+                i++;
             }
         }
     }
+
+    // Último campo y fila
     if (currentField || currentRow.length > 0) {
-        currentRow.push(currentField);
-        rows.push(currentRow);
+        currentRow.push(currentField.trim());
+        if (currentRow.some(field => field !== "")) {
+            rows.push(currentRow);
+        }
     }
 
     if (rows.length === 0) {
@@ -67,13 +93,18 @@ export function parseCSVText(csvText) {
 
     const headers = rows[0].map(h => h.trim());
     console.log("Capçaleres:", headers);
+
     const data = [];
     for (let i = 1; i < rows.length; i++) {
         const obj = {};
+        const row = rows[i];
         headers.forEach((header, index) => {
-            obj[header] = rows[i][index] || "";
+            obj[header] = row[index] || "";
         });
-        if (Object.values(obj).some(v => v !== "")) data.push(obj);
+        // Solo agregar si al menos un valor no está vacío
+        if (Object.values(obj).some(v => v !== "")) {
+            data.push(obj);
+        }
     }
     console.log(`Files parseades: ${data.length}`);
     return data;

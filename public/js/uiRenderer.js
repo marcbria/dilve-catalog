@@ -1,10 +1,11 @@
 import { dom, state, BOOKS_PER_PAGE } from './config.js';
 import { navigateToCollection } from './collections.js';
-import { navigateToLanguage, navigateToFormat, navigateToThema } from './filters.js';
-import { navigateToAuthor } from './authors.js';
+import { navigateToLanguage, navigateToFormat, navigateToThema, navigateToAuthor } from './filters.js';
 import { escapeHTML, getCleanIsbn } from './utils.js';
 import { updateURL } from './urlManager.js';
 import { getThemaDescription } from './dictionaries/thema.js';
+
+// ... (el resto del archivo permanece idéntico, solo cambia la línea de importación)
 
 export function createBookCard(book) {
     const card = document.createElement("div");
@@ -220,13 +221,11 @@ export function openDetailModal(book) {
         `;
 
         // --- UNIFICACIÓN DEL CAMPO FORMATO ---
-        // Calculamos el texto completo del formato
         const formatDisplay = book.formatLabel || 'Papel';
         let formatoCompleto = formatDisplay;
         if (book.isDigital && book.digitalFormat && book.digitalFormat !== "") {
             formatoCompleto = `Digital (${escapeHTML(book.digitalFormat)})`;
         }
-        // (Eliminamos la variable digitalDetailHTML que se usaba antes)
 
         const authorLinks = (book.authors || []).map(a => {
             return `<span class="modal-link" data-author="${escapeHTML(a)}">${escapeHTML(a)}</span>`;
@@ -304,7 +303,6 @@ export function openDetailModal(book) {
                 <div class="detail-row"><span class="label">Editorial:</span><span class="value">${publisherDisplay || '—'}</span></div>
                 <div class="detail-row"><span class="label">Publicación:</span><span class="value">${book.displayDate || '—'}</span></div>
                 <div class="detail-row"><span class="label">Idioma:</span><span class="value"><span class="modal-link" data-lang="${langCode}">${escapeHTML(langDisplay)}</span></span></div>
-                <!-- Línea de formato unificada -->
                 <div class="detail-row"><span class="label">Formato:</span><span class="value"><span class="modal-link" data-format="${formatDisplay}">${escapeHTML(formatoCompleto)}</span></span></div>
                 ${dimensionsHTML}
                 ${bindingHTML}
