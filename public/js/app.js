@@ -24,46 +24,46 @@ async function loadCatalog(csvText) {
     applyFiltersAndReset();
 }
 
-// ─── Event listeners ─────────────────────────────────────
-dom.searchInput.addEventListener('input', applyFiltersAndReset);
-dom.sortSelect.addEventListener('change', applyFiltersAndReset);
-dom.langFilter.addEventListener('change', applyFiltersAndReset);
-dom.formatFilter.addEventListener('change', applyFiltersAndReset);
-dom.priceFilter.addEventListener('change', applyFiltersAndReset);
-dom.collectionFilter.addEventListener('change', applyFiltersAndReset);
-dom.resetButton.addEventListener('click', resetAllFilters);
-
-dom.modalClose.addEventListener('click', closeModal);
-dom.modalOverlay.addEventListener('click', function (e) {
-    if (e.target === dom.modalOverlay) closeModal();
-});
-document.addEventListener('keydown', function (e) {
-    if (e.key === 'Escape' && dom.modalOverlay.classList.contains('active')) closeModal();
-});
-
-dom.csvFileInput.addEventListener('change', function (e) {
-    const file = e.target.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = function (ev) {
-        dom.fileFallback.classList.remove('active');
-        loadCatalog(ev.target.result).then(() => {
-            setupIntersectionObserver();
-        });
-    };
-    reader.readAsText(file, 'UTF-8');
-});
-
-document.getElementById('hamburgerBtn').addEventListener('click', function() {
-    document.getElementById('filterGroup').classList.toggle('open');
-});
-
 // ─── Inicialización ──────────────────────────────────────
 async function init() {
-    // Inicializar referencias DOM antes de cualquier uso
+    // 1. Inicializar referencias DOM
     initDom();
 
-    // --- Compatibilidad: si hay query string con isbn, convertir a hash ---
+    // 2. Registrar event listeners (ahora dom está lleno)
+    dom.searchInput.addEventListener('input', applyFiltersAndReset);
+    dom.sortSelect.addEventListener('change', applyFiltersAndReset);
+    dom.langFilter.addEventListener('change', applyFiltersAndReset);
+    dom.formatFilter.addEventListener('change', applyFiltersAndReset);
+    dom.priceFilter.addEventListener('change', applyFiltersAndReset);
+    dom.collectionFilter.addEventListener('change', applyFiltersAndReset);
+    dom.resetButton.addEventListener('click', resetAllFilters);
+
+    dom.modalClose.addEventListener('click', closeModal);
+    dom.modalOverlay.addEventListener('click', function (e) {
+        if (e.target === dom.modalOverlay) closeModal();
+    });
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' && dom.modalOverlay.classList.contains('active')) closeModal();
+    });
+
+    dom.csvFileInput.addEventListener('change', function (e) {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = function (ev) {
+            dom.fileFallback.classList.remove('active');
+            loadCatalog(ev.target.result).then(() => {
+                setupIntersectionObserver();
+            });
+        };
+        reader.readAsText(file, 'UTF-8');
+    });
+
+    document.getElementById('hamburgerBtn').addEventListener('click', function() {
+        document.getElementById('filterGroup').classList.toggle('open');
+    });
+
+    // 3. Compatibilidad: si hay query string con isbn, convertir a hash
     const queryIsbn = getIsbnFromQuery();
     if (queryIsbn) {
         const url = new URL(window.location.href);
@@ -73,6 +73,7 @@ async function init() {
         console.log('Convertido query ?isbn a hash:', url.toString());
     }
 
+    // 4. Cargar catálogo
     try {
         console.log('Intentando cargar data/catalog.csv...');
         const response = await fetch('data/catalog.csv');
@@ -85,7 +86,7 @@ async function init() {
         await loadCatalog(csvText);
         setupIntersectionObserver();
         
-        // --- Leer ISBN del hash (ahora conservado por updateURL) ---
+        // --- Leer ISBN del hash ---
         const isbnFromHash = getIsbnFromHash();
         if (isbnFromHash) {
             const cleanIsbn = getCleanIsbn(isbnFromHash);
