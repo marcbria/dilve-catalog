@@ -764,3 +764,26 @@ body { font-family:var(--font-sans); background-color:#f8f9fa; color:#1a1a1a; li
     outline: 2px solid #007e11;
     outline-offset: 2px;
 }
+
+/* ─── Autor intro ─── */
+.author-intro {
+    background: #ececec;
+    border-left: 5px solid #007e11;
+    padding: 20px 24px;
+    margin-bottom: 28px;
+    display: none;
+}
+.author-intro.active {
+    display: block;
+}
+.author-intro h2 {
+    font-family: var(--font-sans);
+    font-weight: 600;
+    color: #1e1e1e;
+    margin-bottom: 10px;
+    font-size: 1.5rem;
+}
+.author-intro p {
+    color: #525252;
+    line-height: 1.7;
+}
