@@ -86,6 +86,7 @@ get_compose_files() {
 ensure_running() {
     local env="$1"
     local compose_files=$(get_compose_files "$env")
+    # Comprobar si el contenedor está en ejecución
     if ! docker compose $compose_files ps --format json | grep -q '"State":"running"'; then
         echo "El contenedor no esta corriendo. Levantando entorno $env..."
         docker compose $compose_files up -d --build
@@ -93,8 +94,26 @@ ensure_running() {
             echo "Error al levantar el contenedor."
             exit 1
         fi
+        # Esperar unos segundos para que el contenedor esté listo
+        sleep 5
         echo "Contenedor levantado."
     fi
+}
+
+# Función para actualizar el enlace simbólico al último CSV
+update_symlink() {
+    local env="$1"
+    local compose_files=$(get_compose_files "$env")
+    echo "Actualizando enlace simbólico /data/catalog.csv..."
+    docker compose $compose_files exec -T app bash -c '
+        LATEST_CSV=$(find /data/catalog -maxdepth 1 -type f -name "*.csv" 2>/dev/null | sort | tail -1)
+        if [ -n "$LATEST_CSV" ]; then
+            ln -sf "$LATEST_CSV" /data/catalog.csv
+            echo "Enlace actualizado: /data/catalog.csv -> $LATEST_CSV"
+        else
+            echo "ADVERTENCIA: No se encontró ningún CSV en /data/catalog"
+        fi
+    '
 }
 
 case "$CMD" in
@@ -113,6 +132,9 @@ case "$CMD" in
         docker compose -f compose.yml -f compose.traefik.yml logs -f
         ;;
     update)
+        # Asegurar que el contenedor está en ejecución
+        ensure_running "$ENV"
+
         # Construir los argumentos para main.py
         ARGS=""
         if [ -n "$UPDATE_METADATA" ]; then
@@ -132,14 +154,20 @@ case "$CMD" in
             ARGS="$ARGS --from-date $FROM_DATE"
         fi
 
-        echo "Ejecutando actualizacion en entorno $ENV..."
-        ensure_running "$ENV"
-
         compose_files=$(get_compose_files "$ENV")
+        echo "Ejecutando actualización en entorno $ENV..."
         echo "Comando: docker compose $compose_files exec app python3 main.py $ARGS"
-        docker compose $compose_files exec app python3 main.py $ARGS
+        
+        # Ejecutar main.py dentro del contenedor
+        if ! docker compose $compose_files exec app python3 main.py $ARGS; then
+            echo "ERROR: falló la ejecución de main.py"
+            exit 1
+        fi
 
-        # Mostrar logs del contenedor después de la ejecución (opcional)
+        # Actualizar el enlace simbólico después de la ejecución
+        update_symlink "$ENV"
+
+        # Mostrar logs recientes del contenedor (opcional)
         echo "Mostrando logs recientes del contenedor:"
         docker compose $compose_files logs --tail=20 app
         ;;

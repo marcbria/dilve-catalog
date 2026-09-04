@@ -15,7 +15,12 @@ export function createBookCard(book) {
     coverWrapper.className = "card-cover-wrapper";
     if (book.coverLink) {
         const img = document.createElement("img");
-        img.src = book.coverLink;
+        // Asegurar que la URL no sea file://
+        let src = book.coverLink;
+        if (src.startsWith('file://')) {
+            src = src.replace('file://', '');
+        }
+        img.src = src;
         img.alt = book.titleText || "Portada";
         img.loading = "lazy";
         img.onerror = function () {
@@ -162,9 +167,13 @@ export function openDetailModal(book) {
         const shareTitle = encodeURIComponent(book.titleText || "Libro");
         const shareText = encodeURIComponent(`📖 ${book.titleText} - ${book.authorDisplay || ''}`);
 
+        // Asegurar que la URL de la portada no sea file://
+        let coverSrc = book.coverLink || '';
+        if (coverSrc.startsWith('file://')) coverSrc = coverSrc.replace('file://', '');
+
         let coverHTML = '';
-        if (book.coverLink) {
-            coverHTML = `<img src="${escapeHTML(book.coverLink)}" alt="${escapeHTML(book.titleText || 'Portada')}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';this.nextElementSibling.classList.add('active');"><div class="modal-cover-placeholder">${escapeHTML((book.titleText || '?').substring(0,80))}</div>`;
+        if (coverSrc) {
+            coverHTML = `<img src="${escapeHTML(coverSrc)}" alt="${escapeHTML(book.titleText || 'Portada')}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';this.nextElementSibling.classList.add('active');"><div class="modal-cover-placeholder">${escapeHTML((book.titleText || '?').substring(0,80))}</div>`;
         } else {
             coverHTML = `<div class="modal-cover-placeholder active">${escapeHTML((book.titleText || '?').substring(0,80))}</div>`;
         }

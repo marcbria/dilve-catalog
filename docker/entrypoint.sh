@@ -174,6 +174,8 @@ LATEST_CSV=$(find /data/catalog -maxdepth 1 -type f -name "*.csv" 2>/dev/null | 
 if [ -n "$LATEST_CSV" ]; then
     ln -sf "$LATEST_CSV" /data/catalog.csv
     echo "Enlace simbólico actualizado: /data/catalog.csv -> $LATEST_CSV"
+else
+    echo "ADVERTENCIA: No se encontró ningún CSV en /data/catalog"
 fi
 
 # --- Ajustar permisos para que Nginx pueda leer los archivos ---

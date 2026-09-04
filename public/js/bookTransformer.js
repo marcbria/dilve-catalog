@@ -95,6 +95,13 @@ export function transformBook(row) {
     let width = anchoCm ? parseFloat(anchoCm).toFixed(1) : "";
     let height = altoCm ? parseFloat(altoCm).toFixed(1) : "";
 
+    // 🔧 Asegurar que coverLink sea una ruta relativa, no file://
+    let coverLink = imagen ? `data/covers/${imagen}` : "";
+    // Si por alguna razón empieza con file://, eliminar ese prefijo
+    if (coverLink.startsWith('file://')) {
+        coverLink = coverLink.replace('file://', '');
+    }
+
     return {
         isbn,
         titleText,
@@ -118,7 +125,7 @@ export function transformBook(row) {
         isFree,
         iva,
         abstractText: resumen,
-        coverLink: imagen ? `data/covers/${imagen}` : "",
+        coverLink: coverLink,
         productIDAlternative: isDigital ? isbnImpreso : isbnDigital,
         normalizedTitle: titleText.toLowerCase().trim(),
         digitalFormats: digitalFormats,

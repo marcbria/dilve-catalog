@@ -118,6 +118,7 @@ export function navigateToAuthor(authorName) {
     dom.controlsBar.scrollIntoView({ behavior: "smooth" });
 }
 
+// ✨ NUEVA FUNCIÓN: navegar por Thema (materia)
 export function navigateToThema(themaCode) {
     state.themaFilter = themaCode;
     dom.searchInput.value = "";

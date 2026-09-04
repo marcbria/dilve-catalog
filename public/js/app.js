@@ -10,8 +10,11 @@ import { getCleanIsbn, getIsbnFromHash, getIsbnFromQuery } from './utils.js';
 // ─── Carga del catálogo ──────────────────────────────────
 async function loadCatalog(csvText) {
     const raw = parseCSVText(csvText);
+    console.log(`Filas parseadas (raw): ${raw.length}`);
     let books = raw.map(transformBook).filter(b => b.titleText || b.isbn);
+    console.log(`Libros después de transformar y filtrar: ${books.length}`);
     books = mergeBooks(books);
+    console.log(`Libros después de merge: ${books.length}`);
     state.allBooks = books;
     state.allBooks.sort((a, b) => b.sortDate - a.sortDate);
     populateCollectionFilter();
@@ -68,9 +71,13 @@ async function init() {
     }
 
     try {
+        console.log('Intentando cargar data/catalog.csv...');
         const response = await fetch('data/catalog.csv');
-        if (!response.ok) throw new Error(`Error al cargar el archivo: ${response.status} ${response.statusText}`);
+        if (!response.ok) {
+            throw new Error(`Error al cargar el archivo: ${response.status} ${response.statusText}`);
+        }
         const csvText = await response.text();
+        console.log(`CSV cargado, tamaño: ${csvText.length} bytes`);
         await fetchCollectionsCSV();
         await loadCatalog(csvText);
         setupIntersectionObserver();
