@@ -34,8 +34,8 @@ chmod 644 /etc/dilve-env
 # --- Establecer zona horaria ---
 ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 
-# --- Generar diccionario Thema (descarga el JSON si no existe) ---
-echo "Generando diccionario Thema..."
+# --- Generar diccionario Thema (usando JSON local) ---
+echo "Generando diccionario Thema a partir de archivos locales..."
 python3 /app/docker/generate_thema_dict.py || true
 
 # --- Generar configuración del tema para el frontend ---
