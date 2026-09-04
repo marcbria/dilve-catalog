@@ -1,5 +1,6 @@
 import { dom, state } from './config.js';
 import { updateCollectionIntro, navigateToCollection } from './collections.js';
+import { updateAuthorIntro } from './authors.js';
 import { updateURL, getURLParams } from './urlManager.js';
 import { loadMoreBooks, renderNoResults, resetPagination } from './uiRenderer.js';
 
@@ -28,6 +29,11 @@ export function applyFiltersAndReset() {
         if (priceVal === "paid" && book.isFree) return false;
         if (collectionVal !== "all" && book.collectionTitle !== collectionVal) return false;
         if (state.themaFilter && book.themaCode !== state.themaFilter) return false;
+        // Filtro por autor
+        if (state.authorFilter) {
+            const authorMatch = book.authors && book.authors.some(a => a === state.authorFilter);
+            if (!authorMatch) return false;
+        }
         return true;
     });
 
@@ -58,6 +64,7 @@ export function applyFiltersAndReset() {
 
     resetPagination();
     updateCollectionIntro();
+    updateAuthorIntro();
     updateURL();
     updateFilterActiveState();
 
@@ -95,12 +102,14 @@ export function resetAllFilters() {
     dom.priceFilter.value = "all";
     dom.collectionFilter.value = "all";
     state.themaFilter = null;
+    state.authorFilter = null;
     applyFiltersAndReset();
 }
 
 export function navigateToLanguage(langCode) {
     dom.langFilter.value = langCode;
     state.themaFilter = null;
+    state.authorFilter = null;
     applyFiltersAndReset();
     dom.controlsBar.scrollIntoView({ behavior: "smooth" });
 }
@@ -109,19 +118,14 @@ export function navigateToFormat(formatLabel) {
     if (formatLabel === "Paper") dom.formatFilter.value = "paper";
     else if (formatLabel === "Digital") dom.formatFilter.value = "digital";
     state.themaFilter = null;
-    applyFiltersAndReset();
-    dom.controlsBar.scrollIntoView({ behavior: "smooth" });
-}
-
-export function navigateToAuthor(authorName) {
-    dom.searchInput.value = authorName;
-    state.themaFilter = null;
+    state.authorFilter = null;
     applyFiltersAndReset();
     dom.controlsBar.scrollIntoView({ behavior: "smooth" });
 }
 
 export function navigateToThema(themaCode) {
     state.themaFilter = themaCode;
+    state.authorFilter = null;
     dom.searchInput.value = "";
     dom.langFilter.value = "all";
     dom.formatFilter.value = "all";

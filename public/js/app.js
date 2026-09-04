@@ -2,7 +2,8 @@ import { dom, state, BOOKS_PER_PAGE, initDom } from './config.js';
 import { parseCSVText } from './csvParser.js';
 import { transformBook, mergeBooks } from './bookTransformer.js';
 import { fetchCollectionsCSV, populateCollectionFilter, updateCollectionIntro, navigateToCollection } from './collections.js';
-import { applyFiltersAndReset, resetAllFilters, navigateToLanguage, navigateToFormat, navigateToAuthor } from './filters.js';
+import { buildAuthorBioMap, updateAuthorIntro } from './authors.js';
+import { applyFiltersAndReset, resetAllFilters, navigateToLanguage, navigateToFormat } from './filters.js';
 import { loadMoreBooks, setupIntersectionObserver, closeModal, openDetailModal } from './uiRenderer.js';
 import { applyInitialURLParams, updateURL } from './urlManager.js';
 import { getCleanIsbn, getIsbnFromHash, getIsbnFromQuery } from './utils.js';
@@ -17,6 +18,7 @@ async function loadCatalog(csvText) {
     console.log(`Libros después de merge: ${books.length}`);
     state.allBooks = books;
     state.allBooks.sort((a, b) => b.sortDate - a.sortDate);
+    state.authorBioMap = buildAuthorBioMap(state.allBooks);
     populateCollectionFilter();
     console.log(`Total libros: ${state.allBooks.length}`);
     if (state.allBooks.length > 0) console.log("Primer libro:", state.allBooks[0]);

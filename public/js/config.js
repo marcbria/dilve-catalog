@@ -19,6 +19,7 @@ export function initDom() {
     dom.scrollSentinel = document.getElementById("scrollSentinel");
     dom.loadingIndicator = document.getElementById("loadingIndicator");
     dom.collectionIntro = document.getElementById("collectionIntro");
+    dom.authorIntro = document.getElementById("authorIntro");
     dom.fileFallback = document.getElementById("fileFallback");
     dom.csvFileInput = document.getElementById("csvFileInput");
     dom.controlsBar = document.getElementById("controlsBar");
@@ -30,6 +31,8 @@ export const state = {
     allBooks: [],
     filteredBooks: [],
     collectionsData: [],
+    authorBioMap: {},
+    authorFilter: null,
     displayedCount: 0,
     observer: null,
     themaFilter: null,

@@ -1,6 +1,7 @@
 import { dom, state, BOOKS_PER_PAGE } from './config.js';
 import { navigateToCollection } from './collections.js';
-import { navigateToLanguage, navigateToFormat, navigateToAuthor, navigateToThema } from './filters.js';
+import { navigateToLanguage, navigateToFormat, navigateToThema } from './filters.js';
+import { navigateToAuthor } from './authors.js';
 import { escapeHTML, getCleanIsbn } from './utils.js';
 import { updateURL } from './urlManager.js';
 import { getThemaDescription } from './dictionaries/thema.js';

@@ -16,6 +16,7 @@ export function getURLParams() {
         format: params.get("format") || "all",
         price: params.get("price") || "all",
         collection: params.get("collection") || "all",
+        author: params.get("author") || "",
         isbn: params.get("isbn") || "",
         thema: params.get("thema") || ""
     };
@@ -43,6 +44,7 @@ export function updateURL(isbn = null) {
     if (dom.formatFilter.value !== "all") params.set("format", dom.formatFilter.value);
     if (dom.priceFilter.value !== "all") params.set("price", dom.priceFilter.value);
     if (dom.collectionFilter.value !== "all") params.set("collection", dom.collectionFilter.value);
+    if (state.authorFilter) params.set("author", state.authorFilter);
     if (state.themaFilter) params.set("thema", state.themaFilter);
 
     url.search = params.toString();
@@ -65,6 +67,9 @@ export function applyInitialURLParams() {
             dom.collectionFilter.appendChild(opt);
         }
         dom.collectionFilter.value = p.collection;
+    }
+    if (p.author) {
+        state.authorFilter = p.author;
     }
     if (p.thema) {
         state.themaFilter = p.thema;
