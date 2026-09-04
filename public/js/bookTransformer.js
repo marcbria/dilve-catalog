@@ -72,7 +72,12 @@ export function transformBook(row) {
         }
     } else if (fechaPublicDMA) {
         displayDate = fechaPublicDMA;
-        sortDate = 0;
+        // Intentar extraer año
+        const match = fechaPublicDMA.match(/\d{4}/);
+        if (match) {
+            const y = match[0];
+            sortDate = parseInt(y + "0000") || 0;
+        }
     } else if (year && /^\d{4}$/.test(year)) {
         displayDate = year;
         sortDate = parseInt(year + "0000") || 0;
@@ -91,13 +96,10 @@ export function transformBook(row) {
         digitalFormats.push(formato);
     }
 
-    // Dimensiones: usar valores en cm (como strings)
     let width = anchoCm ? parseFloat(anchoCm).toFixed(1) : "";
     let height = altoCm ? parseFloat(altoCm).toFixed(1) : "";
 
-    // 🔧 Asegurar que coverLink sea una ruta relativa, no file://
     let coverLink = imagen ? `data/covers/${imagen}` : "";
-    // Si por alguna razón empieza con file://, eliminar ese prefijo
     if (coverLink.startsWith('file://')) {
         coverLink = coverLink.replace('file://', '');
     }
@@ -175,6 +177,12 @@ export function mergeBooks(books) {
             if (book.editionNumber && !existing.editionNumber) existing.editionNumber = book.editionNumber;
             if (book.binding && !existing.binding) existing.binding = book.binding;
             if (book.bindingName && !existing.bindingName) existing.bindingName = book.bindingName;
+            // Asegurar que sortDate se actualice con la más reciente
+            if (book.sortDate > existing.sortDate) {
+                existing.sortDate = book.sortDate;
+                existing.displayDate = book.displayDate;
+                existing.year = book.year;
+            }
         } else {
             map.set(key, { ...book });
         }

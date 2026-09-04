@@ -31,6 +31,8 @@ export function applyFiltersAndReset() {
         return true;
     });
 
+    console.log(`Filtrados ${state.filteredBooks.length} libros. Ordenando por: ${sortVal}`);
+
     switch (sortVal) {
         case "title-asc":
             state.filteredBooks.sort((a, b) => a.titleText.localeCompare(b.titleText, "ca"));
@@ -118,7 +120,6 @@ export function navigateToAuthor(authorName) {
     dom.controlsBar.scrollIntoView({ behavior: "smooth" });
 }
 
-// ✨ NUEVA FUNCIÓN: navegar por Thema (materia)
 export function navigateToThema(themaCode) {
     state.themaFilter = themaCode;
     dom.searchInput.value = "";
