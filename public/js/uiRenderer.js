@@ -293,14 +293,14 @@ export function openDetailModal(book) {
             infoRows.push(`<div class="detail-row"><span class="label">Tamaño:</span><span class="value">${escapeHTML(book.width)} x ${escapeHTML(book.height)} cm</span></div>`);
         }
 
-        // 9. Materia (Thema) con descripción y código en líneas separadas, sin sangría extra
+        // 9. Materia (Thema) con código primero, luego descripción
         if (book.themaCode) {
             const desc = getThemaDescription(book.themaCode);
             let themaDisplay;
             if (desc) {
-                themaDisplay = `<span>${desc}</span><br><span>(Thema: ${book.themaCode})</span>`;
+                themaDisplay = `Thema - ${book.themaCode}<br>${desc}`;
             } else {
-                themaDisplay = `Thema: ${book.themaCode}`;
+                themaDisplay = `Thema - ${book.themaCode}`;
             }
             infoRows.push(`<div class="detail-row"><span class="label">Materia:</span><span class="value"><span class="modal-link" data-thema="${escapeHTML(book.themaCode)}">${themaDisplay}</span></span></div>`);
         }

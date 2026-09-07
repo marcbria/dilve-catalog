@@ -107,8 +107,6 @@ export function resetAllFilters() {
 
 export function navigateToLanguage(langCode) {
     dom.langFilter.value = langCode;
-    state.themaFilter = null;
-    state.authorFilter = null;
     applyFiltersAndReset();
     dom.controlsBar.scrollIntoView({ behavior: "smooth" });
 }
@@ -121,23 +119,15 @@ export function navigateToFormat(formatLabel) {
     } else if (lower === "digital") {
         value = "digital";
     } else {
-        return; // no hacer nada si no coincide
+        return;
     }
     dom.formatFilter.value = value;
-    state.themaFilter = null;
-    state.authorFilter = null;
     applyFiltersAndReset();
     dom.controlsBar.scrollIntoView({ behavior: "smooth" });
 }
 
 export function navigateToThema(themaCode) {
     state.themaFilter = themaCode;
-    state.authorFilter = null;
-    dom.searchInput.value = "";
-    dom.langFilter.value = "all";
-    dom.formatFilter.value = "all";
-    dom.priceFilter.value = "all";
-    dom.collectionFilter.value = "all";
     applyFiltersAndReset();
     dom.controlsBar.scrollIntoView({ behavior: "smooth" });
 }
@@ -145,13 +135,6 @@ export function navigateToThema(themaCode) {
 export function navigateToAuthor(authorName) {
     if (!authorName) return;
     state.authorFilter = authorName;
-    state.themaFilter = null;
-    dom.searchInput.value = "";
-    dom.langFilter.value = "all";
-    dom.formatFilter.value = "all";
-    dom.priceFilter.value = "all";
-    dom.collectionFilter.value = "all";
-    updateURL();
     applyFiltersAndReset();
     dom.controlsBar.scrollIntoView({ behavior: 'smooth' });
 }
