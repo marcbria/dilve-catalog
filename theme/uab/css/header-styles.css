@@ -64,13 +64,27 @@ body {
     padding: 0;
 }
 
-.prenavigation #block-commutadordellengua .links-inline span:not(:last-child) a {
-    padding: 0 0.375rem;
-    border-right: 1px solid #333;
+/* Ajuste de espaciado en los enlaces de idioma */
+.prenavigation #block-commutadordellengua .links-inline span {
+    display: inline-block;
+    padding: 0 4px;
+}
+
+.prenavigation #block-commutadordellengua .links-inline span:not(:last-child)::after {
+    content: "|";
+    margin: 0 6px 0 8px;
+    color: #333;
 }
 
 .prenavigation #block-commutadordellengua .links-inline span a {
-    padding-left: 0.375rem;
+    padding: 0 2px;
+    color: #333;
+    text-decoration: none;
+}
+
+.prenavigation #block-commutadordellengua .links-inline span.active a {
+    color: #007e11 !important;
+    font-weight: 700;
 }
 
 .prenavigation #block-xarxessocials img {
@@ -154,13 +168,13 @@ body {
     color: #007e11;
 }
 
+/* Separador del menú principal */
 .nav-item:not(:last-child)::after {
-    content: "";
-    border-right: 1px solid #000;
-    margin: 0 8px;
+    content: "|";
+    margin: 0 8px 0 12px;
     display: inline-block;
-    height: 1.2rem;
-    vertical-align: middle;
+    color: #000;
+    font-weight: 300;
 }
 
 /* --- Colapso del menú en móviles --- */

@@ -113,8 +113,16 @@ export function navigateToLanguage(langCode) {
 }
 
 export function navigateToFormat(formatLabel) {
-    if (formatLabel === "Paper") dom.formatFilter.value = "paper";
-    else if (formatLabel === "Digital") dom.formatFilter.value = "digital";
+    // Normalize formatLabel to 'paper' or 'digital'
+    let formatValue;
+    if (formatLabel === "paper" || formatLabel === "Paper" || formatLabel === "Papel") {
+        formatValue = "paper";
+    } else if (formatLabel === "digital" || formatLabel === "Digital") {
+        formatValue = "digital";
+    } else {
+        return; // unknown format
+    }
+    dom.formatFilter.value = formatValue;
     state.themaFilter = null;
     state.authorFilter = null;
     applyFiltersAndReset();

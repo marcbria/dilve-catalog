@@ -114,12 +114,15 @@ export function applyTranslations() {
 
 /**
  * Initialize i18n: detect language, load translations, apply to DOM.
+ * Ensures the URL lang parameter is valid and overwrites if invalid.
  */
 export async function initI18n() {
     const lang = detectLanguage();
     currentLang = lang;
     const url = new URL(window.location.href);
-    if (!url.searchParams.has('lang')) {
+    const currentLangParam = url.searchParams.get('lang');
+    // If the parameter is missing or invalid, set it to the detected language
+    if (!currentLangParam || !SUPPORTED_LANGS.includes(currentLangParam)) {
         url.searchParams.set('lang', lang);
         window.history.replaceState(null, '', url.toString());
     }

@@ -13,9 +13,15 @@
             <div class="language-switcher-language-url settings-tray-editable block block-language block-language-blocklanguage-interface" id="block-commutadordellengua" role="navigation" data-drupal-settingstray="editable">
                 <div class="content">
                     <nav class="links nav links-inline">
-                        <span class="prenav-lang-item ca"><a href="/" hreflang="ca">Català</a></span>
-                        <span class="prenav-lang-item es active"><a href="/es" hreflang="es">Español</a></span>
-                        <span class="prenav-lang-item en"><a href="/en" hreflang="en">English</a></span>
+                        <span class="prenav-lang-item ca" data-lang="ca">
+                            <a href="{{ BASE_PATH }}?lang=ca" hreflang="ca">Català</a>
+                        </span>
+                        <span class="prenav-lang-item es" data-lang="es">
+                            <a href="{{ BASE_PATH }}?lang=es" hreflang="es">Español</a>
+                        </span>
+                        <span class="prenav-lang-item en" data-lang="en">
+                            <a href="{{ BASE_PATH }}?lang=en" hreflang="en">English</a>
+                        </span>
                     </nav>
                 </div>
             </div>

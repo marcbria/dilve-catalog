@@ -282,7 +282,7 @@ export function openDetailModal(book) {
             ${priceHTML ? `<div style="text-align:center; margin-top:4px;">${priceHTML}</div>` : ''}
             ${actionHTML}
             <div class="detail-tags">
-                <span class="detail-tag ${isDigital ? 'digital' : 'paper'} modal-link" data-format="${formatDisplay}">${formatDisplay}</span>
+                <span class="detail-tag ${isDigital ? 'digital' : 'paper'} modal-link" data-format="${isDigital ? 'digital' : 'paper'}">${formatDisplay}</span>
                 <span class="detail-tag lang-${langCode} modal-link" data-lang="${langCode}">${langDisplay}</span>
             </div>
         </div>
@@ -297,7 +297,7 @@ export function openDetailModal(book) {
                 <div class="detail-row"><span class="label">${t('modal_publisher')}</span><span class="value">${publisherDisplay || '—'}</span></div>
                 <div class="detail-row"><span class="label">${t('modal_publication')}</span><span class="value">${book.displayDate || '—'}</span></div>
                 <div class="detail-row"><span class="label">${t('modal_language')}</span><span class="value"><span class="modal-link" data-lang="${langCode}">${escapeHTML(langDisplay)}</span></span></div>
-                <div class="detail-row"><span class="label">${t('modal_format')}</span><span class="value"><span class="modal-link" data-format="${formatDisplay}">${escapeHTML(formatoCompleto)}</span></span></div>
+                <div class="detail-row"><span class="label">${t('modal_format')}</span><span class="value"><span class="modal-link" data-format="${isDigital ? 'digital' : 'paper'}">${escapeHTML(formatoCompleto)}</span></span></div>
                 ${dimensionsHTML}
                 ${bindingHTML}
                 ${book.extentLabel ? `<div class="detail-row"><span class="label">${t('modal_pages')}</span><span class="value">${book.extentLabel.replace(' páginas', '')}</span></div>` : ''}
