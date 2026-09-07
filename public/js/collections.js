@@ -1,5 +1,6 @@
 import { dom, state } from './config.js';
 import { parseCSVText } from './csvParser.js';
+import { applyFiltersAndReset } from './filters.js';
 
 // ─── Carga de colecciones (opcional) ────────────────────
 export async function loadCollections(csvText) {
@@ -123,7 +124,18 @@ function escapeHTML(str) {
     return d.innerHTML;
 }
 
+// ─── Navegación a colección con reseteo de filtros ──────
 export function navigateToCollection(collectionTitle) {
+    // Resetear todos los filtros excepto la colección
+    dom.searchInput.value = "";
+    dom.sortSelect.value = "date-desc";
+    dom.langFilter.value = "all";
+    dom.formatFilter.value = "all";
+    dom.priceFilter.value = "all";
+    state.themaFilter = null;
+    state.authorFilter = null;
+
+    // Asegurar que la opción existe en el select
     const exists = Array.from(dom.collectionFilter.options).some(opt => opt.value === collectionTitle);
     if (!exists) {
         const opt = document.createElement("option");
@@ -132,5 +144,7 @@ export function navigateToCollection(collectionTitle) {
         dom.collectionFilter.appendChild(opt);
     }
     dom.collectionFilter.value = collectionTitle;
-    dom.collectionFilter.dispatchEvent(new Event('change'));
+
+    // Aplicar filtros y actualizar URL
+    applyFiltersAndReset();
 }
