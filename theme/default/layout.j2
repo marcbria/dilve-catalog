@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <base href="{{ BASE_PATH }}">
-    <title>Catálogo de Libros | {{ ORGANIZATION }}</title>
+    <title data-i18n="app_title">Catálogo de Libros | {{ ORGANIZATION }}</title>
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
     <link rel="stylesheet" href="css/styles.css" />
@@ -16,6 +16,10 @@
     {% block head_extra %}
     {{ HEAD_EXTRA|safe }}
     {% endblock %}
+    <!-- Default language injected by the server -->
+    <script>
+        window.DEFAULT_LANG = "{{ DEFAULT_LANG }}";
+    </script>
 </head>
 <body>
     {% block header %}
@@ -26,41 +30,41 @@
     <div class="controls-bar" id="controlsBar">
         <div class="container controls-inner">
             <div class="search-wrapper">
-                <input type="text" id="searchInput" placeholder="Buscar por título, autor o ISBN..." />
-				<span class="search-icon"><i class="fa-solid fa-search"></i></span>
+                <input type="text" id="searchInput" placeholder="Buscar por título, autor o ISBN..." data-i18n-placeholder="search_placeholder" />
+                <span class="search-icon">🔍</span>
             </div>
             <button class="hamburger" id="hamburgerBtn" aria-label="Menú filtros">☰</button>
             <div class="filter-group" id="filterGroup">
                 <select id="sortSelect">
-                    <option value="date-desc" selected>Más recientes</option>
-                    <option value="date-asc">Más antiguos</option>
-                    <option value="title-asc">Título ▲</option>
-                    <option value="title-desc">Título ▼</option>
-                    <option value="author-asc">Autor ▲</option>
-                    <option value="author-desc">Autor ▼</option>
+                    <option value="date-desc" data-i18n="sort_recent">Más recientes</option>
+                    <option value="date-asc" data-i18n="sort_oldest">Más antiguos</option>
+                    <option value="title-asc" data-i18n="sort_title_asc">Título ▲</option>
+                    <option value="title-desc" data-i18n="sort_title_desc">Título ▼</option>
+                    <option value="author-asc" data-i18n="sort_author_asc">Autor ▲</option>
+                    <option value="author-desc" data-i18n="sort_author_desc">Autor ▼</option>
                 </select>
                 <select id="langFilter">
-                    <option value="all">Todos los idiomas</option>
-                    <option value="cat">Catalán</option>
-                    <option value="spa">Castellano</option>
-                    <option value="eng">Inglés</option>
+                    <option value="all" data-i18n="filter_language_all">Todos los idiomas</option>
+                    <option value="cat" data-i18n="filter_language_cat">Catalán</option>
+                    <option value="spa" data-i18n="filter_language_spa">Castellano</option>
+                    <option value="eng" data-i18n="filter_language_eng">Inglés</option>
                 </select>
                 <select id="formatFilter">
-                    <option value="all">Todos los formatos</option>
-                    <option value="paper">Papel</option>
-                    <option value="digital">Digital</option>
+                    <option value="all" data-i18n="filter_format_all">Todos los formatos</option>
+                    <option value="paper" data-i18n="filter_format_paper">Papel</option>
+                    <option value="digital" data-i18n="filter_format_digital">Digital</option>
                 </select>
                 <select id="priceFilter">
-                    <option value="all">Todos los tipos de acceso</option>
-                    <option value="diamond">Libros en abierto</option>
-                    <option value="paid">De pago</option>
+                    <option value="all" data-i18n="filter_price_all">Todos los tipos de acceso</option>
+                    <option value="diamond" data-i18n="filter_price_diamond">Libros en abierto</option>
+                    <option value="paid" data-i18n="filter_price_paid">De pago</option>
                 </select>
                 <div id="collectionFilterWrapper">
                     <select id="collectionFilter">
-                        <option value="all">Todas las colecciones</option>
+                        <option value="all" data-i18n="filter_collection_all">Todas las colecciones</option>
                     </select>
                 </div>
-                <button id="resetFilters">Reset</button>
+                <button id="resetFilters" data-i18n="filter_reset">Reset</button>
                 <span class="results-count" id="resultsCount"></span>
             </div>
         </div>
@@ -70,8 +74,8 @@
     <main class="main-content">
         <div class="container">
             <div class="file-fallback" id="fileFallback">
-                <p><strong>⚠️ No se ha podido cargar automáticamente el catálogo.</strong></p>
-                <p style="color:#888;">Selecciona el archivo <strong>catalog.csv</strong> desde tu ordenador:</p>
+                <p><strong>⚠️ <span data-i18n="error_loading_catalog">No se ha podido cargar automáticamente el catálogo.</span></strong></p>
+                <p style="color:#888;" data-i18n="select_csv_file">Selecciona el archivo <strong>catalog.csv</strong> desde tu ordenador:</p>
                 <input type="file" id="csvFileInput" accept=".csv,.tsv,.txt" />
             </div>
             <div class="collection-intro" id="collectionIntro"></div>
@@ -82,8 +86,8 @@
             </div>
             <div class="no-results" id="noResults" style="display:none;">
                 <div class="icon"><i class="fa-solid fa-book-skull"></i></div>
-                <p>No se han encontrado libros con estos criterios.</p>
-                <p style="font-size:0.9rem;color:#888;">Prueba con otros filtros o términos de búsqueda.</p>
+                <p data-i18n="no_results">No se han encontrado libros con estos criterios.</p>
+                <p style="font-size:0.9rem;color:#888;" data-i18n="no_results_hint">Prueba con otros filtros o términos de búsqueda.</p>
             </div>
         </div>
     </main>
@@ -105,6 +109,7 @@
     <!-- ─── Módulos JavaScript ─── -->
     <script src="js/theme-config.js"></script>
     <script type="module" src="js/config.js"></script>
+    <script type="module" src="js/i18n.js"></script>
     <script type="module" src="js/csvParser.js"></script>
     <script type="module" src="js/bookTransformer.js"></script>
     <script type="module" src="js/collections.js"></script>

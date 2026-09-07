@@ -7,6 +7,7 @@ import { applyFiltersAndReset, resetAllFilters, navigateToLanguage, navigateToFo
 import { loadMoreBooks, setupIntersectionObserver, closeModal, openDetailModal } from './uiRenderer.js';
 import { applyInitialURLParams, updateURL } from './urlManager.js';
 import { getCleanIsbn, getIsbnFromHash, getIsbnFromQuery } from './utils.js';
+import { initI18n, t } from './i18n.js';  // <-- NUEVO
 
 // ─── Carga del catálogo ──────────────────────────────────
 async function loadCatalog(csvText) {
@@ -28,6 +29,9 @@ async function loadCatalog(csvText) {
 
 // ─── Inicialización ──────────────────────────────────────
 async function init() {
+    // Inicializar i18n primero (carga traducciones y aplica a la UI)
+    await initI18n();
+
     initDom();
 
     dom.searchInput.addEventListener('input', applyFiltersAndReset);
@@ -107,8 +111,9 @@ async function init() {
         console.error('Error cargando catalog.csv:', err);
         dom.fileFallback.classList.add('active');
         await fetchCollectionsCSV();
+        // Usar traducciones para mensajes de error
         dom.booksGrid.innerHTML =
-            '<div class="error-message"><div class="icon">⚠️</div><p>No se ha podido cargar automáticamente el catálogo.</p><p style="font-size:0.9rem;">Selecciona el archivo <strong>catalog.csv</strong> mediante el selector superior.</p></div>';
+            `<div class="error-message"><div class="icon">⚠️</div><p>${t('error_loading_catalog')}</p><p style="font-size:0.9rem;">${t('select_csv_file')}</p></div>`;
         dom.booksGrid.style.display = 'grid';
         dom.noResults.style.display = 'none';
         dom.resultsCount.textContent = '';

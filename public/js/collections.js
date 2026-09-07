@@ -1,26 +1,21 @@
 import { dom, state } from './config.js';
 import { parseCSVText } from './csvParser.js';
-import { applyFiltersAndReset } from './filters.js';
+import { t } from './i18n.js';
 
-// ─── Carga de colecciones (opcional) ────────────────────
 export async function loadCollections(csvText) {
     const raw = parseCSVText(csvText);
-    
-    // Si no hay datos, salir
     if (raw.length === 0) {
         console.warn("No se encontraron datos en collections.csv");
         state.collectionsData = [];
         return false;
     }
 
-    // Detectar si la primera fila contiene las columnas esperadas
     const firstRow = raw[0];
     const hasTitulo = 'titulo' in firstRow || 'Titulo' in firstRow;
     const hasIntro = 'intro' in firstRow || 'Intro' in firstRow;
 
     let collections = [];
     if (hasTitulo && hasIntro) {
-        // Usar las columnas normales
         const tituloKey = 'titulo' in firstRow ? 'titulo' : 'Titulo';
         const introKey = 'intro' in firstRow ? 'intro' : 'Intro';
         collections = raw.map(row => ({
@@ -28,7 +23,6 @@ export async function loadCollections(csvText) {
             intro: row[introKey] || ""
         }));
     } else {
-        // Si no hay cabecera, asumir que la primera columna es el título y la segunda la intro
         console.warn("No se encontraron columnas 'titulo' e 'intro'. Usando primera columna como título y segunda como intro.");
         collections = raw.map(row => {
             const keys = Object.keys(row);
@@ -38,7 +32,6 @@ export async function loadCollections(csvText) {
         });
     }
 
-    // Filtrar entradas vacías o que no tengan título
     state.collectionsData = collections.filter(c => c.titulo && c.titulo.trim() !== "");
     console.log(`Colecciones cargadas: ${state.collectionsData.length}`);
     return state.collectionsData.length > 0;
@@ -60,19 +53,17 @@ export async function fetchCollectionsCSV() {
     }
 }
 
-// ─── Poblar filtro de colección ─────────────────────────
 export function populateCollectionFilter() {
     const collections = new Set();
     state.allBooks.forEach(b => { if (b.collectionTitle) collections.add(b.collectionTitle); });
     const sorted = Array.from(collections).sort((a, b) => a.localeCompare(b, "es"));
-    dom.collectionFilter.innerHTML = '<option value="all">Todas las colecciones</option>';
+    dom.collectionFilter.innerHTML = `<option value="all">${t('filter_collection_all')}</option>`;
     sorted.forEach(c => {
         const opt = document.createElement("option");
         opt.value = c;
         opt.textContent = c;
         dom.collectionFilter.appendChild(opt);
     });
-    // Mostrar/ocultar el wrapper según si hay colecciones
     if (dom.collectionWrapper) {
         dom.collectionWrapper.style.display = sorted.length > 0 ? "block" : "none";
     } else {
@@ -80,7 +71,6 @@ export function populateCollectionFilter() {
     }
 }
 
-// ─── Mostrar la intro de la colección seleccionada ───────
 export function updateCollectionIntro() {
     const selected = dom.collectionFilter.value;
     const shareUrl = encodeURIComponent(window.location.href);
@@ -124,18 +114,7 @@ function escapeHTML(str) {
     return d.innerHTML;
 }
 
-// ─── Navegación a colección con reseteo de filtros ──────
 export function navigateToCollection(collectionTitle) {
-    // Resetear todos los filtros excepto la colección
-    dom.searchInput.value = "";
-    dom.sortSelect.value = "date-desc";
-    dom.langFilter.value = "all";
-    dom.formatFilter.value = "all";
-    dom.priceFilter.value = "all";
-    state.themaFilter = null;
-    state.authorFilter = null;
-
-    // Asegurar que la opción existe en el select
     const exists = Array.from(dom.collectionFilter.options).some(opt => opt.value === collectionTitle);
     if (!exists) {
         const opt = document.createElement("option");
@@ -144,7 +123,5 @@ export function navigateToCollection(collectionTitle) {
         dom.collectionFilter.appendChild(opt);
     }
     dom.collectionFilter.value = collectionTitle;
-
-    // Aplicar filtros y actualizar URL
-    applyFiltersAndReset();
+    dom.collectionFilter.dispatchEvent(new Event('change'));
 }

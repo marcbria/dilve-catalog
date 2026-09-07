@@ -1,9 +1,29 @@
 <footer class="site-footer">
     <div class="container">
-        <span>© {{ ORGANIZATION }} · Servei de Publicacions</span>
+        <span data-i18n="footer_copyright" data-i18n-params='{"organization":"{{ ORGANIZATION }}"}'>&copy; {{ ORGANIZATION }} · Servei de Publicacions</span>
         <span>
-            <a href="#">Aviso legal</a> · <a href="#">Privacidad</a>
-            <span style="font-size:0.7rem;color:#666;margin-left:12px;">Build: {{ BUILD_DATE }}</span>
+            <a href="#" data-i18n="footer_legal">Aviso legal</a> · 
+            <a href="#" data-i18n="footer_privacy">Privacidad</a>
+            <span style="font-size:0.7rem;color:#666;margin-left:12px;" data-i18n="footer_build" data-i18n-params='{"build_date":"{{ BUILD_DATE }}"}' >Build: {{ BUILD_DATE }}</span>
+            <!-- Language selector -->
+            <span style="margin-left:20px;font-size:0.85rem;">
+                <a href="?lang=es" class="lang-link" data-lang="es">ES</a> |
+                <a href="?lang=ca" class="lang-link" data-lang="ca">CA</a> |
+                <a href="?lang=en" class="lang-link" data-lang="en">EN</a>
+            </span>
         </span>
     </div>
 </footer>
+<script>
+// Optional: highlight current language in footer
+document.addEventListener('DOMContentLoaded', function() {
+    const links = document.querySelectorAll('.lang-link');
+    const currentLang = new URLSearchParams(window.location.search).get('lang') || localStorage.getItem('lang') || 'es';
+    links.forEach(link => {
+        if (link.dataset.lang === currentLang) {
+            link.style.fontWeight = 'bold';
+            link.style.textDecoration = 'underline';
+        }
+    });
+});
+</script>

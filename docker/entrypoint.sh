@@ -13,6 +13,7 @@ export THEME="${THEME:-default}"
 export LOGO="${LOGO:-}"
 export BASE_PATH="${BASE_PATH:-/}"
 export ORGANIZATION="${ORGANIZATION:-Universitat Autònoma de Barcelona}"
+export DEFAULT_LANG="${DEFAULT_LANG:-ca}"
 
 # --- Guardar variables de entorno para el cron ---
 mkdir -p /etc
@@ -28,6 +29,7 @@ export THEME="$THEME"
 export LOGO="$LOGO"
 export BASE_PATH="$BASE_PATH"
 export ORGANIZATION="$ORGANIZATION"
+export DEFAULT_LANG="$DEFAULT_LANG"
 EOF
 chmod 644 /etc/dilve-env
 
@@ -53,8 +55,9 @@ echo -e "\033[1m=== Configuración ===\033[0m"
 echo "ORGANIZATION: $ORGANIZATION"
 echo "THEME: $THEME"
 echo "BASE_PATH: $BASE_PATH"
+echo "DEFAULT_LANG: $DEFAULT_LANG"
 
-# Determinar la ruta del logo
+# Determinar la ruta del logo (sin cambios)
 if [ -n "$LOGO" ]; then
     if [[ "$LOGO" =~ ^https?:// ]]; then
         echo "LOGO: $LOGO"
@@ -88,6 +91,7 @@ logo_env = os.environ.get("LOGO", "")
 base_path = os.environ.get("BASE_PATH", "/")
 organization = os.environ.get("ORGANIZATION", "Universitat Autònoma de Barcelona")
 build_date = "$BUILD_DATE"
+default_lang = os.environ.get("DEFAULT_LANG", "es")
 
 def get_fragment_content(fragment_name):
     theme_file = os.path.join(base_dir, theme, fragment_name)
@@ -137,6 +141,7 @@ context = {
     'BASE_PATH': base_path,
     'ORGANIZATION': organization,
     'BUILD_DATE': build_date,
+    'DEFAULT_LANG': default_lang,   # <-- NUEVO
 }
 
 theme_dir = os.path.join(base_dir, theme)

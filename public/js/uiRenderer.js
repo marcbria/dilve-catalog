@@ -4,6 +4,7 @@ import { navigateToLanguage, navigateToFormat, navigateToThema, navigateToAuthor
 import { escapeHTML, getCleanIsbn } from './utils.js';
 import { updateURL } from './urlManager.js';
 import { getThemaDescription } from './dictionaries/thema.js';
+import { t } from './i18n.js';
 
 export function createBookCard(book) {
     const card = document.createElement("div");
@@ -85,13 +86,13 @@ export function createBookCard(book) {
 
     const formatBadge = document.createElement("span");
     formatBadge.className = `card-format-badge ${book.isDigital ? 'digital' : 'paper'}`;
-    formatBadge.textContent = book.isDigital ? 'Digital' : 'Papel';
+    formatBadge.textContent = book.isDigital ? t('filter_format_digital') : t('filter_format_paper');
     formatPriceContainer.appendChild(formatBadge);
 
     const priceEl = document.createElement("span");
     priceEl.className = `card-price-text ${book.isFree ? 'free' : ''}`;
     if (book.isFree) {
-        priceEl.textContent = "En obert";
+        priceEl.textContent = t('modal_free');
     } else if (book.priceAmount > 0) {
         const priceFormatted = book.priceAmount.toFixed(2).replace('.', ',') + ' €';
         priceEl.textContent = priceFormatted;
@@ -147,12 +148,10 @@ export function setupIntersectionObserver() {
 }
 
 export function openDetailModal(book) {
-    console.log("openDetailModal called with book:", book);
     if (!book) {
         console.error("El libro es undefined o null");
         return;
     }
-
     if (!dom.modalBody) {
         console.error("No se encontró el elemento modalBody");
         return;
@@ -179,23 +178,23 @@ export function openDetailModal(book) {
         let priceHTML = "";
         let actionHTML = "";
         if (book.isFree) {
-            actionHTML = `<div class="detail-action"><a href="https://doi.org/10.5565/lib/${cleanIsbnValue}" target="_blank" class="btn-free">Accesible en abierto</a></div>`;
+            actionHTML = `<div class="detail-action"><a href="https://doi.org/10.5565/lib/${cleanIsbnValue}" target="_blank" class="btn-free">${t('modal_free')}</a></div>`;
         } else if (book.priceAmount > 0) {
             const priceFormatted = book.priceAmount.toFixed(2).replace('.', ',') + ' €';
             priceHTML = `<span class="detail-price-big">${priceFormatted}</span><span class="iva-inclosit">(IVA incluido)</span>`;
-            actionHTML = `<div class="detail-action"><a href="https://www.unebook.es/?isbn=${cleanIsbnValue}" target="_blank" class="btn-buy">Comprar</a></div>`;
+            actionHTML = `<div class="detail-action"><a href="https://www.unebook.es/?isbn=${cleanIsbnValue}" target="_blank" class="btn-buy">${t('modal_buy')}</a></div>`;
         }
 
         const related = getRelatedBooks(book);
         const relatedHTML = createRelatedProductsHTML(related);
 
         const collectionLinkHTML = book.collectionTitle ?
-            `<div class="detail-section"><a href="?collection=${encodeURIComponent(book.collectionTitle)}" class="collection-link" data-collection="${escapeHTML(book.collectionTitle)}">Ver todos los libros de «${escapeHTML(book.collectionTitle)}»</a></div>` :
+            `<div class="detail-section"><a href="?collection=${encodeURIComponent(book.collectionTitle)}" class="collection-link" data-collection="${escapeHTML(book.collectionTitle)}">${t('modal_view_collection', { collection: escapeHTML(book.collectionTitle) })}</a></div>` :
             "";
 
         const shareHTML = `
             <div class="detail-section share-section">
-                <h4>Compartir</h4>
+                <h4>${t('modal_share')}</h4>
                 <div class="share-icons">
                     <a href="mailto:?subject=${shareTitle}&body=${shareUrl}" target="_blank" rel="noopener" aria-label="Compartir por email">
                         <i class="fa-solid fa-envelope"></i>
@@ -216,7 +215,12 @@ export function openDetailModal(book) {
             </div>
         `;
 
-        // --- CONSTRUCCIÓN DE LA INFORMACIÓN GENERAL ---
+        const formatDisplay = book.formatLabel || 'Papel';
+        let formatoCompleto = formatDisplay;
+        if (book.isDigital && book.digitalFormat && book.digitalFormat !== "") {
+            formatoCompleto = `Digital (${escapeHTML(book.digitalFormat)})`;
+        }
+
         const authorLinks = (book.authors || []).map(a => {
             return `<span class="modal-link" data-author="${escapeHTML(a)}">${escapeHTML(a)}</span>`;
         }).join(', ');
@@ -225,114 +229,60 @@ export function openDetailModal(book) {
         const langCode = book.languageCode || 'other';
         const isDigital = book.isDigital || false;
 
-        // Formato combinado (Papel/Digital + subtipo)
-        let formatDisplay = book.formatLabel || 'Papel';
-        let formatSub = '';
-        if (isDigital) {
-            formatSub = book.digitalFormat || '';
-        } else {
-            if (book.bindingName && book.binding !== "BC") {
-                formatSub = book.bindingName;
-            }
-        }
-        let formatoCompleto = formatDisplay;
-        if (formatSub && formatSub.trim() !== '') {
-            formatoCompleto = `${formatDisplay} (${escapeHTML(formatSub)})`;
-        }
-        const formatCode = isDigital ? 'digital' : 'paper';
-
-        // Editorial (con enlace si es UAB)
         let publisherDisplay = book.publisherName || '';
         if (publisherDisplay === "Servei de Publicacions de la Universitat Autònoma de Barcelona") {
             publisherDisplay = `<a href="https://publicacions.uab.cat" target="_blank" style="text-decoration:none;color:#007e11;">Servei de Publicacions de la UAB</a>`;
         }
 
-        // Publicación: extraer año si es fecha YYYYMMDD
-        let publicationDisplay = book.displayDate || '—';
-        if (publicationDisplay && /^\d{8}$/.test(publicationDisplay)) {
-            publicationDisplay = publicationDisplay.substring(0, 4);
-        }
-
-        // Construir filas en el orden solicitado
-        const infoRows = [];
-
-        // 1. Autor/es
-        infoRows.push(`<div class="detail-row"><span class="label">Autor/es:</span><span class="value">${authorLinks || '—'}</span></div>`);
-
-        // 2. Colección (si existe)
-        if (book.collectionTitle) {
-            let collectionDisplay = escapeHTML(book.collectionTitle);
-            if (book.collectionNumber) {
-                collectionDisplay += ` — ${escapeHTML(book.collectionNumber)}`;
-            }
-            infoRows.push(`<div class="detail-row"><span class="label">Colección:</span><span class="value"><span class="modal-link" data-collection="${escapeHTML(book.collectionTitle)}">${collectionDisplay}</span></span></div>`);
-        }
-
-        // 3. Idioma
-        infoRows.push(`<div class="detail-row"><span class="label">Idioma:</span><span class="value"><span class="modal-link" data-lang="${langCode}">${escapeHTML(langDisplay)}</span></span></div>`);
-
-        // 4. Publicación
-        infoRows.push(`<div class="detail-row"><span class="label">Publicación:</span><span class="value">${escapeHTML(publicationDisplay)}</span></div>`);
-
-        // 5. Edición (siempre, valor por defecto 1)
-        const editionNumber = book.editionNumber ? book.editionNumber.trim() : '';
-        const editionDisplay = editionNumber || '1';
-        infoRows.push(`<div class="detail-row"><span class="label">Edición:</span><span class="value">${escapeHTML(editionDisplay)}</span></div>`);
-
-        // 6. Formato (con subtipo integrado)
-        infoRows.push(`<div class="detail-row"><span class="label">Formato:</span><span class="value"><span class="modal-link" data-format="${formatCode}">${escapeHTML(formatoCompleto)}</span></span></div>`);
-
-        // 7. Páginas (si existe)
-        if (book.extentLabel) {
-            const pages = book.extentLabel.replace(' páginas', '');
-            infoRows.push(`<div class="detail-row"><span class="label">Páginas:</span><span class="value">${escapeHTML(pages)}</span></div>`);
-        }
-
-        // 8. Tamaño (si existen dimensiones)
+        let dimensionsHTML = "";
         if (book.width && book.height) {
-            infoRows.push(`<div class="detail-row"><span class="label">Tamaño:</span><span class="value">${escapeHTML(book.width)} x ${escapeHTML(book.height)} cm</span></div>`);
+            dimensionsHTML = `<div class="detail-row"><span class="label">${t('modal_size')}</span><span class="value">${book.width} x ${book.height} cm</span></div>`;
         }
 
-        // 9. Materia (Thema) con código primero, luego descripción
+        let themaHTML = "";
         if (book.themaCode) {
             const desc = getThemaDescription(book.themaCode);
             let themaDisplay;
             if (desc) {
-                themaDisplay = `Thema - ${book.themaCode}<br>${desc}`;
+                themaDisplay = `${desc} (Thema: ${book.themaCode})`;
             } else {
-                themaDisplay = `Thema - ${book.themaCode}`;
+                themaDisplay = `Thema: ${book.themaCode}`;
             }
-            infoRows.push(`<div class="detail-row"><span class="label">Materia:</span><span class="value"><span class="modal-link" data-thema="${escapeHTML(book.themaCode)}">${themaDisplay}</span></span></div>`);
+            themaHTML = `<div class="detail-row"><span class="label">${t('modal_subject')}</span><span class="value"><span class="modal-link" data-thema="${escapeHTML(book.themaCode)}">${escapeHTML(themaDisplay)}</span></span></div>`;
         }
 
-        // 10. Coedición (si aplica)
+        let editionHTML = "";
+        if (book.editionNumber && book.editionNumber !== "1" && book.editionNumber !== "01") {
+            editionHTML = `<div class="detail-row"><span class="label">${t('modal_edition')}</span><span class="value">${escapeHTML(book.editionNumber)}</span></div>`;
+        }
+
+        let bindingHTML = "";
+        if (!book.isDigital && book.bindingName && book.binding !== "BC") {
+            bindingHTML = `<div class="detail-row"><span class="label">Encuadernación:</span><span class="value">${escapeHTML(book.bindingName)}</span></div>`;
+        }
+
+        let coeditionHTML = "";
         const publishers = book.publisherName.split(/[|;]/).map(s => s.trim()).filter(s => s);
         if (publishers.length > 1) {
             const coeditionText = publishers.join('; ');
-            infoRows.push(`<div class="detail-row"><span class="label">Coedición:</span><span class="value">${escapeHTML(coeditionText)}</span></div>`);
+            coeditionHTML = `<div class="detail-row"><span class="label">${t('modal_coedition')}</span><span class="value">${escapeHTML(coeditionText)}</span></div>`;
         }
 
-        // 11. ISBN
-        infoRows.push(`<div class="detail-row"><span class="label">ISBN:</span><span class="value">${escapeHTML(book.isbn || '—')}</span></div>`);
-
-        // 12. ISBN alternativo (si existe)
-        if (book.productIDAlternative) {
-            infoRows.push(`<div class="detail-row"><span class="label">ISBN alternativo:</span><span class="value">${escapeHTML(book.productIDAlternative)}</span></div>`);
+        let collectionDisplay = "";
+        if (book.collectionTitle) {
+            collectionDisplay = escapeHTML(book.collectionTitle);
+            if (book.collectionNumber) {
+                collectionDisplay += ` — ${escapeHTML(book.collectionNumber)}`;
+            }
         }
 
-        // 13. Editorial (al final)
-        infoRows.push(`<div class="detail-row"><span class="label">Editorial:</span><span class="value">${publisherDisplay || '—'}</span></div>`);
-
-        const infoRowsHTML = infoRows.join('');
-
-        // --- Ensamblaje final del modal ---
         const modalHTML = `
         <div class="modal-cover-col">
             ${coverHTML}
             ${priceHTML ? `<div style="text-align:center; margin-top:4px;">${priceHTML}</div>` : ''}
             ${actionHTML}
             <div class="detail-tags">
-                <span class="detail-tag ${isDigital ? 'digital' : 'paper'} modal-link" data-format="${formatCode}">${formatDisplay}</span>
+                <span class="detail-tag ${isDigital ? 'digital' : 'paper'} modal-link" data-format="${formatDisplay}">${formatDisplay}</span>
                 <span class="detail-tag lang-${langCode} modal-link" data-lang="${langCode}">${langDisplay}</span>
             </div>
         </div>
@@ -340,10 +290,23 @@ export function openDetailModal(book) {
             <h2>${escapeHTML(book.titleText || 'Sin título')}</h2>
             ${book.subtitle ? `<div class="modal-subtitle">${escapeHTML(book.subtitle)}</div>` : ''}
             <div class="detail-section">
-                <h4>Información general</h4>
-                ${infoRowsHTML}
+                <h4>${t('modal_info')}</h4>
+                <div class="detail-row"><span class="label">${t('modal_author')}</span><span class="value">${authorLinks || '—'}</span></div>
+                <div class="detail-row"><span class="label">${t('modal_isbn')}</span><span class="value">${escapeHTML(book.isbn || '—')}</span></div>
+                ${book.productIDAlternative ? `<div class="detail-row"><span class="label">${t('modal_isbn_alt')}</span><span class="value">${escapeHTML(book.productIDAlternative)}</span></div>` : ''}
+                <div class="detail-row"><span class="label">${t('modal_publisher')}</span><span class="value">${publisherDisplay || '—'}</span></div>
+                <div class="detail-row"><span class="label">${t('modal_publication')}</span><span class="value">${book.displayDate || '—'}</span></div>
+                <div class="detail-row"><span class="label">${t('modal_language')}</span><span class="value"><span class="modal-link" data-lang="${langCode}">${escapeHTML(langDisplay)}</span></span></div>
+                <div class="detail-row"><span class="label">${t('modal_format')}</span><span class="value"><span class="modal-link" data-format="${formatDisplay}">${escapeHTML(formatoCompleto)}</span></span></div>
+                ${dimensionsHTML}
+                ${bindingHTML}
+                ${book.extentLabel ? `<div class="detail-row"><span class="label">${t('modal_pages')}</span><span class="value">${book.extentLabel.replace(' páginas', '')}</span></div>` : ''}
+                ${book.collectionTitle ? `<div class="detail-row"><span class="label">${t('modal_collection')}</span><span class="value"><span class="modal-link" data-collection="${escapeHTML(book.collectionTitle)}">${collectionDisplay}</span></span></div>` : ''}
+                ${editionHTML}
+                ${themaHTML}
+                ${coeditionHTML}
             </div>
-            ${book.abstractText ? `<div class="detail-section"><h4>Descripción</h4><div class="detail-description">${escapeHTML(book.abstractText)}</div></div>` : ''}
+            ${book.abstractText ? `<div class="detail-section"><h4>${t('modal_description')}</h4><div class="detail-description">${escapeHTML(book.abstractText)}</div></div>` : ''}
             ${relatedHTML}
             ${shareHTML}
             ${collectionLinkHTML}
@@ -351,7 +314,6 @@ export function openDetailModal(book) {
         `;
 
         dom.modalBody.innerHTML = modalHTML;
-        console.log("Modal HTML insertado correctamente");
 
         const modalContainer = document.querySelector('.catalog-modal');
         if (modalContainer) {
@@ -389,7 +351,6 @@ export function openDetailModal(book) {
             coverImg.style.objectFit = 'contain';
         }
 
-        // Bind events for clickable tags
         dom.modalBody.querySelectorAll('.modal-link[data-author]').forEach(el => {
             el.addEventListener('click', (e) => {
                 e.stopPropagation();
@@ -511,10 +472,10 @@ function createRelatedProductsHTML(related) {
     const { otherFormats, translations } = related;
     if (otherFormats.length === 0 && translations.length === 0) return "";
 
-    let html = `<div class="detail-section"><h4>Productos relacionados</h4><div class="related-products">`;
+    let html = `<div class="detail-section"><h4>${t('modal_related')}</h4><div class="related-products">`;
 
     otherFormats.forEach(b => {
-        const label = b.isDigital ? 'Digital' : 'Papel';
+        const label = b.isDigital ? t('filter_format_digital') : t('filter_format_paper');
         const cssClass = b.isDigital ? 'digital' : 'paper';
         html += `<button class="related-product-btn ${cssClass}" data-isbn="${b.isbn}">${label}</button>`;
     });

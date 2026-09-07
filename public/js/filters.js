@@ -3,6 +3,7 @@ import { updateCollectionIntro, navigateToCollection } from './collections.js';
 import { updateAuthorIntro } from './authors.js';
 import { updateURL, getURLParams } from './urlManager.js';
 import { loadMoreBooks, renderNoResults, resetPagination } from './uiRenderer.js';
+import { t } from './i18n.js';
 
 export function applyFiltersAndReset() {
     const searchTerm = dom.searchInput.value.toLowerCase().trim();
@@ -36,8 +37,6 @@ export function applyFiltersAndReset() {
         return true;
     });
 
-    console.log(`Filtrados ${state.filteredBooks.length} libros. Ordenando por: ${sortVal}`);
-
     switch (sortVal) {
         case "title-asc":
             state.filteredBooks.sort((a, b) => a.titleText.localeCompare(b.titleText, "ca"));
@@ -68,7 +67,7 @@ export function applyFiltersAndReset() {
     updateFilterActiveState();
 
     const count = state.filteredBooks.length;
-    dom.resultsCount.textContent = count + " llibre" + (count !== 1 ? "s" : "");
+    dom.resultsCount.textContent = count + " " + t('results_count');
 
     if (count === 0) {
         renderNoResults();
@@ -107,27 +106,29 @@ export function resetAllFilters() {
 
 export function navigateToLanguage(langCode) {
     dom.langFilter.value = langCode;
+    state.themaFilter = null;
+    state.authorFilter = null;
     applyFiltersAndReset();
     dom.controlsBar.scrollIntoView({ behavior: "smooth" });
 }
 
 export function navigateToFormat(formatLabel) {
-    let value = null;
-    const lower = formatLabel.toLowerCase();
-    if (lower === "paper" || lower === "papel") {
-        value = "paper";
-    } else if (lower === "digital") {
-        value = "digital";
-    } else {
-        return;
-    }
-    dom.formatFilter.value = value;
+    if (formatLabel === "Paper") dom.formatFilter.value = "paper";
+    else if (formatLabel === "Digital") dom.formatFilter.value = "digital";
+    state.themaFilter = null;
+    state.authorFilter = null;
     applyFiltersAndReset();
     dom.controlsBar.scrollIntoView({ behavior: "smooth" });
 }
 
 export function navigateToThema(themaCode) {
     state.themaFilter = themaCode;
+    state.authorFilter = null;
+    dom.searchInput.value = "";
+    dom.langFilter.value = "all";
+    dom.formatFilter.value = "all";
+    dom.priceFilter.value = "all";
+    dom.collectionFilter.value = "all";
     applyFiltersAndReset();
     dom.controlsBar.scrollIntoView({ behavior: "smooth" });
 }
@@ -135,6 +136,13 @@ export function navigateToThema(themaCode) {
 export function navigateToAuthor(authorName) {
     if (!authorName) return;
     state.authorFilter = authorName;
+    state.themaFilter = null;
+    dom.searchInput.value = "";
+    dom.langFilter.value = "all";
+    dom.formatFilter.value = "all";
+    dom.priceFilter.value = "all";
+    dom.collectionFilter.value = "all";
+    updateURL();
     applyFiltersAndReset();
     dom.controlsBar.scrollIntoView({ behavior: 'smooth' });
 }
