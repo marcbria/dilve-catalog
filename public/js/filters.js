@@ -29,7 +29,6 @@ export function applyFiltersAndReset() {
         if (priceVal === "paid" && book.isFree) return false;
         if (collectionVal !== "all" && book.collectionTitle !== collectionVal) return false;
         if (state.themaFilter && book.themaCode !== state.themaFilter) return false;
-        // Filtro por autor
         if (state.authorFilter) {
             const authorMatch = book.authors && book.authors.some(a => a === state.authorFilter);
             if (!authorMatch) return false;
@@ -116,13 +115,13 @@ export function navigateToLanguage(langCode) {
 
 export function navigateToFormat(formatLabel) {
     let value = null;
-    if (formatLabel === "paper" || formatLabel === "Paper") {
+    const lower = formatLabel.toLowerCase();
+    if (lower === "paper" || lower === "papel") {
         value = "paper";
-    } else if (formatLabel === "digital" || formatLabel === "Digital") {
+    } else if (lower === "digital") {
         value = "digital";
     } else {
-        // Si no coincide, no hace nada
-        return;
+        return; // no hacer nada si no coincide
     }
     dom.formatFilter.value = value;
     state.themaFilter = null;
@@ -143,11 +142,9 @@ export function navigateToThema(themaCode) {
     dom.controlsBar.scrollIntoView({ behavior: "smooth" });
 }
 
-// --- Nueva función para navegar a un autor (ahora aquí) ---
 export function navigateToAuthor(authorName) {
     if (!authorName) return;
     state.authorFilter = authorName;
-    // Limpiamos otros filtros contextuales para evitar conflictos
     state.themaFilter = null;
     dom.searchInput.value = "";
     dom.langFilter.value = "all";
