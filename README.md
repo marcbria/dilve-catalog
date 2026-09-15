@@ -29,7 +29,7 @@ La primera vez, el contenedor descargará automáticamente todo el catálogo. A 
     ├── run.sh                   # Script de arranque y actualización
     ├── test.sh                  # Batería de pruebas de la extracción
     ├── .env                     # (no versionado) credenciales y configuración
-    ├── docker/                  # Scripts de inicio, cron y Nginx
+    ├── docker/                  # Scripts de inicio, cron, Nginx y Thema
     │   ├── entrypoint.sh
     │   ├── update.sh
     │   ├── nginx.conf
@@ -37,11 +37,18 @@ La primera vez, el contenedor descargará automáticamente todo el catálogo. A 
     ├── extract/                 # Código de extracción de datos
     │   ├── main.py              # Script principal
     │   ├── config.py            # Configuración (lee variables de entorno)
+    │   ├── dilve_api.py         # Cliente de la API DILVE
+    │   ├── onix_parser.py       # Parser de ONIX 3.0
+    │   ├── file_manager.py      # CSV, symlinks, directorios
+    │   ├── image_downloader.py  # Descarga de cubiertas
+    │   ├── logger.py            # Logging con colores
     │   └── requirements.txt     # Dependencias Python
     ├── public/                  # Frontend estático
-    │   ├── index.html
+    │   ├── index.html           # (generado en build)
     │   ├── css/styles.css
-    │   └── js/app.js
+    │   ├── js/                  # Módulos ES (app.js, filters.js, …)
+    │   ├── js/dictionaries/     # Thema, encuadernación, formatos digitales
+    │   └── locales/             # Traducciones ca/es/en
     └── theme/                   # Temas visuales
         ├── default/
         └── uab/
@@ -68,6 +75,8 @@ Los directorios `data/` (catalog, covers, logs) se crean automáticamente dentro
 
    `compose.yml` lee automáticamente este archivo y lo inyecta como variables de entorno al contenedor. **No es necesario editar ningún fichero Python ni el `compose.yml`**: toda la configuración se realiza mediante `.env`.
 
+   Para producción con Traefik añade además `BASE_URL` y `BASE_PATH` (ver más abajo).
+
 3. **Arranca el contenedor**:
 
         ./run.sh dev
@@ -84,25 +93,26 @@ Los directorios `data/` (catalog, covers, logs) se crean automáticamente dentro
 
 ### Configuración mediante variables de entorno
 
-El script de extracción lee toda su configuración de variables de entorno (nunca de ficheros Python con secretos). El modo recomendado —y único soportado oficialmente— es definirlas en un archivo `.env` en la raíz del proyecto; Docker Compose las inyecta automáticamente en el contenedor.
+Todo el proyecto se configura mediante variables de entorno: nunca hay secretos en ficheros versionados. El modo recomendado —y único soportado oficialmente— es definirlas en un archivo `.env` en la raíz del proyecto; Docker Compose las inyecta automáticamente en el contenedor.
 
-| Variable              | Descripción                                                       | Valor por defecto                            |
-|-----------------------|-------------------------------------------------------------------|----------------------------------------------|
-| `DILVE_USER`          | Usuario de DILVE                                                  | (requerido)                                  |
-| `DILVE_PASS`          | Contraseña de DILVE                                               | (requerido)                                  |
-| `EDITORIAL_CODE`      | Código de la editorial (varios separados por `\|`)                | (requerido)                                  |
-| `BATCH_SIZE`          | Número de ISBN por petición (máximo 128)                          | `128`                                        |
-| `ACTIVE_STATUS_CODES` | Códigos de estado activos (lista 64 de ONIX), separados por coma  | `04,02,13,18`                                |
-| `CRON_SCHEDULE`       | Expresión cron para la actualización automática                   | `0 2 * * *` (diario a las 2 AM)              |
-| `TZ`                  | Zona horaria (ej. `Europe/Madrid`)                                | `UTC`                                        |
-| `THEME`               | Tema a utilizar (nombre de la carpeta dentro de `theme/`)         | `default`                                    |
-| `LOGO`                | URL o nombre de archivo del logo (opcional)                       | (vacío)                                      |
-| `BASE_URL`            | Host público del catálogo (solo el hostname) para Traefik         | `localhost`                                  |
-| `BASE_PATH`           | Ruta base si se sirve desde un subdirectorio                      | `/`                                          |
-| `ORGANIZATION`        | Nombre de la institución (se usa en el título y el footer)        | `Universitat Autònoma de Barcelona`          |
-| `DEFAULT_LANG`        | Idioma por defecto de la interfaz                                 | `ca`                                         |
+| Variable              | Descripción                                                       | Leída por     | Valor por defecto                            |
+|-----------------------|-------------------------------------------------------------------|---------------|----------------------------------------------|
+| `DILVE_USER`          | Usuario de DILVE                                                  | Python        | (requerido)                                  |
+| `DILVE_PASS`          | Contraseña de DILVE                                               | Python        | (requerido)                                  |
+| `EDITORIAL_CODE`      | Código de la editorial (varios separados por `\|`)                | Python        | (requerido)                                  |
+| `DILVE_BASE_URL`      | URL base de la API REST de DILVE (debe terminar en `/`)           | Python        | `https://www.dilve.es/dilve/dilve/`          |
+| `BATCH_SIZE`          | Número de ISBN por petición (máximo 128)                          | Python        | `128`                                        |
+| `ACTIVE_STATUS_CODES` | Códigos de estado activos (lista 64 de ONIX), separados por coma  | Python        | `04,02,13,18`                                |
+| `CRON_SCHEDULE`       | Expresión cron para la actualización automática                   | entrypoint.sh | `0 2 * * *` (diario a las 2 AM)              |
+| `TZ`                  | Zona horaria (ej. `Europe/Madrid`)                                | entrypoint.sh | `UTC`                                        |
+| `THEME`               | Tema a utilizar (nombre de la carpeta dentro de `theme/`)         | entrypoint.sh | `default`                                    |
+| `LOGO`                | URL o nombre de archivo del logo (opcional)                       | entrypoint.sh | (vacío)                                      |
+| `ORGANIZATION`        | Nombre de la institución (se usa en el título y el footer)        | entrypoint.sh | `Universitat Autònoma de Barcelona`          |
+| `DEFAULT_LANG`        | Idioma por defecto de la interfaz                                 | entrypoint.sh | `ca`                                         |
+| `BASE_PATH`           | Ruta base si el catálogo se sirve en un subdirectorio. **Debe terminar en `/`** | entrypoint.sh + Traefik | `/`                              |
+| `BASE_URL`            | Host público del catálogo (solo el hostname, sin esquema)         | Traefik       | `localhost`                                  |
 
-Ejemplo de `.env` completo:
+Ejemplo de `.env` completo (con subdirectorio y Traefik):
 
     DILVE_USER=mi_usuario
     DILVE_PASS=mi_contraseña
@@ -112,8 +122,9 @@ Ejemplo de `.env` completo:
     THEME=uab
     ORGANIZATION="Universitat Autònoma de Barcelona"
     LOGO=logo-uab.png
-    BASE_PATH=/llibres/cataleg
     DEFAULT_LANG=ca
+    BASE_PATH=/llibres/cataleg/
+    BASE_URL=publicacions.uab.cat
 
 ### Actualización manual
 
@@ -194,13 +205,15 @@ El script `run.sh` facilita el arranque en diferentes entornos y la ejecución d
 | Problema                                      | Posible causa y solución                                                                                     |
 |-----------------------------------------------|--------------------------------------------------------------------------------------------------------------|
 | La web no muestra datos tras el despliegue    | La primera descarga puede tardar. Revisa los logs con `./run.sh dev` o `docker compose logs -f app`.          |
-| `ModuleNotFoundError: No module named 'config'` | El fichero `extract/config.py` no está en la imagen. Verifica que no esté excluido por `.dockerignore` ni por `.gitignore` y que exista en `extract/`. |
+| `ImportError` al arrancar el contenedor       | Alguno de los símbolos que importan `main.py`, `dilve_api.py` o `file_manager.py` no está en `extract/config.py`. Revisa el traceback y añádelo. |
 | `RuntimeError: Falta la variable de entorno requerida 'DILVE_USER'` | No se ha creado el `.env`, está mal ubicado (debe estar en la raíz) o le faltan variables. Revisa «Configuración». |
 | Error de autenticación en los logs            | Credenciales incorrectas en `.env`. Verifícalas.                                                              |
+| Error 404 al llamar a la API DILVE            | `DILVE_BASE_URL` incorrecta. Debe terminar en `/dilve/dilve/` (no `/dilve/api/`).                            |
 | El cron no se ejecuta                         | Comprueba la variable `CRON_SCHEDULE` y la zona horaria (`TZ`).                                               |
-| Las imágenes no se ven en la web              | Asegúrate de que el enlace simbólico `public/covers` apunta a `data/covers` y que las cubiertas se descargaron. |
+| Las imágenes no se ven en la web              | Comprueba que las cubiertas se descargaron en `/data/covers` (dentro del contenedor) y que nginx sirve `/data/` según `docker/nginx.conf`. En el navegador, la URL debe ser `{BASE_PATH}data/covers/<fichero>`. |
 | «No se encontraron productos»                 | El código de editorial es incorrecto. Obtén el código correcto de DILVE.                                      |
 | Los logs no se generan                        | Comprueba que el directorio `data/logs` existe y tiene permisos de escritura.                                 |
+| Al navegar por subdirectorio, CSS/JS fallan   | `BASE_PATH` no termina en `/`. Debe ser, por ejemplo, `/llibres/cataleg/`.                                    |
 
 ## Licencia y derechos
 
