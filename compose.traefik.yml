@@ -4,7 +4,7 @@ services:
       - .env
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.cataleg.rule=Host(`publicacions.uab.cat`) && PathPrefix(`${BASE_PATH}`)"
+      - "traefik.http.routers.cataleg.rule=Host(`${BASE_URL:-localhost}`) && PathPrefix(`${BASE_PATH}`)"
       - "traefik.http.routers.cataleg.entrypoints=websecure"
       - "traefik.http.routers.cataleg.tls=true"
       - "traefik.http.routers.cataleg.tls.certresolver=leresolver"
