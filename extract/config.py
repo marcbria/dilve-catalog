@@ -1,18 +1,36 @@
 """
-config.py — Configuración de la aplicación leída desde variables de entorno.
+config.py — Configuración del backend de extracción.
 
-Este fichero se versiona en el repositorio porque NO contiene secretos:
-todos los valores se leen de variables de entorno. Las credenciales de
-DILVE se proporcionan mediante un archivo `.env` en la raíz del proyecto
-(no versionado) o mediante variables de entorno del sistema/Compose.
+Todos los valores se leen de variables de entorno, de modo que este
+fichero puede versionarse sin riesgo: NO contiene credenciales ni
+secretos. Los secretos (usuario y contraseña de DILVE) se inyectan en
+tiempo de ejecución mediante un archivo `.env` en la raíz del proyecto
+(no versionado) o mediante variables de entorno del sistema/contenedor.
+
+Este módulo es el ÚNICO punto de entrada de configuración para el
+código Python del backend. Cualquier script (main.py, dilve_api.py,
+file_manager.py, …) debe importar sus ajustes desde aquí y no leer
+`os.environ` por su cuenta, para que la validación y los valores por
+defecto queden centralizados.
+
+Nota sobre otras variables de entorno:
+  El resto de la configuración del proyecto (THEME, LOGO, BASE_PATH,
+  ORGANIZATION, DEFAULT_LANG, CRON_SCHEDULE, TZ) NO la consume Python:
+  la leen directamente entrypoint.sh y docker/generate_thema_dict.py
+  desde `os.environ`. Por eso no se declaran aquí. Si en el futuro se
+  necesitan desde código Python, añádelas a este fichero siguiendo el
+  mismo patrón.
 
 Ver README.md → "Configuración mediante variables de entorno" para la
-lista completa y sus valores por defecto.
+tabla completa de variables y sus valores por defecto.
 """
 
 import os
-from pathlib import Path
 
+
+# ─────────────────────────────────────────────────────────────────────
+# Helpers de lectura de entorno
+# ─────────────────────────────────────────────────────────────────────
 
 def _required(name: str) -> str:
     """Devuelve una variable de entorno obligatoria o falla con un mensaje claro."""
@@ -26,62 +44,110 @@ def _required(name: str) -> str:
     return value
 
 
-def _bool(name: str, default: bool = False) -> bool:
-    """Interpreta variables de entorno tipo booleano (1/true/yes/on)."""
-    raw = os.environ.get(name)
-    if raw is None:
-        return default
-    return raw.strip().lower() in {"1", "true", "yes", "y", "on"}
+def _csv_list(name: str, default: str) -> list[str]:
+    """Lee una lista separada por comas, ignorando elementos vacíos."""
+    raw = os.environ.get(name, default)
+    return [item.strip() for item in raw.split(",") if item.strip()]
 
 
 # ─────────────────────────────────────────────────────────────────────
-# Credenciales DILVE (obligatorias)
+# Credenciales DILVE (obligatorias, se inyectan vía .env)
 # ─────────────────────────────────────────────────────────────────────
 DILVE_USER: str = _required("DILVE_USER")
 DILVE_PASS: str = _required("DILVE_PASS")
-EDITORIAL_CODE: str = _required("EDITORIAL_CODE")   # varios separados por "|"
+
+# Código(s) interno(s) de la editorial en DILVE. Si son varios, se
+# separan con "|" (p. ej. "DLV00001234|DLV00005678"). Se envía tal cual
+# en el parámetro `publisher` de la API.
+EDITORIAL_CODE: str = _required("EDITORIAL_CODE")
+
 
 # ─────────────────────────────────────────────────────────────────────
-# Parámetros de la API DILVE
+# API DILVE
 # ─────────────────────────────────────────────────────────────────────
-BATCH_SIZE: int = int(os.environ.get("BATCH_SIZE", "128"))
-ACTIVE_STATUS_CODES: list[str] = [
-    code.strip()
-    for code in os.environ.get("ACTIVE_STATUS_CODES", "04,02,13,18").split(",")
-    if code.strip()
-]
-
-# ─────────────────────────────────────────────────────────────────────
-# Rutas de datos (persistidas por volumen)
-# ─────────────────────────────────────────────────────────────────────
-DATA_DIR: Path = Path(os.environ.get("DATA_DIR", "/data"))
-CATALOG_DIR: Path = DATA_DIR / "catalog"
-COVERS_DIR: Path = DATA_DIR / "covers"
-LOGS_DIR: Path = DATA_DIR / "logs"
-
-# ─────────────────────────────────────────────────────────────────────
-# Interfaz / tematización
-# ─────────────────────────────────────────────────────────────────────
-THEME: str = os.environ.get("THEME", "default")
-LOGO: str = os.environ.get("LOGO", "")                    # URL o nombre de archivo
-BASE_PATH: str = os.environ.get("BASE_PATH", "/")         # p.ej. "/llibres/cataleg/"
-ORGANIZATION: str = os.environ.get(
-    "ORGANIZATION", "Universitat Autònoma de Barcelona"
+# URL base de los endpoints REST. La URL final se construye como
+#   BASE_URL + <accion> + ".do"
+# por lo que DEBE terminar en "/". Sobrescribible por entorno para
+# apuntar a un stub de pruebas sin tocar el código.
+BASE_URL: str = os.environ.get(
+    "DILVE_BASE_URL",
+    "https://www.dilve.es/dilve/dilve/",   # <-- corregido
 )
-DEFAULT_LANG: str = os.environ.get("DEFAULT_LANG", "ca")
+
+# Número de ISBN por petición a la API. DILVE admite hasta 128; bajarlo
+# sólo tiene sentido para depuración o para redes muy inestables.
+BATCH_SIZE: int = int(os.environ.get("BATCH_SIZE", "128"))
+
 
 # ─────────────────────────────────────────────────────────────────────
-# Programación y entorno de ejecución
+# Filtrado por estado ONIX (lista 64)
 # ─────────────────────────────────────────────────────────────────────
-CRON_SCHEDULE: str = os.environ.get("CRON_SCHEDULE", "0 2 * * *")
-TZ: str = os.environ.get("TZ", "UTC")
+# Códigos de estado que se consideran "en catálogo". Cualquier producto
+# cuyo estado no figure aquí se descarta durante la extracción.
+ACTIVE_STATUS_CODES: list[str] = _csv_list(
+    "ACTIVE_STATUS_CODES", "04,02,13,18"
+)
+
+# Traducción de cada código ONIX (lista 64) a una etiqueta legible.
+# La clave es el código de dos dígitos tal y como lo devuelve DILVE; el
+# valor, el texto que verá el operador en los logs. Cualquier código no
+# listado se etiqueta como "Desconocido" en tiempo de ejecución.
+CATALOG_STATUS_DESCRIPTIONS: dict[str, str] = {
+    "00": "Desconocido",
+    "01": "Cancelado por el editor",
+    "02": "De próxima aparición",
+    "03": "Aún no publicado",
+    "04": "Activo",
+    "05": "Ya no es nuestro producto",
+    "06": "Agotado temporalmente",
+    "07": "Descatalogado",
+    "08": "Inactivo",
+    "09": "Desconocido",
+    "10": "Saldo",
+    "11": "Retirado de la venta",
+    "12": "Retirado (recall)",
+    "13": "Reeditando",
+    "14": "Reeditado",
+    "15": "No disponible (motivo no especificado)",
+    "16": "No disponible (sustituido por otro producto)",
+    "17": "No disponible (el editor no puede suministrarlo)",
+    "18": "Disponible a través de otro proveedor",
+    "19": "No disponible para la venta",
+    "20": "Retirado de la venta",
+    "21": "Próxima reimpresión",
+    "22": "Próxima nueva edición",
+    "23": "Suspendido indefinidamente",
+    "24": "Publicación estacional",
+    "25": "Reimpresión bajo demanda",
+}
+
 
 # ─────────────────────────────────────────────────────────────────────
-# Comportamiento de la extracción (opcionales)
+# Esquema del CSV de catálogo
 # ─────────────────────────────────────────────────────────────────────
-# Fuerza la re-descarga de cubiertas aunque existan en disco.
-FORCE_COVERS: bool = _bool("FORCE_COVERS", False)
-# Timeout (segundos) para las peticiones HTTP a la API de DILVE.
-HTTP_TIMEOUT: int = int(os.environ.get("HTTP_TIMEOUT", "30"))
-# Número de reintentos ante errores transitorios de red.
-HTTP_RETRIES: int = int(os.environ.get("HTTP_RETRIES", "3"))
+# Orden y nombres EXACTOS de las columnas del CSV generado por
+# file_manager.guardar_csv() y consumido por el frontend
+# (public/js/app.js). Cambiar esta lista implica actualizar ambos.
+#
+# Contrato:
+#   - El CSV resultante se escribe con encoding "utf-8-sig" para que
+#     Excel lo abra correctamente.
+#   - Las columnas ausentes en el dict de origen se rellenan con "".
+#   - Las columnas presentes en el dict pero ausentes aquí se DESCARTAN
+#     silenciosamente; por eso esta lista debe ser exhaustiva.
+CSV_COLUMNS: list[str] = [
+    "isbn",
+    "titulo",
+    "subtitulo",
+    "autores",
+    "editorial",
+    "coleccion",
+    "materias",
+    "idioma",
+    "fecha_publicacion",
+    "precio",
+    "paginas",
+    "encuadernacion",
+    "descripcion",
+    "imagen_cubierta",
+]
