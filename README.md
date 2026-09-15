@@ -97,6 +97,7 @@ El script de extracción lee toda su configuración de variables de entorno (nun
 | `TZ`                  | Zona horaria (ej. `Europe/Madrid`)                                | `UTC`                                        |
 | `THEME`               | Tema a utilizar (nombre de la carpeta dentro de `theme/`)         | `default`                                    |
 | `LOGO`                | URL o nombre de archivo del logo (opcional)                       | (vacío)                                      |
+| `BASE_URL`            | Host público del catálogo (solo el hostname) para Traefik         | `localhost`                                  |
 | `BASE_PATH`           | Ruta base si se sirve desde un subdirectorio                      | `/`                                          |
 | `ORGANIZATION`        | Nombre de la institución (se usa en el título y el footer)        | `Universitat Autònoma de Barcelona`          |
 | `DEFAULT_LANG`        | Idioma por defecto de la interfaz                                 | `ca`                                         |
