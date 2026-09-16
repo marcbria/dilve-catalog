@@ -475,15 +475,26 @@ function createRelatedProductsHTML(related) {
     let html = `<div class="detail-section"><h4>${t('modal_related')}</h4><div class="related-products">`;
 
     otherFormats.forEach(b => {
-        const label = b.isDigital ? t('filter_format_digital') : t('filter_format_paper');
+        let label;
+        if (b.isDigital) {
+            label = t('filter_format_digital');
+            if (b.digitalFormat && b.digitalFormat.trim() !== "") {
+                label += ` (${b.digitalFormat})`;
+            }
+        } else {
+            label = t('filter_format_paper');
+            if (b.bindingName && b.bindingName.trim() !== "") {
+                label += ` (${b.bindingName})`;
+            }
+        }
         const cssClass = b.isDigital ? 'digital' : 'paper';
-        html += `<button class="related-product-btn ${cssClass}" data-isbn="${b.isbn}">${label}</button>`;
+        html += `<button class="related-product-btn ${cssClass}" data-isbn="${b.isbn}">${escapeHTML(label)}</button>`;
     });
 
     translations.forEach(b => {
         const langLabel = b.languageLabel || 'Idioma';
         const langCode = b.languageCode || 'other';
-        html += `<button class="related-product-btn lang-${langCode}" data-isbn="${b.isbn}">${langLabel}</button>`;
+        html += `<button class="related-product-btn lang-${langCode}" data-isbn="${b.isbn}">${escapeHTML(langLabel)}</button>`;
     });
 
     html += `</div></div>`;
