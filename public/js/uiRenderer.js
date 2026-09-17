@@ -182,7 +182,10 @@ export function openDetailModal(book) {
         } else if (book.priceAmount > 0) {
             const priceFormatted = book.priceAmount.toFixed(2).replace('.', ',') + ' €';
             priceHTML = `<span class="detail-price-big">${priceFormatted}</span><span class="iva-inclosit">(IVA incluido)</span>`;
-            actionHTML = `<div class="detail-action"><a href="https://www.unebook.es/?isbn=${cleanIsbnValue}" target="_blank" class="btn-buy">${t('modal_buy')}</a></div>`;
+            const buyUrl = (book.webDescargaProducto && book.webDescargaProducto.trim())
+                ? book.webDescargaProducto
+                : `https://www.unebook.es/?isbn=${cleanIsbnValue}`;
+            actionHTML = `<div class="detail-action"><a href="${escapeHTML(buyUrl)}" target="_blank" class="btn-buy">${t('modal_buy')}</a></div>`;
         }
 
         const related = getRelatedBooks(book);
@@ -216,11 +219,6 @@ export function openDetailModal(book) {
         `;
 
         const formatDisplay = book.formatLabel || 'Papel';
-        let formatoCompleto = formatDisplay;
-        if (book.isDigital && book.digitalFormat && book.digitalFormat !== "") {
-            formatoCompleto = `Digital (${escapeHTML(book.digitalFormat)})`;
-        }
-
         const authorLinks = (book.authors || []).map(a => {
             return `<span class="modal-link" data-author="${escapeHTML(a)}">${escapeHTML(a)}</span>`;
         }).join(', ');
@@ -232,6 +230,13 @@ export function openDetailModal(book) {
         let publisherDisplay = book.publisherName || '';
         if (publisherDisplay === "Servei de Publicacions de la Universitat Autònoma de Barcelona") {
             publisherDisplay = `<a href="https://publicacions.uab.cat" target="_blank" style="text-decoration:none;color:#007e11;">Servei de Publicacions de la UAB</a>`;
+        }
+
+        // Fila de formato: solo para papel. En digital la etiqueta "Digital"
+        // ya está visible en el badge superior, así que se omite el detalle.
+        let formatHTML = "";
+        if (!isDigital) {
+            formatHTML = `<div class="detail-row"><span class="label">${t('modal_format')}</span><span class="value"><span class="modal-link" data-format="paper">${escapeHTML(formatDisplay)}</span></span></div>`;
         }
 
         let dimensionsHTML = "";
@@ -295,9 +300,9 @@ export function openDetailModal(book) {
                 <div class="detail-row"><span class="label">${t('modal_isbn')}</span><span class="value">${escapeHTML(book.isbn || '—')}</span></div>
                 ${book.productIDAlternative ? `<div class="detail-row"><span class="label">${t('modal_isbn_alt')}</span><span class="value">${escapeHTML(book.productIDAlternative)}</span></div>` : ''}
                 <div class="detail-row"><span class="label">${t('modal_publisher')}</span><span class="value">${publisherDisplay || '—'}</span></div>
-                <div class="detail-row"><span class="label">${t('modal_publication')}</span><span class="value">${book.displayDate || '—'}</span></div>
+                <div class="detail-row"><span class="label">${t('modal_publication')}</span><span class="value">${book.year || '—'}</span></div>
                 <div class="detail-row"><span class="label">${t('modal_language')}</span><span class="value"><span class="modal-link" data-lang="${langCode}">${escapeHTML(langDisplay)}</span></span></div>
-                <div class="detail-row"><span class="label">${t('modal_format')}</span><span class="value"><span class="modal-link" data-format="${isDigital ? 'digital' : 'paper'}">${escapeHTML(formatoCompleto)}</span></span></div>
+                ${formatHTML}
                 ${dimensionsHTML}
                 ${bindingHTML}
                 ${book.extentLabel ? `<div class="detail-row"><span class="label">${t('modal_pages')}</span><span class="value">${book.extentLabel.replace(' páginas', '')}</span></div>` : ''}
@@ -477,10 +482,9 @@ function createRelatedProductsHTML(related) {
     otherFormats.forEach(b => {
         let label;
         if (b.isDigital) {
+            // Sin detalle de formato para productos digitales:
+            // se muestra únicamente la etiqueta "Digital".
             label = t('filter_format_digital');
-            if (b.digitalFormat && b.digitalFormat.trim() !== "") {
-                label += ` (${b.digitalFormat})`;
-            }
         } else {
             label = t('filter_format_paper');
             if (b.bindingName && b.bindingName.trim() !== "") {

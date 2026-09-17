@@ -18,7 +18,10 @@ async function loadCatalog(csvText) {
     books = mergeBooks(books);
     console.log(`Libros después de merge: ${books.length}`);
     state.allBooks = books;
-    state.allBooks.sort((a, b) => b.sortDate - a.sortDate);
+    state.allBooks.sort((a, b) => {
+        if (b.sortDate !== a.sortDate) return b.sortDate - a.sortDate;
+        return (a.titleText || "").localeCompare(b.titleText || "", "ca");
+    });
     state.authorBioMap = buildAuthorBioMap(state.allBooks);
     populateCollectionFilter();
     console.log(`Total libros: ${state.allBooks.length}`);

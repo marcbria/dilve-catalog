@@ -425,8 +425,24 @@ def parsear_producto(product: ET.Element) -> Dict[str, str]:
     datos["_url_externa"] = url_externa
 
     # ---------- URLs y relaciones ----------
+    # Web de descarga/compra del producto (ONIX 3.0 → Product/ProductWebsite).
+    # Priorizamos roles 02 (web propia del editor), 23 (contenido suplementario)
+    # y 29 (extractos); si no hay, usamos el primer ProductWebsite disponible.
+    web_descarga = ""
+    for website in product.findall("onix:ProductWebsite", NS):
+        role = safe_find_text(website, "onix:ProductWebsiteRole", "")
+        link = safe_find_text(website, "onix:ProductWebsiteLink", "")
+        if link and role in ("02", "23", "29"):
+            web_descarga = link
+            break
+    if not web_descarga:
+        for website in product.findall("onix:ProductWebsite", NS):
+            link = safe_find_text(website, "onix:ProductWebsiteLink", "")
+            if link:
+                web_descarga = link
+                break
     datos["URL_descarga_producto"] = ""
-    datos["web_descarga_producto"] = ""
+    datos["web_descarga_producto"] = web_descarga
     sustituto = sustituido = ""
     relacionados = []
     for rel in product.findall("onix:RelatedProduct", NS):

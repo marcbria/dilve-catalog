@@ -51,13 +51,19 @@ export function applyFiltersAndReset() {
             state.filteredBooks.sort((a, b) => b.authorDisplay.localeCompare(a.authorDisplay, "ca"));
             break;
         case "date-desc":
-            state.filteredBooks.sort((a, b) => b.sortDate - a.sortDate);
+            state.filteredBooks.sort((a, b) => {
+                if (b.sortDate !== a.sortDate) return b.sortDate - a.sortDate;
+                return (a.titleText || "").localeCompare(b.titleText || "", "ca");
+            });
             break;
         case "date-asc":
             state.filteredBooks.sort((a, b) => a.sortDate - b.sortDate);
             break;
         default:
-            state.filteredBooks.sort((a, b) => b.sortDate - a.sortDate);
+            state.filteredBooks.sort((a, b) => {
+                if (b.sortDate !== a.sortDate) return b.sortDate - a.sortDate;
+                return (a.titleText || "").localeCompare(b.titleText || "", "ca");
+            });
     }
 
     resetPagination();
