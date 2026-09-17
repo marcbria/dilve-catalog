@@ -232,12 +232,10 @@ export function openDetailModal(book) {
             publisherDisplay = `<a href="https://publicacions.uab.cat" target="_blank" style="text-decoration:none;color:#007e11;">Servei de Publicacions de la UAB</a>`;
         }
 
-        // Fila de formato: solo para papel. En digital la etiqueta "Digital"
-        // ya está visible en el badge superior, así que se omite el detalle.
-        let formatHTML = "";
-        if (!isDigital) {
-            formatHTML = `<div class="detail-row"><span class="label">${t('modal_format')}</span><span class="value"><span class="modal-link" data-format="paper">${escapeHTML(formatDisplay)}</span></span></div>`;
-        }
+        // Campo "Formato": siempre visible. Para papel se usa formatDisplay
+        // ("Papel"); para digital también formatDisplay ("Digital") sin
+        // añadir el detalle del formato de archivo (EPUB, PDF, ...).
+        const formatHTML = `<div class="detail-row"><span class="label">${t('modal_format')}</span><span class="value"><span class="modal-link" data-format="${isDigital ? 'digital' : 'paper'}">${escapeHTML(formatDisplay)}</span></span></div>`;
 
         let dimensionsHTML = "";
         if (book.width && book.height) {
