@@ -1,4 +1,5 @@
 import { dom, state } from './config.js';
+import { buildShareHTML, bindShareContainer } from './share.js';
 
 function escapeHTML(str) {
     if (!str) return '';
@@ -39,17 +40,31 @@ export function buildAuthorBioMap(books) {
     return result;
 }
 
-// Actualiza el banner con la biografía del autor seleccionado
+// Actualiza el banner con la biografía del autor seleccionado,
+// incluyendo los iconos de compartir con la URL activa (?author=...).
 export function updateAuthorIntro() {
     const author = state.authorFilter;
     const bio = author && state.authorBioMap[author] ? state.authorBioMap[author] : null;
     if (bio) {
+        // La URL activa ya incluye ?author=... (updateURL se ha ejecutado
+        // antes en filters.js).
+        const shareURL = window.location.href;
+        const shareTitle = author;
+        const shareText = `✍️ ${author}`;
         dom.authorIntro.innerHTML = `
             <h2>${escapeHTML(author)}</h2>
             <p>${escapeHTML(bio)}</p>
+            <div class="share-icons">
+                ${buildShareHTML({ url: shareURL, title: shareTitle, text: shareText })}
+            </div>
         `;
         dom.authorIntro.classList.add('active');
         dom.authorIntro.style.display = 'block';
+        bindShareContainer(dom.authorIntro.querySelector('.share-icons'), {
+            url: shareURL,
+            title: shareTitle,
+            text: shareText
+        });
     } else {
         dom.authorIntro.innerHTML = '';
         dom.authorIntro.classList.remove('active');

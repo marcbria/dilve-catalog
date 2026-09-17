@@ -67,9 +67,11 @@ export function applyFiltersAndReset() {
     }
 
     resetPagination();
+    // IMPORTANTE: updateURL() antes de los intros para que las URLs
+    // de compartir (colección, autor) reflejen el estado actual.
+    updateURL();
     updateCollectionIntro();
     updateAuthorIntro();
-    updateURL();
     updateFilterActiveState();
 
     const count = state.filteredBooks.length;

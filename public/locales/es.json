@@ -47,6 +47,7 @@
   "modal_view_collection": "Ver todos los libros de «{collection}»",
   "modal_free": "Accesible en abierto",
   "modal_buy": "Comprar",
+  "share_url_copied": "Enlace copiado al portapapeles",
   "footer_copyright": "© {organization} · Servei de Publicacions",
   "footer_legal": "Aviso legal",
   "footer_privacy": "Privacidad",

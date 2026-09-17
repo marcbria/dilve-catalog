@@ -1,6 +1,7 @@
 import { dom, state } from './config.js';
 import { parseCSVText } from './csvParser.js';
 import { t } from './i18n.js';
+import { buildShareHTML, bindShareContainer } from './share.js';
 
 export async function loadCollections(csvText) {
     const raw = parseCSVText(csvText);
@@ -73,33 +74,30 @@ export function populateCollectionFilter() {
 
 export function updateCollectionIntro() {
     const selected = dom.collectionFilter.value;
-    const shareUrl = encodeURIComponent(window.location.href);
-    const shareTitle = encodeURIComponent(document.title);
 
     if (selected && selected !== "all" && state.collectionsData.length > 0) {
         const found = state.collectionsData.find(c => 
             c.titulo && c.titulo.toLowerCase() === selected.toLowerCase()
         );
         if (found && found.intro) {
+            // La URL activa ya incluye ?collection=... (updateURL se ha
+            // ejecutado antes en filters.js).
+            const shareURL = window.location.href;
+            const shareTitle = found.titulo;
+            const shareText = `📚 ${found.titulo}`;
             dom.collectionIntro.innerHTML = `
                 <h2>${escapeHTML(found.titulo)}</h2>
                 ${found.intro}
                 <div class="share-icons">
-                    <a href="mailto:?subject=${shareTitle}&body=${shareUrl}" target="_blank" rel="noopener" aria-label="Compartir por email">
-                        <i class="fa-solid fa-envelope"></i>
-                    </a>
-                    <a href="https://mastodon.social/share?text=${shareTitle}%20${shareUrl}" target="_blank" rel="noopener" aria-label="Compartir en Mastodon">
-                        <i class="fa-brands fa-mastodon"></i>
-                    </a>
-                    <a href="https://www.instagram.com/" target="_blank" rel="noopener" aria-label="Compartir en Instagram (copia el enlace)">
-                        <i class="fa-brands fa-instagram"></i>
-                    </a>
-                    <a href="https://bsky.app/intent/compose?text=${shareTitle}%20${shareUrl}" target="_blank" rel="noopener" aria-label="Compartir en Bluesky">
-                        <i class="fa-brands fa-bluesky"></i>
-                    </a>
+                    ${buildShareHTML({ url: shareURL, title: shareTitle, text: shareText })}
                 </div>
             `;
             dom.collectionIntro.classList.add("active");
+            bindShareContainer(dom.collectionIntro.querySelector('.share-icons'), {
+                url: shareURL,
+                title: shareTitle,
+                text: shareText
+            });
             return;
         }
     }

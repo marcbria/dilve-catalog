@@ -47,6 +47,7 @@
   "modal_view_collection": "View all books in «{collection}»",
   "modal_free": "Open access",
   "modal_buy": "Buy",
+  "share_url_copied": "Link copied to clipboard",
   "footer_copyright": "© {organization} · Servei de Publicacions",
   "footer_legal": "Legal notice",
   "footer_privacy": "Privacy",

@@ -105,6 +105,32 @@ body { font-family:var(--font-sans); background-color:#f8f9fa; color:#1a1a1a; li
     color: #525252;
     line-height: 1.7;
 }
+/* Iconos de compartir en el banner de autores */
+.author-intro .share-icons {
+    margin-top: 16px;
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+.author-intro .share-icons a,
+.author-intro .share-icons button {
+    color: #525252 !important;
+    font-size: 1.3rem;
+    transition: color 0.2s;
+    text-decoration: none;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+}
+.author-intro .share-icons a:hover,
+.author-intro .share-icons button:hover {
+    color: #007e11 !important;
+}
 
 .main-content { flex:1; padding:32px 0 60px; }
 .books-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(250px,1fr)); gap:24px; }
@@ -786,4 +812,28 @@ body { font-family:var(--font-sans); background-color:#f8f9fa; color:#1a1a1a; li
 .author-intro p {
     color: #525252;
     line-height: 1.7;
+}
+
+/* ─── Toast de compartir ─── */
+.share-toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translate(-50%, 20px);
+    background: rgba(0, 0, 0, 0.85);
+    color: #fff;
+    padding: 10px 18px;
+    font-size: 0.9rem;
+    z-index: 10001;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s ease, transform 0.25s ease;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+    max-width: 90vw;
+    text-align: center;
+    border-radius: 0;
+}
+.share-toast.visible {
+    opacity: 1;
+    transform: translate(-50%, 0);
 }
