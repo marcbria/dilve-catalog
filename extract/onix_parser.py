@@ -425,22 +425,42 @@ def parsear_producto(product: ET.Element) -> Dict[str, str]:
     datos["_url_externa"] = url_externa
 
     # ---------- URLs y relaciones ----------
-    # Web de descarga/compra del producto (ONIX 3.0 → Product/ProductWebsite).
-    # Priorizamos roles 02 (web propia del editor), 23 (contenido suplementario)
-    # y 29 (extractos); si no hay, usamos el primer ProductWebsite disponible.
+    # Web de descarga/compra del producto.
+    # DILVE puede emitir varias variantes según el perfil ONIX del editor:
+    #   - ONIX 3.0 legacy:  <ProductWebsite> (hijo directo de <Product>)
+    #   - ONIX 3.0 estándar: <Website> anidado bajo <PublishingDetail>/<Publisher>
+    #                        o <ProductSupply>/<SupplyDetail>/<Supplier>
+    # Los elementos hijos pueden ser:
+    #   - <WebsiteRole> / <WebsiteLink>            (estándar)
+    #   - <ProductWebsiteRole> / <ProductWebsiteLink>  (legacy)
+    #
+    # IMPORTANTE: se usa `.//` (búsqueda descendente), no `findall("onix:X")`
+    # (que solo busca hijos directos), porque <Website> está anidado.
+    #
+    # Rol 29 = "Web page for full content" → página de descarga/compra.
     web_descarga = ""
-    for website in product.findall("onix:ProductWebsite", NS):
-        role = safe_find_text(website, "onix:ProductWebsiteRole", "")
-        link = safe_find_text(website, "onix:ProductWebsiteLink", "")
-        if link and role in ("02", "23", "29"):
-            web_descarga = link
-            break
-    if not web_descarga:
-        for website in product.findall("onix:ProductWebsite", NS):
-            link = safe_find_text(website, "onix:ProductWebsiteLink", "")
-            if link:
-                web_descarga = link
-                break
+
+    def _find_website_link(role_priority=("29", "02", "23")):
+        """Devuelve el primer enlace de Website con rol prioritario; si no
+        hay coincidencia de rol, cae al primer enlace disponible."""
+        candidates = []
+        for comp_tag in ("ProductWebsite", "Website"):
+            for website in product.findall(f".//onix:{comp_tag}", NS):
+                role = safe_find_text(website, "onix:WebsiteRole", "") \
+                    or safe_find_text(website, "onix:ProductWebsiteRole", "")
+                link = safe_find_text(website, "onix:ProductWebsiteLink", "") \
+                    or safe_find_text(website, "onix:WebsiteLink", "")
+                if link:
+                    candidates.append((role, link))
+        # 1ª pasada: rol preferente
+        for role, link in candidates:
+            if role in role_priority:
+                return link
+        # 2ª pasada (fallback): cualquier enlace
+        return candidates[0][1] if candidates else ""
+
+    web_descarga = _find_website_link()
+
     datos["URL_descarga_producto"] = ""
     datos["web_descarga_producto"] = web_descarga
     sustituto = sustituido = ""
