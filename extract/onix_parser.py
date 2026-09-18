@@ -199,13 +199,26 @@ def parsear_producto(product: ET.Element) -> Dict[str, str]:
         edition_type = safe_find_text(descriptive, "onix:EditionType", "")
         datos["edition_type"] = edition_type
 
+        # Comentarios de la edición (contiene las entidades coeditoras
+        # separadas por saltos de línea). En ONIX 3.0 el dato vive en
+        # <EditionStatement>, típicamente como hijo directo de
+        # <DescriptiveDetail>; por robustez probamos también el
+        # composite <Edition>/<EditionStatement>.
+        coment_edic = safe_find_text(descriptive, "onix:EditionStatement", "")
+        if not coment_edic:
+            edition_composite = descriptive.find("onix:Edition", NS)
+            if edition_composite is not None:
+                coment_edic = safe_find_text(edition_composite, "onix:EditionStatement", "")
+        datos["coment_edic"] = coment_edic
+
     else:
         for k in ["titulo", "subtitulo", "formato_libro_3.0", "encuad", "num_pags",
                   "alto_cm", "ancho_cm", "grueso_cm",
                   "peso", "coleccion", "num_en_coleccion", "idioma",
                   "codigo_bic_materia", "codigo_thema_materia",
                   "codigo_ibic_cargada", "codigo_thema_cargada",
-                  "publico_objetivo", "num_edic", "edition_type"]:
+                  "publico_objetivo", "num_edic", "edition_type",
+                  "coment_edic"]:
             datos[k] = ""
 
     # ---------- AUTORES ----------

@@ -163,6 +163,7 @@ CSV_COLUMNS: list[str] = [
     "num_en_coleccion",
     "idioma",
     "num_edic",
+    "coment_edic",
     "isbn13_edicion_anterior",
     "fecha_public_dma",
     "año_public",

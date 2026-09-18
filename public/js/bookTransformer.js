@@ -37,7 +37,8 @@ export function transformBook(row) {
     const publico = row["publico_objetivo"] || "";
     const editorialCode = row["editorial_code"] || "";
     const webDescargaProducto = row["web_descarga_producto"] || "";
-    
+    const comentEdic = row["coment_edic"] || "";
+
     const digitalFormatRaw = row["formato_edicion_digital"] || "";
     const themaCode = row["codigo_thema_materia"] || "";
     const themaDesc = row["codigo_thema_cargada"] || "";
@@ -156,6 +157,8 @@ export function transformBook(row) {
         nota_biografica_autor3: notaBiografica3,
         // === WEB DESCARGA / COMPRA ===
         webDescargaProducto: webDescargaProducto,
+        // === COMENTARIOS DE LA EDICIÓN (coeditoras) ===
+        comentEdic: comentEdic,
     };
 }
 
@@ -191,6 +194,9 @@ export function mergeBooks(books) {
             if (book.bindingName && !existing.bindingName) existing.bindingName = book.bindingName;
             if (book.webDescargaProducto && !existing.webDescargaProducto) {
                 existing.webDescargaProducto = book.webDescargaProducto;
+            }
+            if (book.comentEdic && !existing.comentEdic) {
+                existing.comentEdic = book.comentEdic;
             }
             // === COMBINAR NOTAS BIOGRÁFICAS (NUEVO) ===
             // Conservar la que tenga contenido, priorizando la que tenga texto
