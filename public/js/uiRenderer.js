@@ -265,18 +265,19 @@ export function openDetailModal(book) {
         }
 
         // Coeditoras: se muestran solo si coment_edic tiene contenido.
-        // El campo trae las entidades separadas por saltos de línea.
+        // DILVE puede enviar las entidades separadas por saltos de línea
+        // (formato esperado) o como una única frase separada por comas
+        // (formato observado en catálogos reales). Si hay saltos, cada
+        // entidad va en su propia línea; si no, se muestra el texto tal
+        // cual (ya es una frase legible).
         let coeditionHTML = "";
         if (book.comentEdic && book.comentEdic.trim()) {
-            const coeditors = book.comentEdic
-                .trim()
-                .split(/\r?\n/)
-                .map(s => s.trim())
-                .filter(Boolean);
-            if (coeditors.length) {
-                const coeditionText = coeditors.map(escapeHTML).join('<br>');
-                coeditionHTML = `<div class="detail-row"><span class="label">${t('modal_coedition')}</span><span class="value">${coeditionText}</span></div>`;
-            }
+            const raw = book.comentEdic.trim();
+            const lines = raw.split(/\r?\n/).map(s => s.trim()).filter(Boolean);
+            const rendered = lines.length > 1
+                ? lines.map(escapeHTML).join('<br>')
+                : escapeHTML(raw);
+            coeditionHTML = `<div class="detail-row"><span class="label">${t('modal_coedition')}</span><span class="value">${rendered}</span></div>`;
         }
 
         let collectionDisplay = "";
