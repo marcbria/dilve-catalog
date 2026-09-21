@@ -31,9 +31,9 @@
         <div class="container controls-inner">
             <div class="search-wrapper">
                 <input type="text" id="searchInput" placeholder="Buscar por título, autor o ISBN..." data-i18n-placeholder="search_placeholder" />
-                <span class="search-icon">🔍</span>
+                <span class="search-icon"><i class="fa-solid fa-magnifying-glass"></i></span>
             </div>
-            <button class="hamburger" id="hamburgerBtn" aria-label="Menú filtros">☰</button>
+            <button class="hamburger" id="hamburgerBtn" aria-label="Menú filtros"><i class="fa-solid fa-bars"></i></button>
             <div class="filter-group" id="filterGroup">
                 <select id="sortSelect">
                     <option value="date-desc" data-i18n="sort_recent">Más recientes</option>
@@ -74,7 +74,7 @@
     <main class="main-content">
         <div class="container">
             <div class="file-fallback" id="fileFallback">
-                <p><strong>⚠️ <span data-i18n="error_loading_catalog">No se ha podido cargar automáticamente el catálogo.</span></strong></p>
+                <p><strong><i class="fa-solid fa-triangle-exclamation"></i> <span data-i18n="error_loading_catalog">No se ha podido cargar automáticamente el catálogo.</span></strong></p>
                 <p style="color:#888;" data-i18n="select_csv_file">Selecciona el archivo <strong>catalog.csv</strong> desde tu ordenador:</p>
                 <input type="file" id="csvFileInput" accept=".csv,.tsv,.txt" />
             </div>

@@ -425,7 +425,7 @@ export function openDetailModal(book) {
 
     } catch (error) {
         console.error("Error al abrir el modal:", error);
-        dom.modalBody.innerHTML = `<div class="error-message"><p>Error al cargar la información del libro.</p><p style="font-size:0.8rem;color:#888;">${error.message}</p></div>`;
+        dom.modalBody.innerHTML = `<div class="error-message"><div class="icon"><i class="fa-solid fa-triangle-exclamation"></i></div><p>Error al cargar la información del libro.</p><p style="font-size:0.8rem;color:#888;">${error.message}</p></div>`;
         dom.modalOverlay.classList.add('active');
         document.body.style.overflow = 'hidden';
     }
