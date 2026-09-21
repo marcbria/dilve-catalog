@@ -1,6 +1,11 @@
 // public/js/share.js
 // Utilidades para construir y vincular los iconos de compartir.
 // Se usan desde el modal de detalle, el banner de colecciones y el de autores.
+//
+// Orden de iconos: Mail, Instagram, Bluesky, Mastodon, Copy.
+// La URL activa se envía siempre que la red lo permita (mail/Mastodon/Bluesky
+// vía parámetros del enlace; Instagram vía portapapeles porque no admite
+// post prellenado por URL).
 
 import { t } from './i18n.js';
 
@@ -41,7 +46,6 @@ export function showToast(msg, duration = 2500) {
         document.body.appendChild(toast);
     }
     toast.textContent = msg;
-    // Forzar reflow para reiniciar la animación si ya estaba visible
     void toast.offsetWidth;
     toast.classList.add('visible');
     clearTimeout(toast._timer);
@@ -50,8 +54,6 @@ export function showToast(msg, duration = 2500) {
 
 /**
  * Devuelve el HTML de los iconos de compartir.
- * Incluye siempre la URL activa (en el `href` o vía portapapeles para
- * Instagram, que no admite post prellenado por URL).
  *
  * @param {{url:string, title:string, text:string}} opts
  * @returns {string}
@@ -61,11 +63,8 @@ export function buildShareHTML({ url, title, text }) {
     const eTitle = encodeURIComponent(title);
     const eText = encodeURIComponent(text);
     return `
-        <a href="mailto:?subject=${eTitle}&body=${eText}%0A%0A${eUrl}" data-share="email" aria-label="Correu-e">
+        <a href="mailto:?subject=${eTitle}&body=${eText}%0A%0A${eUrl}" data-share="email" aria-label="Mail">
             <i class="fa-solid fa-envelope"></i>
-        </a>
-        <a href="https://mastodon.social/share?text=${eText}%20${eUrl}" data-share="mastodon" target="_blank" rel="noopener" aria-label="Mastodon">
-            <i class="fa-brands fa-mastodon"></i>
         </a>
         <a href="#" data-share="instagram" aria-label="Instagram">
             <i class="fa-brands fa-instagram"></i>
@@ -73,7 +72,10 @@ export function buildShareHTML({ url, title, text }) {
         <a href="https://bsky.app/intent/compose?text=${eText}%20${eUrl}" data-share="bluesky" target="_blank" rel="noopener" aria-label="Bluesky">
             <i class="fa-brands fa-bluesky"></i>
         </a>
-        <button type="button" class="copy-url-btn" data-share="copy" aria-label="Copiar URL" title="Copiar enlace al portapapeles">
+        <a href="https://mastodon.social/share?text=${eText}%20${eUrl}" data-share="mastodon" target="_blank" rel="noopener" aria-label="Mastodon">
+            <i class="fa-brands fa-mastodon"></i>
+        </a>
+        <button type="button" class="copy-url-btn" data-share="copy" aria-label="Copy link" title="Copy link to clipboard">
             <i class="fa-solid fa-link"></i>
         </button>
     `;
@@ -90,9 +92,9 @@ export function bindShareContainer(container, { url, title, text }) {
         el.addEventListener('click', (e) => {
             const net = el.dataset.share;
             if (net === 'instagram') {
-                // Instagram no soporta post prellenado por URL:
-                // copiamos la URL activa y abrimos Instagram para que el
-                // usuario la pegue en su publicación.
+                // Instagram no permite prellenar el post vía URL:
+                // copiamos la URL activa y abrimos el sitio para que el
+                // usuario la pegue.
                 e.preventDefault();
                 e.stopPropagation();
                 copyToClipboard(url).then(() => {
@@ -112,7 +114,7 @@ export function bindShareContainer(container, { url, title, text }) {
                     showToast(t('share_url_copied'));
                 });
             }
-            // email, mastodon, bluesky: el href ya incluye la URL activa
+            // mail, mastodon, bluesky: el href ya incluye la URL activa
             // y el navegador sigue el enlace normalmente.
         });
     });

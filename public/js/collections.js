@@ -37,22 +37,15 @@ export async function loadCollections(csvText) {
 
     let collections;
     if (hasTitulo) {
-        // Formato estándar (monolingüe o multilengua). Se preservan
-        // TODAS las columnas para que las variantes por idioma lleguen
-        // al frontend.
         collections = raw.map(row => {
             const out = {};
             for (const [k, v] of Object.entries(row)) {
                 out[k] = v;
             }
-            // Normalizar la clave canónica a minúsculas
             if (!out.titulo && out.Titulo) out.titulo = out.Titulo;
             return out;
         });
     } else {
-        // Compatibilidad con CSVs antiguos sin cabecera 'titulo': se
-        // asume que la primera columna es el título y la segunda la
-        // intro. En este modo no se soportan traducciones.
         console.warn("No se encontró la columna 'titulo'. Usando la primera columna como título y la segunda como intro.");
         collections = raw.map(row => {
             const keys = Object.keys(row);
@@ -86,11 +79,6 @@ export async function fetchCollectionsCSV() {
 
 // ─── Helpers de resolución multilengua ───────────────────
 
-/**
- * Busca la fila de colecciones cuya clave canónica (`titulo`) coincide
- * con el título ONIX dado. Comparación case-insensitive y sin espacios
- * extremos, para tolerar diferencias de formato en el CSV.
- */
 function findCollectionByCanonicalTitle(tituloOnix) {
     if (!tituloOnix) return null;
     const target = tituloOnix.trim().toLowerCase();
@@ -99,10 +87,6 @@ function findCollectionByCanonicalTitle(tituloOnix) {
     ) || null;
 }
 
-/**
- * Devuelve el título a mostrar para una fila de colección y un idioma.
- * Cadena de fallback: `titulo_<lang>` → `titulo`.
- */
 function getCollectionTitle(collection, lang) {
     if (!collection) return "";
     const translated = collection[`titulo_${lang}`];
@@ -110,12 +94,6 @@ function getCollectionTitle(collection, lang) {
     return (collection.titulo || "").trim();
 }
 
-/**
- * Devuelve la intro a mostrar para una fila de colección y un idioma.
- * Cadena de fallback: `intro_<lang>` → `intro` → "".
- * No cae a otros idiomas: mostrar contenido en el idioma equivocado es
- * peor que no mostrarlo.
- */
 function getCollectionIntro(collection, lang) {
     if (!collection) return "";
     const translated = collection[`intro_${lang}`];
@@ -126,13 +104,11 @@ function getCollectionIntro(collection, lang) {
 // ─── Filtro de colecciones ───────────────────────────────
 
 export function populateCollectionFilter() {
-    // 1. Recoger los títulos canónicos que aparecen en los libros
     const canonical = new Set();
     state.allBooks.forEach(b => {
         if (b.collectionTitle) canonical.add(b.collectionTitle);
     });
 
-    // 2. Mapear cada título canónico a su título a mostrar en el idioma activo
     const lang = getCurrentLang();
     const titled = Array.from(canonical).map(tituloOnix => {
         const entry = findCollectionByCanonicalTitle(tituloOnix);
@@ -142,11 +118,8 @@ export function populateCollectionFilter() {
         return { canonical: tituloOnix, display };
     });
 
-    // 3. Ordenar por el título a mostrar, en el idioma activo
     titled.sort((a, b) => a.display.localeCompare(b.display, lang));
 
-    // 4. Poblar el <select>: `value` = título canónico (estable, el que
-    //    viaja en la URL), `textContent` = título traducido.
     dom.collectionFilter.innerHTML = `<option value="all">${t('filter_collection_all')}</option>`;
     titled.forEach(({ canonical, display }) => {
         const opt = document.createElement("option");
@@ -174,13 +147,11 @@ export function updateCollectionIntro() {
             const displayTitle = getCollectionTitle(found, lang);
             const intro = getCollectionIntro(found, lang);
 
-            // Solo mostramos el banner si hay intro que mostrar. El
-            // título traducido por sí solo no justifica el banner (el
-            // propio desplegable ya lo muestra).
             if (intro) {
                 const shareURL = window.location.href;
                 const shareTitle = displayTitle || selected;
-                const shareText = `📚 ${shareTitle}`;
+                // Sin emojis: los mensajes se generan planos.
+                const shareText = shareTitle;
                 dom.collectionIntro.innerHTML = `
                     <h2>${escapeHTML(shareTitle)}</h2>
                     ${intro}

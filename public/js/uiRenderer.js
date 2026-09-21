@@ -5,6 +5,7 @@ import { escapeHTML, getCleanIsbn } from './utils.js';
 import { updateURL } from './urlManager.js';
 import { getThemaDescription } from './dictionaries/thema.js';
 import { t } from './i18n.js';
+import { buildShareHTML, bindShareContainer } from './share.js';
 
 export function createBookCard(book) {
     const card = document.createElement("div");
@@ -161,9 +162,6 @@ export function openDetailModal(book) {
 
     try {
         const cleanIsbnValue = getCleanIsbn(book.isbn);
-        const shareUrl = encodeURIComponent(window.location.href);
-        const shareTitle = encodeURIComponent(book.titleText || "Libro");
-        const shareText = encodeURIComponent(`📖 ${book.titleText} - ${book.authorDisplay || ''}`);
 
         let coverSrc = book.coverLink || '';
         if (coverSrc.startsWith('file://')) coverSrc = coverSrc.replace('file://', '');
@@ -195,25 +193,16 @@ export function openDetailModal(book) {
             `<div class="detail-section"><a href="?collection=${encodeURIComponent(book.collectionTitle)}" class="collection-link" data-collection="${escapeHTML(book.collectionTitle)}">${t('modal_view_collection', { collection: escapeHTML(book.collectionTitle) })}</a></div>` :
             "";
 
+        // Share: usamos la URL activa (ya incluye el hash #isbn=...).
+        // Sin emojis: los mensajes se generan planos.
+        const shareURL = window.location.href;
+        const shareTitle = book.titleText || 'Libro';
+        const shareText = `${book.titleText}${book.authorDisplay ? ' - ' + book.authorDisplay : ''}`;
         const shareHTML = `
             <div class="detail-section share-section">
                 <h4>${t('modal_share')}</h4>
                 <div class="share-icons">
-                    <a href="mailto:?subject=${shareTitle}&body=${shareUrl}" target="_blank" rel="noopener" aria-label="Compartir por email">
-                        <i class="fa-solid fa-envelope"></i>
-                    </a>
-                    <a href="https://mastodon.social/share?text=${shareText}%20${shareUrl}" target="_blank" rel="noopener" aria-label="Compartir en Mastodon">
-                        <i class="fa-brands fa-mastodon"></i>
-                    </a>
-                    <a href="https://www.instagram.com/" target="_blank" rel="noopener" aria-label="Compartir en Instagram (copia el enlace)">
-                        <i class="fa-brands fa-instagram"></i>
-                    </a>
-                    <a href="https://bsky.app/intent/compose?text=${shareText}%20${shareUrl}" target="_blank" rel="noopener" aria-label="Compartir en Bluesky">
-                        <i class="fa-brands fa-bluesky"></i>
-                    </a>
-                    <button class="copy-url-btn" aria-label="Copiar URL" title="Copiar enlace al portapapeles">
-                        <i class="fa-solid fa-link"></i>
-                    </button>
+                    ${buildShareHTML({ url: shareURL, title: shareTitle, text: shareText })}
                 </div>
             </div>
         `;
@@ -327,6 +316,13 @@ export function openDetailModal(book) {
 
         dom.modalBody.innerHTML = modalHTML;
 
+        // Vincular los iconos de compartir del modal.
+        bindShareContainer(dom.modalBody.querySelector('.share-section'), {
+            url: shareURL,
+            title: shareTitle,
+            text: shareText
+        });
+
         const modalContainer = document.querySelector('.catalog-modal');
         if (modalContainer) {
             modalContainer.style.display = 'block';
@@ -420,31 +416,6 @@ export function openDetailModal(book) {
                 }
             });
         });
-
-        const copyBtn = dom.modalBody.querySelector('.copy-url-btn');
-        if (copyBtn) {
-            copyBtn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                const url = window.location.href;
-                navigator.clipboard.writeText(url).then(() => {
-                    const icon = copyBtn.querySelector('i');
-                    if (icon) {
-                        icon.className = 'fa-solid fa-check';
-                        setTimeout(() => {
-                            icon.className = 'fa-solid fa-link';
-                        }, 2000);
-                    }
-                }).catch(err => {
-                    console.error('Error al copiar URL:', err);
-                    const textArea = document.createElement('textarea');
-                    textArea.value = url;
-                    document.body.appendChild(textArea);
-                    textArea.select();
-                    document.execCommand('copy');
-                    document.body.removeChild(textArea);
-                });
-            });
-        }
 
         dom.modalOverlay.classList.add('active');
         document.body.style.overflow = 'hidden';
