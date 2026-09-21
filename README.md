@@ -176,7 +176,11 @@ Si un fragmento no existe en el tema activo, se usa el del tema `default`.
 
 ### `collections.csv`
 
-Puedes añadir un archivo `data/collections.csv` para que las colecciones tengan una descripción. Debe tener dos columnas: `titulo` e `intro`. Cuando se selecciona una colección en el filtro, se muestra la introducción correspondiente.
+DILVE no admite añadir una descripción de la colección, pero es información relevante en el catálogo. Por eso, opcionalmente puedes añadir un archivo `data/collections.csv` para que las colecciones tengan títulos (en varios idiomas) y descripciones.
+
+El esquema admitido es `titulo,titulo_ca,titulo_es,titulo_en,intro,intro_ca,intro_es,intro_en`, donde `titulo` es la clave canónica (debe coincidir exactamente con el valor `coleccion` que ONIX envía para esa colección) y el resto de columnas son variantes opcionales por idioma.
+
+**Fallback:** Cuando se selecciona una colección en el filtro, se muestra su título e introducción en el idioma activo. Si la variante del idioma no existe o está vacía, se usa el valor por defecto; si tampoco hay valor por defecto, el campo no se muestra. Nunca se cae a otro idioma: es preferible no mostrar una intro que mostrarla en el idioma equivocado.
 
 ### Script `run.sh`
 
@@ -214,6 +218,7 @@ El script `run.sh` facilita el arranque en diferentes entornos y la ejecución d
 | «No se encontraron productos»                 | El código de editorial es incorrecto. Obtén el código correcto de DILVE.                                      |
 | Los logs no se generan                        | Comprueba que el directorio `data/logs` existe y tiene permisos de escritura.                                 |
 | Al navegar por subdirectorio, CSS/JS fallan   | `BASE_PATH` no termina en `/`. Debe ser, por ejemplo, `/llibres/cataleg/`.                                    |
+| El título traducido de una colección no aparece | El `titulo` del CSV no coincide EXACTAMENTE con el valor `coleccion` de ONIX. Compara con `catalog.csv` (columna `coleccion`) y ajusta. |
 
 ## Licencia y derechos
 

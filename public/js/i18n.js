@@ -40,6 +40,15 @@ export function t(key, params = {}) {
 }
 
 /**
+ * Devuelve el código del idioma activo ('ca' | 'es' | 'en').
+ * Se usa desde módulos que necesitan resolver contenido multilengua
+ * fuera del diccionario de UI (p. ej. collections.js).
+ */
+export function getCurrentLang() {
+    return currentLang;
+}
+
+/**
  * Detect the best matching language from URL, localStorage, or browser.
  */
 export function detectLanguage() {
@@ -132,4 +141,4 @@ export async function initI18n() {
 }
 
 window.t = t;
-window.i18n = { t, setLanguage, detectLanguage, initI18n };
+window.i18n = { t, setLanguage, detectLanguage, initI18n, getCurrentLang };
