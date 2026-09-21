@@ -52,20 +52,17 @@ export function getCurrentLang() {
  * Detect the best matching language from URL, localStorage, or browser.
  */
 export function detectLanguage() {
-    // 1. URL parameter ?lang=
     const urlParams = new URLSearchParams(window.location.search);
     const urlLang = urlParams.get('lang');
     if (urlLang && SUPPORTED_LANGS.includes(urlLang)) {
         return urlLang;
     }
 
-    // 2. localStorage
     const stored = localStorage.getItem('lang');
     if (stored && SUPPORTED_LANGS.includes(stored)) {
         return stored;
     }
 
-    // 3. navigator.languages
     const browserLangs = navigator.languages || [navigator.language];
     for (const lang of browserLangs) {
         const base = lang.split('-')[0];
@@ -74,7 +71,6 @@ export function detectLanguage() {
         }
     }
 
-    // 4. default: Catalan
     return 'ca';
 }
 
@@ -122,6 +118,21 @@ export function applyTranslations() {
 }
 
 /**
+ * Marca el idioma activo en el selector de la prenavigation del tema UAB.
+ * El <span class="prenav-lang-item"> correspondiente recibe la clase
+ * `.active`, que el CSS del tema pinta en verde.
+ */
+function markActiveLanguage(lang) {
+    document.querySelectorAll('.prenav-lang-item').forEach(el => {
+        if (el.dataset.lang === lang) {
+            el.classList.add('active');
+        } else {
+            el.classList.remove('active');
+        }
+    });
+}
+
+/**
  * Initialize i18n: detect language, load translations, apply to DOM.
  * Ensures the URL lang parameter is valid and overwrites if invalid.
  */
@@ -130,13 +141,13 @@ export async function initI18n() {
     currentLang = lang;
     const url = new URL(window.location.href);
     const currentLangParam = url.searchParams.get('lang');
-    // If the parameter is missing or invalid, set it to the detected language
     if (!currentLangParam || !SUPPORTED_LANGS.includes(currentLangParam)) {
         url.searchParams.set('lang', lang);
         window.history.replaceState(null, '', url.toString());
     }
     await loadTranslations(lang);
     applyTranslations();
+    markActiveLanguage(lang);
     document.dispatchEvent(new CustomEvent('i18n:ready', { detail: { lang } }));
 }
 

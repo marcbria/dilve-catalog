@@ -5,16 +5,23 @@ body {
 }
 
 .prenavigation {
-    background-color: #f0f0f0;
-    border-bottom: 1px solid #ddd;
-    font-size: 0.75rem;
-    padding: 4px 0;
+    background-color: #dfdfdf;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.125);
+    font-size: 0.85rem;
+    min-height: 40px;
+    display: flex;
+    align-items: center;
+    padding: 0;
+}
+
+.prenavigation > .container {
+    display: flex;
+    align-items: center;
+    width: 100%;
 }
 
 .prenavigation .container {
-    display: flex;
     justify-content: space-between;
-    align-items: center;
     flex-wrap: wrap;
     gap: 8px;
 }
@@ -31,7 +38,7 @@ body {
 /* Header principal - sticky */
 .navbar {
     background: #fff !important;
-    border-bottom: 4px solid #007e11 !important;
+    border-bottom: 1px solid #CCC !important;
     box-shadow: 0 2px 8px rgba(0,0,0,0.05);
     padding: 10px 0;
     position: sticky !important;
@@ -53,6 +60,12 @@ body {
 }
 .navbar-nav .nav-link:hover {
     color: #007e11 !important;
+}
+
+/* Menú principal: tipografía 18px */
+#block-uab-publicacions-main-menu .nav-link,
+.prenav-menu-item .nav-link {
+    font-size: 18px !important;
 }
 
 .container {

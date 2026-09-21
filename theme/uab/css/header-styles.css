@@ -29,18 +29,18 @@ body {
 
 /* --- Prenavigation (barra superior) --- */
 .prenavigation {
-    background-color: #f0f0f0;
-    border-bottom: 1px solid #ddd;
-    font-size: 0.75rem;
-    padding: 4px 0;
+    background-color: #dfdfdf;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.125);
+    font-size: 0.85rem;
+    min-height: 40px;
+    display: flex;
+    align-items: center;
 }
 
-.prenavigation .container {
+.prenavigation > .container {
     display: flex;
-    justify-content: space-between;
     align-items: center;
-    flex-wrap: wrap;
-    gap: 8px;
+    width: 100%;
 }
 
 .prenavigation a {
@@ -58,44 +58,80 @@ body {
     justify-content: flex-end;
     align-items: center;
     gap: 8px;
+    width: 100%;
+}
+
+/* Normaliza el alineado vertical de todos los bloques de la prenav
+   (Directori, selector de idioma, redes sociales). */
+.prenavigation .region-prenavigation > * {
+    display: flex;
+    align-items: center;
+    margin: 0;
+}
+
+/* Directori: mismo tamaño y alineado que el resto de textos */
+.prenavigation .directori a {
+    color: #333;
+    text-decoration: none;
+    font-weight: normal;
+    font-size: 0.85rem;
+    line-height: 1;
+    display: inline-flex;
+    align-items: center;
+}
+
+.prenavigation #block-commutadordellengua .links-inline {
+    display: flex;
+    align-items: center;
+    gap: 0;
 }
 
 .prenavigation #block-commutadordellengua .links-inline .nav-link {
     padding: 0;
 }
 
-/* Ajuste de espaciado en los enlaces de idioma */
-.prenavigation #block-commutadordellengua .links-inline span {
+/* Espaciado mínimo alrededor de cada idioma */
+.prenavigation #block-commutadordellengua .links-inline .prenav-lang-item {
+    display: inline-flex;
+    align-items: center;
+    padding: 0 2px;
+}
+
+/* Separador de idiomas: línea vertical de altura completa y centrada
+   entre los dos idiomas que separa. */
+.prenavigation #block-commutadordellengua .links-inline .prenav-lang-item:not(:last-child)::after {
+    content: "";
     display: inline-block;
-    padding: 0 4px;
+    width: 1px;
+    height: 1rem;
+    background-color: #000;
+    margin: 0 6px;
+    vertical-align: middle;
 }
 
-.prenavigation #block-commutadordellengua .links-inline span:not(:last-child)::after {
-    content: "|";
-    margin: 0 6px 0 8px;
-    color: #333;
-}
-
-.prenavigation #block-commutadordellengua .links-inline span a {
+.prenavigation #block-commutadordellengua .links-inline .prenav-lang-item a {
     padding: 0 2px;
     color: #333;
     text-decoration: none;
 }
 
+/* Idioma activo destacado en verde */
+.prenavigation .prenav-lang-item.active a,
 .prenavigation #block-commutadordellengua .links-inline span.active a {
     color: #007e11 !important;
-    font-weight: 700;
+    font-weight: 700 !important;
 }
 
+/* Redes sociales: separación reducida */
 .prenavigation #block-xarxessocials img {
     height: 24px;
-    padding-left: 8px;
+    padding-left: 2px;
 }
 
 /* --- Navegación principal (navbar) --- */
 .navbar {
     background: #fff;
-    border-bottom: 4px solid #007e11;
+    border-bottom: 1px solid #CCC !important;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
     padding: 10px 0;
     position: sticky;
@@ -164,17 +200,26 @@ body {
     transition: color 0.2s;
 }
 
+/* Menú principal: tipografía 18px */
+#block-uab-publicacions-main-menu .nav-link,
+.prenav-menu-item .nav-link {
+    font-size: 18px;
+}
+
 .nav-link:hover {
     color: #007e11;
 }
 
-/* Separador del menú principal */
+/* Separador del menú principal: línea vertical de altura completa,
+   con el mismo espaciado a ambos lados. */
 .nav-item:not(:last-child)::after {
-    content: "|";
-    margin: 0 8px 0 12px;
+    content: "";
     display: inline-block;
-    color: #000;
-    font-weight: 300;
+    width: 1px;
+    height: 1.2rem;
+    background-color: #000;
+    margin: 0 8px;
+    vertical-align: middle;
 }
 
 /* --- Colapso del menú en móviles --- */

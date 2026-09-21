@@ -193,8 +193,6 @@ export function openDetailModal(book) {
             `<div class="detail-section"><a href="?collection=${encodeURIComponent(book.collectionTitle)}" class="collection-link" data-collection="${escapeHTML(book.collectionTitle)}">${t('modal_view_collection', { collection: escapeHTML(book.collectionTitle) })}</a></div>` :
             "";
 
-        // Share: usamos la URL activa (ya incluye el hash #isbn=...).
-        // Sin emojis: los mensajes se generan planos.
         const shareURL = window.location.href;
         const shareTitle = book.titleText || 'Libro';
         const shareText = `${book.titleText}${book.authorDisplay ? ' - ' + book.authorDisplay : ''}`;
@@ -221,9 +219,6 @@ export function openDetailModal(book) {
             publisherDisplay = `<a href="https://publicacions.uab.cat" target="_blank" style="text-decoration:none;color:#007e11;">Servei de Publicacions de la UAB</a>`;
         }
 
-        // Campo "Formato": siempre visible. Para papel se usa formatDisplay
-        // ("Papel"); para digital también formatDisplay ("Digital") sin
-        // añadir el detalle del formato de archivo (EPUB, PDF, ...).
         const formatHTML = `<div class="detail-row"><span class="label">${t('modal_format')}</span><span class="value"><span class="modal-link" data-format="${isDigital ? 'digital' : 'paper'}">${escapeHTML(formatDisplay)}</span></span></div>`;
 
         let dimensionsHTML = "";
@@ -255,16 +250,17 @@ export function openDetailModal(book) {
 
         // Coeditoras: se muestran solo si coment_edic tiene contenido.
         // DILVE puede enviar las entidades separadas por saltos de línea
-        // (formato esperado) o como una única frase separada por comas
-        // (formato observado en catálogos reales). Si hay saltos, cada
-        // entidad va en su propia línea; si no, se muestra el texto tal
-        // cual (ya es una frase legible).
+        // o por comas (con o sin espacios). Cada entidad se muestra en su
+        // propia línea.
         let coeditionHTML = "";
         if (book.comentEdic && book.comentEdic.trim()) {
             const raw = book.comentEdic.trim();
-            const lines = raw.split(/\r?\n/).map(s => s.trim()).filter(Boolean);
-            const rendered = lines.length > 1
-                ? lines.map(escapeHTML).join('<br>')
+            const parts = raw
+                .split(/\r?\n|,\s*/)
+                .map(s => s.trim())
+                .filter(Boolean);
+            const rendered = parts.length > 1
+                ? parts.map(escapeHTML).join('<br/>')
                 : escapeHTML(raw);
             coeditionHTML = `<div class="detail-row"><span class="label">${t('modal_coedition')}</span><span class="value">${rendered}</span></div>`;
         }
@@ -316,7 +312,6 @@ export function openDetailModal(book) {
 
         dom.modalBody.innerHTML = modalHTML;
 
-        // Vincular los iconos de compartir del modal.
         bindShareContainer(dom.modalBody.querySelector('.share-section'), {
             url: shareURL,
             title: shareTitle,
@@ -460,8 +455,6 @@ function createRelatedProductsHTML(related) {
     otherFormats.forEach(b => {
         let label;
         if (b.isDigital) {
-            // Sin detalle de formato para productos digitales:
-            // se muestra únicamente la etiqueta "Digital".
             label = t('filter_format_digital');
         } else {
             label = t('filter_format_paper');
