@@ -63,7 +63,7 @@ body {
 .prenavigation .region-prenavigation > * {
     display: flex;
     align-items: center;
-    margin: 0;
+    margin: 0 14px;
 }
 
 /* Directori: mismo tamaño y alineado que el resto de textos */
@@ -213,29 +213,33 @@ body {
 }
 
 /* Separador del menú principal: línea vertical centrada, con el mismo
-   margen a ambos lados. */
+   margen a ambos lados. Altura: 1.2rem + 6px. */
 .nav-item:not(:last-child)::after {
     content: "";
     display: inline-block;
     width: 1px;
-    height: 1.2rem;
+    height: calc(1.2rem + 6px);
     background-color: #000;
     margin: 0 12px;
     vertical-align: middle;
 }
 
-/* Triángulo del ítem activo (Libros): triángulo CSS más ancho y bajo
-   que el carácter "▾" del base, para igualar el aspecto del original. */
+/* Triángulo del ítem activo (Libros): triángulo CSS 10×5px.
+   `vertical-align: middle` no basta para alinearlo con la 's' de
+   "Llibres" porque el triángulo es más bajo que la caja de texto;
+   se eleva 3px con position: relative. */
 .prenav-menu-item.active .nav-link::after {
     content: "";
     display: inline-block;
     width: 0;
     height: 0;
     margin-left: 6px;
-    border-left: 6px solid transparent;
-    border-right: 6px solid transparent;
-    border-top: 4px solid #007e11;
+    border-left: 5px solid transparent;
+    border-right: 5px solid transparent;
+    border-top: 5px solid #007e11;
     vertical-align: middle;
+    position: relative;
+    top: -3px;
     font-size: 0;
     color: transparent;
 }
