@@ -46,7 +46,6 @@ body {
 .prenavigation a {
     color: #333;
     text-decoration: none;
-    margin: 0 4px;
 }
 .prenavigation a:hover {
     text-decoration: underline;
@@ -61,8 +60,6 @@ body {
     width: 100%;
 }
 
-/* Normaliza el alineado vertical de todos los bloques de la prenav
-   (Directori, selector de idioma, redes sociales). */
 .prenavigation .region-prenavigation > * {
     display: flex;
     align-items: center;
@@ -90,42 +87,45 @@ body {
     padding: 0;
 }
 
-/* Espaciado mínimo alrededor de cada idioma */
+/* Ítem de idioma: sin padding ni margin propios. El separador es el
+   único responsable del espaciado, con margin simétrico a ambos lados. */
 .prenavigation #block-commutadordellengua .links-inline .prenav-lang-item {
     display: inline-flex;
     align-items: center;
-    padding: 0 2px;
+    padding: 0;
+    margin: 0;
 }
 
-/* Separador de idiomas: línea vertical de altura completa y centrada
-   entre los dos idiomas que separa. */
+.prenavigation #block-commutadordellengua .links-inline .prenav-lang-item a {
+    padding: 0;
+    margin: 0;
+    color: #333;
+    text-decoration: none;
+}
+
+/* Separador de idiomas: línea vertical centrada, con el mismo margen a
+   ambos lados. */
 .prenavigation #block-commutadordellengua .links-inline .prenav-lang-item:not(:last-child)::after {
     content: "";
     display: inline-block;
     width: 1px;
     height: 1rem;
     background-color: #000;
-    margin: 0 6px;
+    margin: 0 8px;
     vertical-align: middle;
 }
 
-.prenavigation #block-commutadordellengua .links-inline .prenav-lang-item a {
-    padding: 0 2px;
-    color: #333;
-    text-decoration: none;
-}
-
-/* Idioma activo destacado en verde */
+/* Idioma activo: solo color, sin negrita */
 .prenavigation .prenav-lang-item.active a,
 .prenavigation #block-commutadordellengua .links-inline span.active a {
     color: #007e11 !important;
-    font-weight: 700 !important;
+    font-weight: normal !important;
 }
 
 /* Redes sociales: separación reducida */
 .prenavigation #block-xarxessocials img {
     height: 24px;
-    padding-left: 2px;
+    padding-left: 4px;
 }
 
 /* --- Navegación principal (navbar) --- */
@@ -184,8 +184,10 @@ body {
     gap: 0;
 }
 
+/* Ítem de menú sin padding propio: el separador gestiona el espaciado
+   con margen simétrico a ambos lados. */
 .nav-item {
-    padding: 0 8px;
+    padding: 0;
     display: flex;
     align-items: center;
 }
@@ -210,16 +212,32 @@ body {
     color: #007e11;
 }
 
-/* Separador del menú principal: línea vertical de altura completa,
-   con el mismo espaciado a ambos lados. */
+/* Separador del menú principal: línea vertical centrada, con el mismo
+   margen a ambos lados. */
 .nav-item:not(:last-child)::after {
     content: "";
     display: inline-block;
     width: 1px;
     height: 1.2rem;
     background-color: #000;
-    margin: 0 8px;
+    margin: 0 12px;
     vertical-align: middle;
+}
+
+/* Triángulo del ítem activo (Libros): triángulo CSS más ancho y bajo
+   que el carácter "▾" del base, para igualar el aspecto del original. */
+.prenav-menu-item.active .nav-link::after {
+    content: "";
+    display: inline-block;
+    width: 0;
+    height: 0;
+    margin-left: 6px;
+    border-left: 6px solid transparent;
+    border-right: 6px solid transparent;
+    border-top: 4px solid #007e11;
+    vertical-align: middle;
+    font-size: 0;
+    color: transparent;
 }
 
 /* --- Colapso del menú en móviles --- */

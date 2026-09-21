@@ -29,7 +29,6 @@ body {
 .prenavigation a {
     color: #333;
     text-decoration: none;
-    margin: 0 4px;
 }
 .prenavigation a:hover {
     text-decoration: underline;
