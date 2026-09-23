@@ -45,12 +45,10 @@ export function transformBook(row) {
     const editionNumber = row["num_edic"] || "";
     const binding = row["encuad"] || "";
 
-    // === NOTAS BIOGRÁFICAS DE AUTORES (NUEVO) ===
     const notaBiografica1 = row["nota_biografica_autor1"] || "";
     const notaBiografica2 = row["nota_biografica_autor2"] || "";
     const notaBiografica3 = row["nota_biografica_autor3"] || "";
 
-    // Determinar si es digital (códigos EB, EC, ED, EA)
     const digitalCodes = ["EB", "EC", "ED", "EA"];
     let isDigital = false;
     if (digitalCodes.includes(formato) || digitalFormatRaw.trim() !== "") {
@@ -65,25 +63,42 @@ export function transformBook(row) {
     const authors = authorList.map(a => invertirNombre(a));
     const authorDisplay = authors.length > 0 ? authors.join('; ') : "Autor desconocido";
 
-    // Fechas: usar fecha_public_dma y año_public
+    // ─── Fechas ──────────────────────────────────────────────
+    // Formatos admitidos en `fecha_public_dma`:
+    //   - DD/MM/YYYY  (el parser lo normaliza desde YYYY-MM-DD)
+    //   - YYYYMMDD    (el parser lo deja tal cual si ONIX no trae guiones)
+    //   - texto libre con un año embebido
+    // `sortDate` se calcula como entero YYYYMMDD para ordenar.
     let displayDate = "";
     let sortDate = 0;
-    if (fechaPublicDMA && fechaPublicDMA.includes("/")) {
-        const parts = fechaPublicDMA.split("/");
-        if (parts.length === 3) {
-            const d = parts[0].padStart(2, "0");
-            const m = parts[1].padStart(2, "0");
-            const y = parts[2];
-            displayDate = `${d}-${m}-${y}`;
-            sortDate = parseInt(y + m + d) || 0;
+
+    if (fechaPublicDMA) {
+        // Caso 1: DD/MM/YYYY
+        if (fechaPublicDMA.includes("/")) {
+            const parts = fechaPublicDMA.split("/");
+            if (parts.length === 3) {
+                const d = parts[0].padStart(2, "0");
+                const m = parts[1].padStart(2, "0");
+                const y = parts[2];
+                displayDate = `${d}-${m}-${y}`;
+                sortDate = parseInt(y + m + d) || 0;
+            }
         }
-    } else if (fechaPublicDMA) {
-        displayDate = fechaPublicDMA;
-        // Intentar extraer año
-        const match = fechaPublicDMA.match(/\d{4}/);
-        if (match) {
-            const y = match[0];
-            sortDate = parseInt(y + "0000") || 0;
+        // Caso 2: YYYYMMDD (8 dígitos seguidos)
+        else if (/^\d{8}$/.test(fechaPublicDMA)) {
+            const y = fechaPublicDMA.slice(0, 4);
+            const m = fechaPublicDMA.slice(4, 6);
+            const d = fechaPublicDMA.slice(6, 8);
+            displayDate = `${d}-${m}-${y}`;
+            sortDate = parseInt(fechaPublicDMA) || 0;
+        }
+        // Caso 3: otros formatos → extraer el primer año y rellenar
+        else {
+            displayDate = fechaPublicDMA;
+            const match = fechaPublicDMA.match(/\d{4}/);
+            if (match) {
+                sortDate = parseInt(match[0] + "0000") || 0;
+            }
         }
     } else if (year && /^\d{4}$/.test(year)) {
         displayDate = year;
@@ -151,13 +166,10 @@ export function transformBook(row) {
         editionNumber: editionNumber,
         binding: binding,
         bindingName: bindingName,
-        // === NOTAS BIOGRÁFICAS (NUEVO) ===
         nota_biografica_autor1: notaBiografica1,
         nota_biografica_autor2: notaBiografica2,
         nota_biografica_autor3: notaBiografica3,
-        // === WEB DESCARGA / COMPRA ===
         webDescargaProducto: webDescargaProducto,
-        // === COMENTARIOS DE LA EDICIÓN (coeditoras) ===
         comentEdic: comentEdic,
     };
 }
@@ -198,8 +210,6 @@ export function mergeBooks(books) {
             if (book.comentEdic && !existing.comentEdic) {
                 existing.comentEdic = book.comentEdic;
             }
-            // === COMBINAR NOTAS BIOGRÁFICAS (NUEVO) ===
-            // Conservar la que tenga contenido, priorizando la que tenga texto
             if (book.nota_biografica_autor1 && !existing.nota_biografica_autor1) {
                 existing.nota_biografica_autor1 = book.nota_biografica_autor1;
             }
@@ -209,7 +219,6 @@ export function mergeBooks(books) {
             if (book.nota_biografica_autor3 && !existing.nota_biografica_autor3) {
                 existing.nota_biografica_autor3 = book.nota_biografica_autor3;
             }
-            // Actualizar sortDate con la más reciente
             if (book.sortDate > existing.sortDate) {
                 existing.sortDate = book.sortDate;
                 existing.displayDate = book.displayDate;
