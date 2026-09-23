@@ -38,6 +38,7 @@ export function transformBook(row) {
     const editorialCode = row["editorial_code"] || "";
     const webDescargaProducto = row["web_descarga_producto"] || "";
     const comentEdic = row["coment_edic"] || "";
+    const estadoCatalogo = row["estado_catalogo"] || "";
 
     const digitalFormatRaw = row["formato_edicion_digital"] || "";
     const themaCode = row["codigo_thema_materia"] || "";
@@ -48,6 +49,11 @@ export function transformBook(row) {
     const notaBiografica1 = row["nota_biografica_autor1"] || "";
     const notaBiografica2 = row["nota_biografica_autor2"] || "";
     const notaBiografica3 = row["nota_biografica_autor3"] || "";
+
+    // Estado ONIX (lista 64). 07 = Descatalogado.
+    // Un libro descatalogado se conserva en el catálogo pero no muestra
+    // precio ni botón de compra.
+    const isDescatalogado = estadoCatalogo === "07";
 
     const digitalCodes = ["EB", "EC", "ED", "EA"];
     let isDigital = false;
@@ -171,6 +177,8 @@ export function transformBook(row) {
         nota_biografica_autor3: notaBiografica3,
         webDescargaProducto: webDescargaProducto,
         comentEdic: comentEdic,
+        estadoCatalogo: estadoCatalogo,
+        isDescatalogado: isDescatalogado,
     };
 }
 
@@ -209,6 +217,10 @@ export function mergeBooks(books) {
             }
             if (book.comentEdic && !existing.comentEdic) {
                 existing.comentEdic = book.comentEdic;
+            }
+            if (book.estadoCatalogo && !existing.estadoCatalogo) {
+                existing.estadoCatalogo = book.estadoCatalogo;
+                existing.isDescatalogado = book.isDescatalogado;
             }
             if (book.nota_biografica_autor1 && !existing.nota_biografica_autor1) {
                 existing.nota_biografica_autor1 = book.nota_biografica_autor1;

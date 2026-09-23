@@ -92,7 +92,11 @@ export function createBookCard(book) {
 
     const priceEl = document.createElement("span");
     priceEl.className = `card-price-text ${book.isFree ? 'free' : ''}`;
-    if (book.isFree) {
+    if (book.isDescatalogado) {
+        // Descatalogado: se sustituye el precio por el aviso, sin botón de compra.
+        priceEl.classList.add('discontinued');
+        priceEl.textContent = t('discontinued');
+    } else if (book.isFree) {
         priceEl.textContent = t('modal_free');
     } else if (book.priceAmount > 0) {
         const priceFormatted = book.priceAmount.toFixed(2).replace('.', ',') + ' €';
@@ -173,9 +177,15 @@ export function openDetailModal(book) {
             coverHTML = `<div class="modal-cover-placeholder active">${escapeHTML((book.titleText || '?').substring(0,80))}</div>`;
         }
 
+        // Precio / acción:
+        //   - Descatalogado → sin precio ni botón, solo el aviso.
+        //   - Acceso abierto → botón DOI.
+        //   - De pago → precio + botón de compra.
         let priceHTML = "";
         let actionHTML = "";
-        if (book.isFree) {
+        if (book.isDescatalogado) {
+            priceHTML = `<span class="detail-price-big discontinued">${t('discontinued')}</span>`;
+        } else if (book.isFree) {
             actionHTML = `<div class="detail-action"><a href="https://doi.org/10.5565/lib/${cleanIsbnValue}" target="_blank" class="btn-free">${t('modal_free')}</a></div>`;
         } else if (book.priceAmount > 0) {
             const priceFormatted = book.priceAmount.toFixed(2).replace('.', ',') + ' €';

@@ -82,10 +82,18 @@ BATCH_SIZE: int = int(os.environ.get("BATCH_SIZE", "128"))
 # ─────────────────────────────────────────────────────────────────────
 # Filtrado por estado ONIX (lista 64)
 # ─────────────────────────────────────────────────────────────────────
-# Códigos de estado que se consideran "en catálogo". Cualquier producto
-# cuyo estado no figure aquí se descarta durante la extracción.
+# Códigos de estado que se consideran "en catálogo" (es decir, activos
+# y disponibles para la venta). Es el subconjunto de INCLUDED_STATUS_CODES
+# que SÍ muestra precio y botón de compra en el frontend.
 ACTIVE_STATUS_CODES: list[str] = _csv_list(
     "ACTIVE_STATUS_CODES", "04,02,13,18"
+)
+
+# Códigos de estado que se incluyen en el CSV. Además de los activos,
+# incluye los descatalogados (07), que se conservan en el catálogo pero
+# el frontend marca como tales y NO muestra precio ni botón de compra.
+INCLUDED_STATUS_CODES: list[str] = _csv_list(
+    "INCLUDED_STATUS_CODES", "04,02,13,18,07"
 )
 
 # Traducción de cada código ONIX (lista 64) a una etiqueta legible.
@@ -174,6 +182,7 @@ CSV_COLUMNS: list[str] = [
     "codigo_thema_cargada",
     "publico_objetivo",
     "situ_catalogo_editorial",
+    "estado_catalogo",
     "disponibilidad",
     "fecha_disponibilidad_dma",
     "fecha_puesta_venta_dma",

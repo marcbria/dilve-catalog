@@ -11,6 +11,7 @@ from typing import Optional
 
 from config import (
     ACTIVE_STATUS_CODES,
+    INCLUDED_STATUS_CODES,
     BATCH_SIZE,
     CATALOG_STATUS_DESCRIPTIONS,
 )
@@ -81,6 +82,7 @@ def ejecutar_descarga(
 
     total_isbns = 0
     libros_activos = 0
+    libros_descatalogados = 0
     metadatos_descargados = 0
     cubiertas_dilve = 0
     cubiertas_externas = 0
@@ -143,16 +145,23 @@ def ejecutar_descarga(
                     try:
                         datos = parsear_producto(prod)
                         status = datos.get("estado_catalogo", "")
-                        if status not in ACTIVE_STATUS_CODES:
+                        # Solo se incluyen los estados de INCLUDED_STATUS_CODES
+                        # (activos + descatalogados). El resto se descarta.
+                        if status not in INCLUDED_STATUS_CODES:
                             desc = CATALOG_STATUS_DESCRIPTIONS.get(status, "Desconocido")
                             print_warn(
                                 f"Saltando ISBN {datos.get('isbn13')} con estado {status} ({desc})"
                             )
                             continue
 
-                        libros_activos += 1
+                        if status in ACTIVE_STATUS_CODES:
+                            libros_activos += 1
+                        else:
+                            libros_descatalogados += 1
+
                         isbn = datos.get("isbn13", "")
-                        datos.pop("estado_catalogo", None)
+                        # NO eliminamos estado_catalogo: se persiste en el CSV
+                        # para que el frontend pueda distinguir descatalogados.
 
                         # Descargar cubierta si corresponde
                         if actualizar_cubiertas:
@@ -235,6 +244,8 @@ def ejecutar_descarga(
         print_title("=== RESUMEN DE EJECUCIÓN ===")
         print_ok(f"Catálogo actual: {metadatos_descargados}")
         print_ok(f"Actualizaciones: {total_isbns}")
+        if libros_descatalogados > 0:
+            print_ok(f"Libros descatalogados incluidos: {libros_descatalogados}")
         if actualizar_cubiertas:
             print_ok(f"Cubiertas descargadas de DILVE: {cubiertas_dilve}")
             print_ok(f"Cubiertas descargadas de URLs externas: {cubiertas_externas}")
@@ -250,6 +261,8 @@ def ejecutar_descarga(
         _log_message("=== RESUMEN ===")
         _log_message(f"Catálogo actual: {metadatos_descargados}")
         _log_message(f"Actualizaciones: {total_isbns}")
+        if libros_descatalogados > 0:
+            _log_message(f"Libros descatalogados incluidos: {libros_descatalogados}")
         if actualizar_cubiertas:
             _log_message(f"Cubiertas DILVE: {cubiertas_dilve}")
             _log_message(f"Cubiertas externas: {cubiertas_externas}")
@@ -301,7 +314,6 @@ def main():
 
     try:
         if not args.update_metadata and not args.update_covers:
-            # Ya no se imprime "Modo por defecto", se gestiona dentro de ejecutar_descarga
             ejecutar_descarga(
                 actualizar_metadatos=True,
                 actualizar_cubiertas=True,
