@@ -248,11 +248,14 @@ body { font-family:var(--font-sans); background-color:#f8f9fa; color:#1a1a1a; li
 .card-price-text.free {
     color:var(--color-digital);
 }
-/* Precio sustituido por aviso de descatalogado */
+/* Precio sustituido por aviso de descatalogado.
+   flex-basis:100% fuerza el salto de línea antes del aviso, para que
+   aparezca debajo del badge de formato. */
 .card-price-text.discontinued {
     color: #888;
-    font-style: italic;
     font-weight: 500;
+    flex-basis: 100%;
+    width: 100%;
 }
 .card-language-dot {
     width:8px;
@@ -520,10 +523,9 @@ body { font-family:var(--font-sans); background-color:#f8f9fa; color:#1a1a1a; li
     padding: 0 !important;
     background: transparent !important;
 }
-/* Precio sustituido por aviso de descatalogado */
+/* Precio sustituido por aviso de descatalogado (sin cursiva) */
 .catalog-modal-body .detail-price-big.discontinued {
     color: #888 !important;
-    font-style: italic !important;
     font-weight: 500 !important;
 }
 .catalog-modal-body .iva-inclosit {
