@@ -141,8 +141,11 @@ export function transformBook(row) {
 
     const isFutureRelease = computeIsFutureRelease(sortDate, datePrecision, year);
 
-    const langMap = { cat: "Catalán", spa: "Castellano", eng: "Inglés" };
-    const languageLabel = langMap[languageRaw] || languageRaw.toUpperCase();
+    // La etiqueta neutra del idioma se traduce en la capa de UI según el
+    // idioma activo (ver i18n.getLanguageLabel). Aquí solo guardamos el
+    // código en mayúsculas como fallback para códigos sin traducción
+    // específica (p. ej. "FRA", "DEU").
+    const languageLabel = languageRaw ? languageRaw.toUpperCase() : "";
     const languageCode = ["cat", "spa", "eng"].includes(languageRaw) ? languageRaw : "other";
 
     const numericPrice = parseFloat(precioVenta) || 0;

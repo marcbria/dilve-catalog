@@ -4,7 +4,7 @@ import { navigateToLanguage, navigateToFormat, navigateToThema, navigateToAuthor
 import { escapeHTML, getCleanIsbn } from './utils.js';
 import { updateURL } from './urlManager.js';
 import { getThemaDescription } from './dictionaries/thema.js';
-import { t } from './i18n.js';
+import { t, getLanguageLabel } from './i18n.js';
 import { buildShareHTML, bindShareContainer } from './share.js';
 
 export function createBookCard(book) {
@@ -64,7 +64,9 @@ export function createBookCard(book) {
     const dot = document.createElement("span");
     dot.className = `card-language-dot lang-${book.languageCode || 'other'}`;
     langSpan.appendChild(dot);
-    langSpan.appendChild(document.createTextNode(` ${book.languageLabel || ''}`));
+    // Etiqueta del idioma traducida al idioma activo de la UI.
+    const langText = getLanguageLabel(book.languageCode, book.languageLabel);
+    langSpan.appendChild(document.createTextNode(` ${langText}`));
     metaEl.appendChild(langSpan);
 
     if (book.collectionNumber) {
@@ -93,7 +95,6 @@ export function createBookCard(book) {
     const priceEl = document.createElement("span");
     priceEl.className = `card-price-text ${book.isFree ? 'free' : ''}`;
     if (book.isDescatalogado) {
-        // Descatalogado: se sustituye el precio por el aviso, sin botón de compra.
         priceEl.classList.add('discontinued');
         priceEl.textContent = t('discontinued');
     } else if (book.isFree) {
@@ -177,10 +178,6 @@ export function openDetailModal(book) {
             coverHTML = `<div class="modal-cover-placeholder active">${escapeHTML((book.titleText || '?').substring(0,80))}</div>`;
         }
 
-        // Precio / acción:
-        //   - Descatalogado → sin precio ni botón, solo el aviso.
-        //   - Acceso abierto → botón DOI.
-        //   - De pago → precio + botón de compra.
         let priceHTML = "";
         let actionHTML = "";
         if (book.isDescatalogado) {
@@ -220,7 +217,8 @@ export function openDetailModal(book) {
             return `<span class="modal-link" data-author="${escapeHTML(a)}">${escapeHTML(a)}</span>`;
         }).join(', ');
 
-        const langDisplay = book.languageLabel || '';
+        // Etiqueta del idioma traducida al idioma activo de la UI.
+        const langDisplay = getLanguageLabel(book.languageCode, book.languageLabel);
         const langCode = book.languageCode || 'other';
         const isDigital = book.isDigital || false;
 
@@ -258,10 +256,6 @@ export function openDetailModal(book) {
             bindingHTML = `<div class="detail-row"><span class="label">Encuadernación:</span><span class="value">${escapeHTML(book.bindingName)}</span></div>`;
         }
 
-        // Coeditoras: se muestran solo si coment_edic tiene contenido.
-        // DILVE puede enviar las entidades separadas por saltos de línea
-        // o por comas (con o sin espacios). Cada entidad se muestra en su
-        // propia línea.
         let coeditionHTML = "";
         if (book.comentEdic && book.comentEdic.trim()) {
             const raw = book.comentEdic.trim();
@@ -290,7 +284,7 @@ export function openDetailModal(book) {
             ${actionHTML}
             <div class="detail-tags">
                 <span class="detail-tag ${isDigital ? 'digital' : 'paper'} modal-link" data-format="${isDigital ? 'digital' : 'paper'}">${formatDisplay}</span>
-                <span class="detail-tag lang-${langCode} modal-link" data-lang="${langCode}">${langDisplay}</span>
+                <span class="detail-tag lang-${langCode} modal-link" data-lang="${langCode}">${escapeHTML(langDisplay)}</span>
             </div>
         </div>
         <div class="modal-details-col">
@@ -477,7 +471,8 @@ function createRelatedProductsHTML(related) {
     });
 
     translations.forEach(b => {
-        const langLabel = b.languageLabel || 'Idioma';
+        // Etiqueta del idioma traducida al idioma activo de la UI.
+        const langLabel = getLanguageLabel(b.languageCode, b.languageLabel) || t('filter_language');
         const langCode = b.languageCode || 'other';
         html += `<button class="related-product-btn lang-${langCode}" data-isbn="${b.isbn}">${escapeHTML(langLabel)}</button>`;
     });

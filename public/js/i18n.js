@@ -49,6 +49,26 @@ export function getCurrentLang() {
 }
 
 /**
+ * Devuelve la etiqueta traducida del idioma de un libro.
+ *
+ * Reutiliza las claves i18n ya existentes `filter_language_cat`,
+ * `filter_language_spa` y `filter_language_eng`. Para lenguas sin
+ * traducción específica (p. ej. `fra`, `deu`) usa `fallback`, que
+ * normalmente es el código en mayúsculas guardado por el transformer.
+ *
+ * @param {string} code      Código del idioma ('cat' | 'spa' | 'eng' | 'other')
+ * @param {string} fallback  Etiqueta neutra para códigos sin traducción
+ * @returns {string}
+ */
+export function getLanguageLabel(code, fallback = '') {
+    if (!code) return fallback || '';
+    const key = `filter_language_${code}`;
+    const translated = t(key);
+    if (translated !== key) return translated;
+    return fallback || code.toUpperCase();
+}
+
+/**
  * Detect the best matching language from URL, localStorage, or browser.
  */
 export function detectLanguage() {
@@ -185,4 +205,4 @@ export async function initI18n() {
 }
 
 window.t = t;
-window.i18n = { t, setLanguage, detectLanguage, initI18n, getCurrentLang };
+window.i18n = { t, setLanguage, detectLanguage, initI18n, getCurrentLang, getLanguageLabel };
