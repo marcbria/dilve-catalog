@@ -95,22 +95,23 @@ Los directorios `data/` (catalog, covers, logs) se crean automáticamente dentro
 
 Todo el proyecto se configura mediante variables de entorno: nunca hay secretos en ficheros versionados. El modo recomendado —y único soportado oficialmente— es definirlas en un archivo `.env` en la raíz del proyecto; Docker Compose las inyecta automáticamente en el contenedor.
 
-| Variable              | Descripción                                                       | Leída por     | Valor por defecto                            |
-|-----------------------|-------------------------------------------------------------------|---------------|----------------------------------------------|
-| `DILVE_USER`          | Usuario de DILVE                                                  | Python        | (requerido)                                  |
-| `DILVE_PASS`          | Contraseña de DILVE                                               | Python        | (requerido)                                  |
-| `EDITORIAL_CODE`      | Código de la editorial (varios separados por `\|`)                | Python        | (requerido)                                  |
-| `DILVE_BASE_URL`      | URL base de la API REST de DILVE (debe terminar en `/`)           | Python        | `https://www.dilve.es/dilve/dilve/`          |
-| `BATCH_SIZE`          | Número de ISBN por petición (máximo 128)                          | Python        | `128`                                        |
-| `ACTIVE_STATUS_CODES` | Códigos de estado activos (lista 64 de ONIX), separados por coma  | Python        | `04,02,13,18`                                |
-| `CRON_SCHEDULE`       | Expresión cron para la actualización automática                   | entrypoint.sh | `0 2 * * *` (diario a las 2 AM)              |
-| `TZ`                  | Zona horaria (ej. `Europe/Madrid`)                                | entrypoint.sh | `UTC`                                        |
-| `THEME`               | Tema a utilizar (nombre de la carpeta dentro de `theme/`)         | entrypoint.sh | `default`                                    |
-| `LOGO`                | URL o nombre de archivo del logo (opcional)                       | entrypoint.sh | (vacío)                                      |
-| `ORGANIZATION`        | Nombre de la institución (se usa en el título y el footer)        | entrypoint.sh | `Universitat Autònoma de Barcelona`          |
-| `DEFAULT_LANG`        | Idioma por defecto de la interfaz                                 | entrypoint.sh | `ca`                                         |
-| `BASE_PATH`           | Ruta base si el catálogo se sirve en un subdirectorio. **Debe terminar en `/`** | entrypoint.sh + Traefik | `/`                              |
-| `BASE_URL`            | Host público del catálogo (solo el hostname, sin esquema)         | Traefik       | `localhost`                                  |
+| Variable                | Descripción                                                       | Leída por     | Valor por defecto                            |
+|-------------------------|-------------------------------------------------------------------|---------------|----------------------------------------------|
+| `DILVE_USER`            | Usuario de DILVE                                                  | Python        | (requerido)                                  |
+| `DILVE_PASS`            | Contraseña de DILVE                                               | Python        | (requerido)                                  |
+| `EDITORIAL_CODE`        | Código de la editorial (varios separados por `\|`)                | Python        | (requerido)                                  |
+| `DILVE_BASE_URL`        | URL base de la API REST de DILVE (debe terminar en `/`)           | Python        | `https://www.dilve.es/dilve/dilve/`          |
+| `BATCH_SIZE`            | Número de ISBN por petición (máximo 128)                          | Python        | `128`                                        |
+| `ACTIVE_STATUS_CODES`   | Códigos ONIX considerados «activos» (muestran precio y compra)    | Python        | `04,02,13,18`                                |
+| `INCLUDED_STATUS_CODES` | Códigos ONIX que se incluyen en el CSV (activos + descatalogados) | Python        | `04,02,13,18,07`                             |
+| `CRON_SCHEDULE`         | Expresión cron para la actualización automática                   | entrypoint.sh | `0 2 * * *` (diario a las 2 AM)              |
+| `TZ`                    | Zona horaria (ej. `Europe/Madrid`)                                | entrypoint.sh | `UTC`                                        |
+| `THEME`                 | Tema a utilizar (nombre de la carpeta dentro de `theme/`)         | entrypoint.sh | `default`                                    |
+| `LOGO`                  | URL o nombre de archivo del logo (opcional)                       | entrypoint.sh | (vacío)                                      |
+| `ORGANIZATION`          | Nombre de la institución (se usa en el título y el footer)        | entrypoint.sh | `Universitat Autònoma de Barcelona`          |
+| `DEFAULT_LANG`          | Idioma por defecto de la interfaz                                 | entrypoint.sh | `ca`                                         |
+| `BASE_PATH`             | Ruta base si el catálogo se sirve en un subdirectorio. **Debe terminar en `/`** | entrypoint.sh + Traefik | `/`                              |
+| `BASE_URL`              | Host público del catálogo (solo el hostname, sin esquema)         | Traefik       | `localhost`                                  |
 
 Ejemplo de `.env` completo (con subdirectorio y Traefik):
 
@@ -125,6 +126,16 @@ Ejemplo de `.env` completo (con subdirectorio y Traefik):
     DEFAULT_LANG=ca
     BASE_PATH=/llibres/cataleg/
     BASE_URL=publicacions.uab.cat
+
+### Estados ONIX y libros descatalogados
+
+Cada producto se filtra por su `PublishingStatus` ONIX (lista 64). Por defecto:
+
+- Se incluyen en el CSV los estados de `INCLUDED_STATUS_CODES` (`04,02,13,18,07`).
+- Los estados de `ACTIVE_STATUS_CODES` (`04,02,13,18`) muestran precio y botón de compra.
+- Los libros con estado `07` (Descatalogado) se conservan en el catálogo pero se marcan como tales: en la tarjeta y en la ficha detallada se sustituye el precio y el botón de compra por el aviso «Descatalogado». El resto de estados se descartan durante la extracción.
+
+El estado se persiste en la columna `estado_catalogo` del CSV. Los libros con fecha de publicación futura no se muestran hasta que llega esa fecha (la comprobación se hace en el frontend en cada carga, por lo que la transición es automática sin regenerar el CSV).
 
 ### Actualización manual
 
@@ -219,6 +230,8 @@ El script `run.sh` facilita el arranque en diferentes entornos y la ejecución d
 | Los logs no se generan                        | Comprueba que el directorio `data/logs` existe y tiene permisos de escritura.                                 |
 | Al navegar por subdirectorio, CSS/JS fallan   | `BASE_PATH` no termina en `/`. Debe ser, por ejemplo, `/llibres/cataleg/`.                                    |
 | El título traducido de una colección no aparece | El `titulo` del CSV no coincide EXACTAMENTE con el valor `coleccion` de ONIX. Compara con `catalog.csv` (columna `coleccion`) y ajusta. |
+| Los libros descatalogados no aparecen         | El catálogo se generó antes de añadir el estado `07` a `INCLUDED_STATUS_CODES`. Regenera con `./run.sh update --metadata --all`. |
+| Un libro con fecha futura aparece en el catálogo | El navegador tiene una versión antigua del JS en caché. Recarga con `Ctrl+Shift+R` o vacía la caché.        |
 
 ## Licencia y derechos
 

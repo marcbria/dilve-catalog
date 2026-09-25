@@ -10,6 +10,33 @@ export function invertirNombre(nombre) {
     return nombre;
 }
 
+// ─── Fecha de publicación futura ─────────────────────────
+//
+// Determina si el libro debe ocultarse del catálogo porque su fecha
+// de publicación es posterior a hoy.
+//
+// Reglas:
+//   - Si tenemos la fecha completa (YYYYMMDD) → comparar con hoy.
+//   - Si solo tenemos el año → ocultar únicamente si el año es
+//     estrictamente futuro (no podemos saber el mes/día).
+//   - Sin fecha → mostrar (fallback conservador).
+function computeIsFutureRelease(sortDate, datePrecision, year) {
+    const now = new Date();
+    const todayYYYYMMDD = now.getFullYear() * 10000
+        + (now.getMonth() + 1) * 100
+        + now.getDate();
+    const todayYear = now.getFullYear();
+
+    if (datePrecision === "full") {
+        return sortDate > todayYYYYMMDD;
+    }
+    if (datePrecision === "year") {
+        const y = parseInt(year, 10);
+        return !isNaN(y) && y > todayYear;
+    }
+    return false;
+}
+
 export function transformBook(row) {
     const isbn = row["isbn13"] || "";
     const titleText = row["titulo"] || "";
@@ -51,8 +78,6 @@ export function transformBook(row) {
     const notaBiografica3 = row["nota_biografica_autor3"] || "";
 
     // Estado ONIX (lista 64). 07 = Descatalogado.
-    // Un libro descatalogado se conserva en el catálogo pero no muestra
-    // precio ni botón de compra.
     const isDescatalogado = estadoCatalogo === "07";
 
     const digitalCodes = ["EB", "EC", "ED", "EA"];
@@ -74,12 +99,15 @@ export function transformBook(row) {
     //   - DD/MM/YYYY  (el parser lo normaliza desde YYYY-MM-DD)
     //   - YYYYMMDD    (el parser lo deja tal cual si ONIX no trae guiones)
     //   - texto libre con un año embebido
+    //
     // `sortDate` se calcula como entero YYYYMMDD para ordenar.
+    // `datePrecision` indica si tenemos la fecha completa o solo el año,
+    // para que `computeIsFutureRelease` sepa si puede decidir con rigor.
     let displayDate = "";
     let sortDate = 0;
+    let datePrecision = "none"; // "full" | "year" | "none"
 
     if (fechaPublicDMA) {
-        // Caso 1: DD/MM/YYYY
         if (fechaPublicDMA.includes("/")) {
             const parts = fechaPublicDMA.split("/");
             if (parts.length === 3) {
@@ -88,28 +116,30 @@ export function transformBook(row) {
                 const y = parts[2];
                 displayDate = `${d}-${m}-${y}`;
                 sortDate = parseInt(y + m + d) || 0;
+                datePrecision = "full";
             }
-        }
-        // Caso 2: YYYYMMDD (8 dígitos seguidos)
-        else if (/^\d{8}$/.test(fechaPublicDMA)) {
+        } else if (/^\d{8}$/.test(fechaPublicDMA)) {
             const y = fechaPublicDMA.slice(0, 4);
             const m = fechaPublicDMA.slice(4, 6);
             const d = fechaPublicDMA.slice(6, 8);
             displayDate = `${d}-${m}-${y}`;
             sortDate = parseInt(fechaPublicDMA) || 0;
-        }
-        // Caso 3: otros formatos → extraer el primer año y rellenar
-        else {
+            datePrecision = "full";
+        } else {
             displayDate = fechaPublicDMA;
             const match = fechaPublicDMA.match(/\d{4}/);
             if (match) {
                 sortDate = parseInt(match[0] + "0000") || 0;
+                datePrecision = "year";
             }
         }
     } else if (year && /^\d{4}$/.test(year)) {
         displayDate = year;
         sortDate = parseInt(year + "0000") || 0;
+        datePrecision = "year";
     }
+
+    const isFutureRelease = computeIsFutureRelease(sortDate, datePrecision, year);
 
     const langMap = { cat: "Catalán", spa: "Castellano", eng: "Inglés" };
     const languageLabel = langMap[languageRaw] || languageRaw.toUpperCase();
@@ -144,6 +174,7 @@ export function transformBook(row) {
         languageLabel,
         displayDate,
         sortDate,
+        datePrecision,
         year: year || (displayDate ? displayDate.slice(-4) : ""),
         extentLabel: pages ? pages + " páginas" : "",
         isDigital,
@@ -179,6 +210,7 @@ export function transformBook(row) {
         comentEdic: comentEdic,
         estadoCatalogo: estadoCatalogo,
         isDescatalogado: isDescatalogado,
+        isFutureRelease: isFutureRelease,
     };
 }
 
@@ -235,6 +267,8 @@ export function mergeBooks(books) {
                 existing.sortDate = book.sortDate;
                 existing.displayDate = book.displayDate;
                 existing.year = book.year;
+                existing.datePrecision = book.datePrecision;
+                existing.isFutureRelease = book.isFutureRelease;
             }
         } else {
             map.set(key, { ...book });

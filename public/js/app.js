@@ -7,7 +7,7 @@ import { applyFiltersAndReset, resetAllFilters, navigateToLanguage, navigateToFo
 import { loadMoreBooks, setupIntersectionObserver, closeModal, openDetailModal } from './uiRenderer.js';
 import { applyInitialURLParams, updateURL } from './urlManager.js';
 import { getCleanIsbn, getIsbnFromHash, getIsbnFromQuery } from './utils.js';
-import { initI18n, t } from './i18n.js';  // <-- NUEVO
+import { initI18n, t } from './i18n.js';
 
 // ─── Carga del catálogo ──────────────────────────────────
 async function loadCatalog(csvText) {
@@ -17,6 +17,16 @@ async function loadCatalog(csvText) {
     console.log(`Libros después de transformar y filtrar: ${books.length}`);
     books = mergeBooks(books);
     console.log(`Libros después de merge: ${books.length}`);
+
+    // Excluir libros con fecha de publicación futura: no deben
+    // aparecer en el catálogo hasta la fecha indicada.
+    const beforeFuture = books.length;
+    books = books.filter(b => !b.isFutureRelease);
+    const excluded = beforeFuture - books.length;
+    if (excluded > 0) {
+        console.log(`Excluidos ${excluded} libros con fecha de publicación futura.`);
+    }
+
     state.allBooks = books;
     state.allBooks.sort((a, b) => {
         if (b.sortDate !== a.sortDate) return b.sortDate - a.sortDate;
@@ -114,7 +124,6 @@ async function init() {
         console.error('Error cargando catalog.csv:', err);
         dom.fileFallback.classList.add('active');
         await fetchCollectionsCSV();
-        // Usar traducciones para mensajes de error
         dom.booksGrid.innerHTML =
             `<div class="error-message"><div class="icon">⚠️</div><p>${t('error_loading_catalog')}</p><p style="font-size:0.9rem;">${t('select_csv_file')}</p></div>`;
         dom.booksGrid.style.display = 'grid';
