@@ -76,6 +76,10 @@ export function detectLanguage() {
 
 /**
  * Set the active language, store in localStorage, and reload with ?lang=.
+ *
+ * Conserva la URL actual (path, query y hash) y solo cambia el parámetro
+ * `lang`. Así, cambiar de idioma desde una ficha de libro mantiene el
+ * `#isbn=...` y desde una colección mantiene el `?collection=...`.
  */
 export function setLanguage(lang) {
     if (!SUPPORTED_LANGS.includes(lang)) return;
@@ -133,6 +137,34 @@ function markActiveLanguage(lang) {
 }
 
 /**
+ * Intercepta el click en los enlaces del selector de idioma para que la
+ * navegación conserve la URL actual (path, query y hash). Sin este
+ * listener, los `href` estáticos del header (UAB) apuntan a la home y
+ * descartan la página en la que estaba el usuario.
+ *
+ * Acepta dos patrones habituales:
+ *   - `data-lang` en el propio <a>     → footer del tema default
+ *   - `data-lang` en un ancestro <span> → header del tema UAB
+ *
+ * El `href` original se mantiene como respaldo para navegadores sin JS,
+ * y el listener se registra una sola vez por enlace.
+ */
+export function bindLanguageLinks() {
+    document.querySelectorAll('[data-lang]').forEach(el => {
+        const lang = el.dataset.lang;
+        if (!lang) return;
+        const link = el.tagName === 'A' ? el : el.querySelector('a');
+        if (!link) return;
+        if (link.dataset.langBound === '1') return;
+        link.dataset.langBound = '1';
+        link.addEventListener('click', (e) => {
+            e.preventDefault();
+            setLanguage(lang);
+        });
+    });
+}
+
+/**
  * Initialize i18n: detect language, load translations, apply to DOM.
  * Ensures the URL lang parameter is valid and overwrites if invalid.
  */
@@ -148,6 +180,7 @@ export async function initI18n() {
     await loadTranslations(lang);
     applyTranslations();
     markActiveLanguage(lang);
+    bindLanguageLinks();
     document.dispatchEvent(new CustomEvent('i18n:ready', { detail: { lang } }));
 }
 
