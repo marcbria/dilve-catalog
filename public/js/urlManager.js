@@ -1,4 +1,5 @@
 import { dom, state } from './config.js';
+import { normalizeTitleKey } from './collections.js';
 
 export function getURLParams() {
     const params = new URLSearchParams(window.location.search);
@@ -12,7 +13,7 @@ export function getURLParams() {
     return {
         search: params.get("search") || "",
         sort: params.get("sort") || "date-desc",
-        filter_lang: params.get("filter_lang") || "all",  // changed from 'lang' to 'filter_lang'
+        filter_lang: params.get("filter_lang") || "all",
         format: params.get("format") || "all",
         price: params.get("price") || "all",
         collection: params.get("collection") || "all",
@@ -40,7 +41,6 @@ export function updateURL(isbn = null) {
     const s = dom.searchInput.value.trim();
     if (s) params.set("search", s);
     if (dom.sortSelect.value !== "date-desc") params.set("sort", dom.sortSelect.value);
-    // Use filter_lang for the language filter
     if (dom.langFilter.value !== "all") params.set("filter_lang", dom.langFilter.value);
     if (dom.formatFilter.value !== "all") params.set("format", dom.formatFilter.value);
     if (dom.priceFilter.value !== "all") params.set("price", dom.priceFilter.value);
@@ -56,19 +56,25 @@ export function applyInitialURLParams() {
     const p = getURLParams();
     if (p.search) dom.searchInput.value = p.search;
     if (p.sort) dom.sortSelect.value = p.sort;
-    // Apply filter_lang to the language filter, not 'lang'
     if (p.filter_lang) dom.langFilter.value = p.filter_lang;
     if (p.format) dom.formatFilter.value = p.format;
     if (p.price) dom.priceFilter.value = p.price;
     if (p.collection && p.collection !== "all") {
-        const exists = Array.from(dom.collectionFilter.options).some(opt => opt.value === p.collection);
-        if (!exists) {
+        // Emparejar por clave normalizada: si la URL trae una variante
+        // tipográfica distinta de la del <option> (p. ej. con guion vs
+        // sin guion), seleccionamos el <option> equivalente.
+        const key = normalizeTitleKey(p.collection);
+        const match = Array.from(dom.collectionFilter.options)
+            .find(opt => opt.value !== "all" && normalizeTitleKey(opt.value) === key);
+        if (match) {
+            dom.collectionFilter.value = match.value;
+        } else {
             const opt = document.createElement("option");
             opt.value = p.collection;
             opt.textContent = p.collection;
             dom.collectionFilter.appendChild(opt);
+            dom.collectionFilter.value = p.collection;
         }
-        dom.collectionFilter.value = p.collection;
     }
     if (p.author) {
         state.authorFilter = p.author;

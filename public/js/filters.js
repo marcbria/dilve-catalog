@@ -1,5 +1,5 @@
 import { dom, state } from './config.js';
-import { updateCollectionIntro, navigateToCollection } from './collections.js';
+import { updateCollectionIntro, navigateToCollection, normalizeTitleKey } from './collections.js';
 import { updateAuthorIntro } from './authors.js';
 import { updateURL, getURLParams } from './urlManager.js';
 import { loadMoreBooks, renderNoResults, resetPagination } from './uiRenderer.js';
@@ -28,7 +28,13 @@ export function applyFiltersAndReset() {
         if (formatVal === "digital" && !book.isDigital) return false;
         if (priceVal === "diamond" && !book.isFree) return false;
         if (priceVal === "paid" && book.isFree) return false;
-        if (collectionVal !== "all" && book.collectionTitle !== collectionVal) return false;
+        // Comparación normalizada: variantes tipográficas del mismo
+        // nombre de colección (con/sin guion, con/sin diacríticos)
+        // cuentan como la misma colección.
+        if (collectionVal !== "all" &&
+            normalizeTitleKey(book.collectionTitle) !== normalizeTitleKey(collectionVal)) {
+            return false;
+        }
         if (state.themaFilter && book.themaCode !== state.themaFilter) return false;
         if (state.authorFilter) {
             const authorMatch = book.authors && book.authors.some(a => a === state.authorFilter);
@@ -67,8 +73,6 @@ export function applyFiltersAndReset() {
     }
 
     resetPagination();
-    // IMPORTANTE: updateURL() antes de los intros para que las URLs
-    // de compartir (colección, autor) reflejen el estado actual.
     updateURL();
     updateCollectionIntro();
     updateAuthorIntro();
@@ -121,14 +125,13 @@ export function navigateToLanguage(langCode) {
 }
 
 export function navigateToFormat(formatLabel) {
-    // Normalize formatLabel to 'paper' or 'digital'
     let formatValue;
     if (formatLabel === "paper" || formatLabel === "Paper" || formatLabel === "Papel") {
         formatValue = "paper";
     } else if (formatLabel === "digital" || formatLabel === "Digital") {
         formatValue = "digital";
     } else {
-        return; // unknown format
+        return;
     }
     dom.formatFilter.value = formatValue;
     state.themaFilter = null;
