@@ -1,0 +1,84 @@
+/* ============================================================
+   responsive.css — Media queries
+   Debe importarse SIEMPRE al final para poder sobrescribir.
+   ============================================================ */
+
+@media (max-width: 768px) {
+    .header-inner {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
+    .controls-bar {
+        top: 0;
+    }
+    .controls-inner {
+        flex-wrap: wrap;
+    }
+    .hamburger {
+        display: block;
+    }
+    .filter-group {
+        display: none;
+        flex-direction: column;
+        width: 100%;
+        gap: 8px;
+        padding: 8px 0;
+        border-top: 1px solid #eee;
+        margin-top: 4px;
+    }
+    .filter-group.open {
+        display: flex;
+    }
+    .filter-group select,
+    .filter-group button {
+        width: 100%;
+    }
+    .books-grid {
+        grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+        gap: 16px;
+    }
+    .catalog-modal-body {
+        flex-direction: column;
+        padding: 16px;
+        gap: 20px;
+    }
+    .catalog-modal-body .modal-cover-col {
+        max-width: 200px;
+        margin: 0 auto;
+    }
+    .catalog-modal-close {
+        top: 12px !important;
+        right: 12px !important;
+        width: 36px !important;
+        height: 36px !important;
+        font-size: 1.2rem !important;
+    }
+    .prenavigation .region-prenavigation {
+        flex-wrap: wrap;
+        gap: 4px;
+    }
+    .navbar-nav .prenav-menu-item:not(:last-child)::after {
+        content: "";
+        margin: 0;
+    }
+}
+
+@media (max-width: 480px) {
+    .books-grid {
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+        gap: 12px;
+    }
+    .card-title {
+        font-size: 0.85rem;
+    }
+    .card-author {
+        font-size: 0.75rem;
+    }
+}
+
+@media (min-width: 1600px) {
+    .books-grid {
+        grid-template-columns: repeat(5, 1fr);
+    }
+}

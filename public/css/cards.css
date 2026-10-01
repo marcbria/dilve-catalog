@@ -1,0 +1,206 @@
+/* ============================================================
+   cards.css — Rejilla y tarjetas de libros
+   ============================================================ */
+
+.books-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 24px;
+}
+
+.book-card {
+    background: #fff;
+    overflow: hidden;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+    border: 1px solid #eee;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    border-radius: 0;
+}
+.book-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.12);
+    border-color: #d0d0d0;
+}
+
+.card-cover-wrapper {
+    position: relative;
+    width: 100%;
+    aspect-ratio: var(--cover-aspect-ratio);
+    overflow: hidden;
+    background: #f1f1f1;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    border-bottom: 2px solid #e0e0e0;
+}
+.card-cover-wrapper img {
+    width: 100%;
+    height: 100%;
+    object-fit: var(--cover-object-fit);
+    transition: transform 0.4s ease;
+    background: #f1f1f1;
+}
+.book-card:hover .card-cover-wrapper img {
+    transform: scale(1.04);
+}
+.card-cover-placeholder {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #e0e8e7, #d4dfdd);
+    color: #aaa;
+    font-size: 2.5rem;
+    font-family: var(--font-serif);
+    text-align: center;
+    padding: 20px;
+    font-weight: 700;
+}
+
+.card-body {
+    padding: 14px 16px 16px;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.card-title {
+    font-family: var(--font-sans);
+    font-size: 1.05rem;
+    font-weight: 700;
+    line-height: 1.3;
+    color: #1a1a1a;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    min-height: 3.9rem;
+}
+.card-author {
+    font-size: 0.85rem;
+    color: #555;
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.card-meta {
+    display: flex;
+    gap: 8px;
+    font-size: 0.75rem;
+    color: #888;
+    flex-wrap: wrap;
+    align-items: center;
+    margin-top: 2px;
+}
+.card-meta span {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+}
+.card-format-price {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 4px;
+    flex-wrap: wrap;
+}
+.card-format-badge {
+    display: inline-block;
+    font-size: 0.7rem;
+    font-weight: 600;
+    padding: 3px 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    border-radius: 0;
+    color: #fff;
+}
+.card-format-badge.paper {
+    background: var(--color-paper);
+}
+.card-format-badge.digital {
+    background: var(--color-digital);
+}
+.card-price-text {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: #1a1a1a;
+}
+.card-price-text.free {
+    color: var(--color-digital);
+}
+/* Precio sustituido por aviso de descatalogado.
+   flex-basis:100% fuerza el salto de línea antes del aviso, para que
+   aparezca debajo del badge de formato. */
+.card-price-text.discontinued {
+    color: #888;
+    font-weight: 500;
+    flex-basis: 100%;
+    width: 100%;
+}
+
+/* ─── Sentinel / loading / vacío ─── */
+.scroll-sentinel {
+    width: 100%;
+    height: 20px;
+    grid-column: 1/-1;
+    opacity: 0;
+    pointer-events: none;
+}
+.loading-indicator {
+    grid-column: 1/-1;
+    text-align: center;
+    padding: 20px;
+    color: #888;
+    font-size: 0.9rem;
+    display: none;
+}
+.loading-indicator.active {
+    display: block;
+}
+.no-results {
+    grid-column: 1/-1;
+    text-align: center;
+    padding: 60px 20px;
+    color: #999;
+}
+.no-results .icon {
+    font-size: 3.5rem;
+    margin-bottom: 16px;
+    opacity: 0.5;
+}
+.no-results p {
+    font-size: 1.1rem;
+}
+.error-message {
+    grid-column: 1/-1;
+    text-align: center;
+    padding: 60px 20px;
+    color: #b71c1c;
+    background: #fff;
+    border: 1px solid #ffcdd2;
+}
+.error-message .icon {
+    font-size: 3.5rem;
+    margin-bottom: 16px;
+}
+.file-fallback {
+    display: none;
+    text-align: center;
+    padding: 30px;
+    background: #fff;
+    border: 2px dashed #ddd;
+    margin-bottom: 24px;
+}
+.file-fallback.active {
+    display: block;
+}
+.file-fallback input {
+    margin-top: 12px;
+    font-family: var(--font-sans);
+}

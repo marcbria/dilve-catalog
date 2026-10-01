@@ -1,0 +1,31 @@
+/* ============================================================
+   layout.css — Contenedor principal y footer
+   ============================================================ */
+
+.main-content {
+    flex: 1;
+    padding: 32px 0 60px;
+}
+
+/* ─── FOOTER ─── */
+.site-footer {
+    background: #2d2d2d;
+    color: #ccc;
+    padding: 24px 0;
+    font-size: 0.85rem;
+    text-align: center;
+}
+.site-footer .container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+.site-footer a {
+    color: #ddd;
+    text-decoration: none;
+}
+.site-footer a:hover {
+    color: #fff;
+}

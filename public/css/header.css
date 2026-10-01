@@ -1,0 +1,161 @@
+/* ============================================================
+   header.css — Top-bar, cabecera del sitio, prenavigation
+   ============================================================ */
+
+/* ─── TOP BAR ─── */
+.top-bar {
+    background: #f0f0f0;
+    border-bottom: 1px solid #ddd;
+    font-size: 0.75rem;
+    padding: 4px 0;
+}
+.top-bar .container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+.top-bar a {
+    color: #333;
+    text-decoration: none;
+    margin: 0 4px;
+}
+.top-bar a:hover {
+    text-decoration: underline;
+}
+
+/* ─── SITE HEADER ─── */
+.site-header {
+    background: var(--uab-white);
+    border-bottom: 4px solid var(--uab-green);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    padding: 10px 0;
+}
+.header-inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 0;
+    flex-wrap: wrap;
+    gap: 16px;
+}
+.logo-area {
+    display: flex;
+    align-items: center;
+    text-decoration: none;
+    color: inherit;
+}
+.logo-area img {
+    max-height: 52px;
+    height: auto;
+    width: auto;
+    display: block;
+}
+
+/* ─── HAMBURGER ─── */
+.hamburger {
+    display: none;
+    background: none;
+    border: none;
+    font-size: 1.8rem;
+    cursor: pointer;
+    color: var(--uab-green);
+    padding: 4px 8px;
+    line-height: 1;
+}
+.hamburger:hover {
+    color: var(--uab-green-dark);
+}
+
+/* ─── PRENAVIGATION (tema UAB) ─── */
+.prenavigation {
+    background-color: #f0f0f0;
+    border-bottom: 1px solid #ddd;
+    font-size: 0.75rem;
+    padding: 4px 0;
+}
+.prenavigation .container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+.prenavigation .region-prenavigation {
+    display: flex;
+    flex-direction: row;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 16px;
+    width: 100%;
+}
+.prenavigation .region-prenavigation > * {
+    display: flex;
+    align-items: center;
+}
+.prenavigation .directori a {
+    color: #333;
+    text-decoration: none;
+    font-weight: normal;
+}
+.prenavigation .directori a:hover {
+    text-decoration: underline;
+}
+.prenavigation .language-switcher-language-url nav {
+    display: flex;
+    gap: 4px;
+}
+.prenavigation .prenav-lang-item {
+    display: inline;
+}
+.prenavigation .prenav-lang-item:not(:last-child)::after {
+    content: none;
+}
+.prenavigation .prenav-lang-item a {
+    color: #333;
+    text-decoration: none;
+    font-weight: normal;
+}
+.prenavigation .prenav-lang-item.active a {
+    color: var(--uab-green) !important;
+    font-weight: normal !important;
+}
+.prenavigation .prenav-lang-item a:hover {
+    text-decoration: underline;
+}
+
+/* ─── MENÚ PRINCIPAL (prenav-menu) ─── */
+.prenav-menu-item {
+    list-style: none;
+}
+.prenav-menu-item .nav-link {
+    color: #1a1a1a;
+    font-weight: 500;
+    text-decoration: none;
+    padding: 8px 0;
+    display: block;
+}
+.prenav-menu-item.active .nav-link {
+    color: var(--uab-green) !important;
+    font-weight: 700 !important;
+}
+.prenav-menu-item.active .nav-link::after {
+    content: " ▾";
+    font-size: 0.7rem;
+    color: var(--uab-green);
+}
+.prenav-menu-item .nav-link:hover {
+    color: var(--uab-green);
+}
+.navbar-nav .prenav-menu-item:not(:last-child)::after {
+    content: "";
+    border-right: 1px solid #000;
+    margin: 0 8px;
+    vertical-align: middle;
+    display: inline-block;
+    height: 1.2rem;
+}
