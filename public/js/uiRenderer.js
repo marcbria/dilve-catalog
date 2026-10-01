@@ -256,11 +256,17 @@ export function openDetailModal(book) {
             bindingHTML = `<div class="detail-row"><span class="label">Encuadernación:</span><span class="value">${escapeHTML(book.bindingName)}</span></div>`;
         }
 
+        // ─── Coeditores ──────────────────────────────────────
+        // El campo `coment_edic` (EditionStatement en ONIX 3.0) contiene
+        // las entidades coeditoras. El separador convenido es el punto
+        // y coma (antes se usaba la coma, que colisionaba con nombres
+        // de instituciones que la incluyen). Aceptamos también el salto
+        // de línea como separador por robustez con datos heredados.
         let coeditionHTML = "";
         if (book.comentEdic && book.comentEdic.trim()) {
             const raw = book.comentEdic.trim();
             const parts = raw
-                .split(/\r?\n|,\s*/)
+                .split(/\r?\n|;\s*/)
                 .map(s => s.trim())
                 .filter(Boolean);
             const rendered = parts.length > 1
