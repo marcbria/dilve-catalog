@@ -1,0 +1,32 @@
+/* ============================================================
+   languages.css — Colores por idioma
+
+   Cada clase `lang-XXX` define una variable `--lang-color` que
+   los componentes (punto de color en la tarjeta, etiqueta en el
+   modal, botón de "productos relacionados") consumen vía
+   `var(--lang-color)`. Añadir un idioma nuevo es tan simple como
+   añadir una línea aquí y su traducción en los locales.
+   ============================================================ */
+
+.lang-cat   { --lang-color: var(--color-cat); }
+.lang-spa   { --lang-color: var(--color-spa); }
+.lang-eng   { --lang-color: var(--color-eng); }
+.lang-fre   { --lang-color: var(--color-fre); }
+.lang-por   { --lang-color: var(--color-por); }
+.lang-ara   { --lang-color: var(--color-ara); }
+.lang-lat   { --lang-color: var(--color-lat); }
+.lang-ita   { --lang-color: var(--color-ita); }
+.lang-grc   { --lang-color: var(--color-grc); }
+.lang-other { --lang-color: var(--color-other); }
+
+/* Punto de color del idioma en las tarjetas de libro.
+   El color concreto viene de la clase `lang-XXX` aplicada al
+   mismo elemento. */
+.card-language-dot {
+    width: 8px;
+    height: 8px;
+    display: inline-block;
+    flex-shrink: 0;
+    border-radius: 0;
+    background: var(--lang-color, var(--color-other));
+}

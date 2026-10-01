@@ -37,6 +37,26 @@ function computeIsFutureRelease(sortDate, datePrecision, year) {
     return false;
 }
 
+// ─── Códigos de idioma soportados ────────────────────────
+//
+// Mapea el código ISO 639-2/B que envía ONIX a un código canónico
+// usado por el frontend (filtros, CSS `lang-XXX`, traducciones).
+// Se acepta `fra` (ISO 639-2/T) como alias de `fre` (ISO 639-2/B),
+// porque ambos aparecen en metadatos reales. Cualquier otro código
+// cae a `other` (la etiqueta se muestra en mayúsculas).
+const LANGUAGE_CODE_MAP = {
+    cat: "cat",   // català
+    spa: "spa",   // castellà
+    eng: "eng",   // anglès
+    fre: "fre",   // francès
+    fra: "fre",   // francès (variante ISO 639-2/T)
+    por: "por",   // portuguès
+    ara: "ara",   // àrab
+    lat: "lat",   // llatí
+    ita: "ita",   // italià
+    grc: "grc",   // grec antic
+};
+
 export function transformBook(row) {
     const isbn = row["isbn13"] || "";
     const titleText = row["titulo"] || "";
@@ -142,11 +162,10 @@ export function transformBook(row) {
     const isFutureRelease = computeIsFutureRelease(sortDate, datePrecision, year);
 
     // La etiqueta neutra del idioma se traduce en la capa de UI según el
-    // idioma activo (ver i18n.getLanguageLabel). Aquí solo guardamos el
-    // código en mayúsculas como fallback para códigos sin traducción
-    // específica (p. ej. "FRA", "DEU").
+    // idioma activo (ver i18n.getLanguageLabel). Aquí guardamos el código
+    // canónico como clave para el filtro y los colores (`lang-XXX`).
     const languageLabel = languageRaw ? languageRaw.toUpperCase() : "";
-    const languageCode = ["cat", "spa", "eng"].includes(languageRaw) ? languageRaw : "other";
+    const languageCode = LANGUAGE_CODE_MAP[languageRaw] || "other";
 
     const numericPrice = parseFloat(precioVenta) || 0;
     const isFree = precioVenta === "" || numericPrice === 0;

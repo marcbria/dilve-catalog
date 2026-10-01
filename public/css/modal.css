@@ -1,0 +1,357 @@
+/* ============================================================
+   modal.css — Modal de detalle del libro
+   ============================================================ */
+
+.catalog-modal-overlay {
+    position: fixed !important;
+    inset: 0 !important;
+    background: rgba(0, 0, 0, 0.55) !important;
+    z-index: 9999 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 24px !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+    transition: opacity 0.3s ease !important;
+    backdrop-filter: blur(3px) !important;
+    -webkit-backdrop-filter: blur(3px) !important;
+}
+.catalog-modal-overlay.active {
+    opacity: 1 !important;
+    pointer-events: auto !important;
+}
+.catalog-modal-overlay .catalog-modal {
+    background: #fff !important;
+    max-width: 900px !important;
+    width: 100% !important;
+    max-height: 88vh !important;
+    overflow-y: auto !important;
+    box-shadow: 0 20px 48px rgba(0, 0, 0, 0.2) !important;
+    position: relative !important;
+    transform: translateY(20px) !important;
+    transition: transform 0.3s ease !important;
+    display: block !important;
+    margin: 0 !important;
+    border-radius: 0 !important;
+}
+.catalog-modal-overlay.active .catalog-modal {
+    transform: translateY(0) !important;
+}
+.catalog-modal::-webkit-scrollbar {
+    width: 8px;
+}
+.catalog-modal::-webkit-scrollbar-track {
+    background: #f1f1f1;
+}
+.catalog-modal::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 0;
+}
+.catalog-modal::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
+.catalog-modal-close {
+    position: absolute !important;
+    top: 16px !important;
+    right: 16px !important;
+    z-index: 10 !important;
+    width: 40px !important;
+    height: 40px !important;
+    border-radius: 50% !important;
+    background: #f0f0f0 !important;
+    border: none !important;
+    cursor: pointer !important;
+    font-size: 1.4rem !important;
+    font-weight: 700 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    color: #333 !important;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1) !important;
+    transition: background 0.2s, transform 0.2s !important;
+    line-height: 1 !important;
+    padding: 0 !important;
+}
+.catalog-modal-close:hover {
+    background: #ddd !important;
+    transform: scale(1.05) !important;
+}
+.catalog-modal-body {
+    display: flex !important;
+    gap: 32px !important;
+    padding: 64px 28px 32px !important;
+    flex-wrap: wrap !important;
+}
+.catalog-modal-body .modal-cover-col {
+    flex: 0 0 260px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    gap: 16px !important;
+}
+.catalog-modal-body .modal-cover-col img {
+    width: 100% !important;
+    height: auto !important;
+    max-height: 100% !important;
+    object-fit: contain !important;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1) !important;
+    aspect-ratio: auto !important;
+    background: #f1f1f1 !important;
+}
+.catalog-modal-body .modal-cover-placeholder {
+    width: 100% !important;
+    aspect-ratio: var(--cover-aspect-ratio) !important;
+    background: linear-gradient(135deg, #e0e8e7, #d0dcd9) !important;
+    display: none !important;
+    align-items: center !important;
+    justify-content: center !important;
+    font-family: var(--font-serif) !important;
+    font-size: 2rem !important;
+    color: #aaa !important;
+    text-align: center !important;
+    padding: 30px !important;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1) !important;
+}
+.catalog-modal-body .modal-cover-placeholder.active {
+    display: flex !important;
+}
+.catalog-modal-body .modal-details-col {
+    flex: 1 !important;
+    min-width: 280px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 18px !important;
+}
+.catalog-modal-body .modal-details-col h2 {
+    font-family: var(--font-sans) !important;
+    font-size: 1.8rem !important;
+    font-weight: 700 !important;
+    color: #1a1a1a !important;
+    line-height: 1.25 !important;
+    letter-spacing: -0.3px !important;
+    margin: 0 !important;
+}
+.catalog-modal-body .modal-subtitle {
+    font-family: var(--font-serif) !important;
+    font-size: 1.0rem !important;
+    color: #666 !important;
+    font-weight: 400 !important;
+    margin-top: -8px !important;
+    margin-bottom: 4px !important;
+    font-style: italic !important;
+}
+.catalog-modal-body .detail-section {
+    border-top: 1px solid #eee !important;
+    padding-top: 14px !important;
+}
+.catalog-modal-body .detail-section:first-of-type {
+    border-top: none;
+    padding-top: 0;
+}
+.catalog-modal-body .detail-section h4 {
+    font-size: 0.8rem !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.8px !important;
+    color: #888 !important;
+    margin-bottom: 8px !important;
+    font-weight: 600 !important;
+}
+.catalog-modal-body .detail-row {
+    display: flex !important;
+    gap: 8px !important;
+    padding: 4px 0 !important;
+    font-size: 0.9rem !important;
+    flex-wrap: wrap !important;
+}
+.catalog-modal-body .detail-row .label {
+    font-weight: 600 !important;
+    color: #444 !important;
+    min-width: 110px !important;
+    flex-shrink: 0 !important;
+}
+.catalog-modal-body .detail-row .value {
+    color: #1a1a1a !important;
+}
+.catalog-modal-body .modal-link {
+    color: var(--uab-green) !important;
+    text-decoration: none !important;
+    cursor: pointer !important;
+    transition: color 0.2s !important;
+}
+.catalog-modal-body .modal-link:hover {
+    color: var(--uab-green-dark) !important;
+    text-decoration: none !important;
+}
+.catalog-modal-body .detail-description {
+    font-size: 0.9rem !important;
+    color: #555 !important;
+    line-height: 1.7 !important;
+    max-height: 200px !important;
+    overflow-y: auto !important;
+    padding-right: 8px !important;
+    white-space: pre-line !important;
+}
+.catalog-modal-body .detail-tags {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 8px !important;
+    margin-top: 4px !important;
+}
+.catalog-modal-body .detail-tag {
+    display: inline-block !important;
+    padding: 5px 12px !important;
+    font-size: 0.8rem !important;
+    font-weight: 500 !important;
+    background: #f0f0f0 !important;
+    color: #555 !important;
+    border-radius: 0 !important;
+}
+.catalog-modal-body .detail-tag.paper {
+    background: var(--color-paper) !important;
+    color: #fff !important;
+}
+.catalog-modal-body .detail-tag.digital {
+    background: var(--color-digital) !important;
+    color: #fff !important;
+}
+
+/* Etiquetas con color del idioma: todas las `lang-XXX` comparten
+   la misma regla y toman el color de la variable --lang-color. */
+.catalog-modal-body .detail-tag.lang-cat,
+.catalog-modal-body .detail-tag.lang-spa,
+.catalog-modal-body .detail-tag.lang-eng,
+.catalog-modal-body .detail-tag.lang-fre,
+.catalog-modal-body .detail-tag.lang-por,
+.catalog-modal-body .detail-tag.lang-ara,
+.catalog-modal-body .detail-tag.lang-lat,
+.catalog-modal-body .detail-tag.lang-ita,
+.catalog-modal-body .detail-tag.lang-grc,
+.catalog-modal-body .detail-tag.lang-other {
+    background: var(--lang-color, var(--color-other)) !important;
+    color: #fff !important;
+}
+
+.catalog-modal-body .detail-tag.highlight.modal-link {
+    text-decoration: none !important;
+    cursor: pointer !important;
+    transition: background 0.2s, color 0.2s !important;
+}
+.catalog-modal-body .detail-tag.highlight.modal-link:hover {
+    background: var(--uab-green) !important;
+    color: #fff !important;
+}
+.catalog-modal-body .detail-price-big {
+    font-size: 1.3rem !important;
+    font-weight: 700 !important;
+    color: #1a1a1a !important;
+    display: inline !important;
+    padding: 0 !important;
+    background: transparent !important;
+}
+/* Precio sustituido por aviso de descatalogado (sin cursiva) */
+.catalog-modal-body .detail-price-big.discontinued {
+    color: #888 !important;
+    font-weight: 500 !important;
+}
+.catalog-modal-body .iva-inclosit {
+    font-size: 0.95rem !important;
+    font-weight: 400 !important;
+    color: #666 !important;
+    margin-left: 6px !important;
+}
+.catalog-modal-body .detail-action {
+    margin-top: 12px !important;
+    text-align: center !important;
+}
+.catalog-modal-body .detail-action a {
+    display: inline-block !important;
+    padding: 12px 28px !important;
+    background: var(--uab-green) !important;
+    color: #fff !important;
+    font-weight: 600 !important;
+    font-size: 1rem !important;
+    text-decoration: none !important;
+    transition: background 0.2s !important;
+    border-radius: 0 !important;
+    letter-spacing: 0.5px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+}
+.catalog-modal-body .detail-action a:hover {
+    background: var(--uab-green-dark) !important;
+    color: #fff !important;
+    text-decoration: none !important;
+}
+.catalog-modal-body .detail-action a.btn-free {
+    background: rgb(56, 92, 169) !important;
+}
+.catalog-modal-body .detail-action a.btn-free:hover {
+    background: #1a3b6e !important;
+    color: #fff !important;
+}
+.catalog-modal-body .detail-action a.btn-buy {
+    background: var(--uab-green) !important;
+}
+.catalog-modal-body .detail-action a.btn-buy:hover {
+    background: var(--uab-green-dark) !important;
+    color: #fff !important;
+}
+
+/* ─── Productos relacionados ─── */
+.catalog-modal-body .related-products {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 8px !important;
+}
+.related-product-btn {
+    display: inline-block !important;
+    padding: 6px 16px !important;
+    margin: 4px !important;
+    border: none !important;
+    border-radius: 0 !important;
+    font-size: 0.85rem !important;
+    font-weight: 500 !important;
+    cursor: pointer !important;
+    transition: 0.2s !important;
+    color: #fff !important;
+    background: var(--color-paper) !important;
+    line-height: 1.4 !important;
+}
+.related-product-btn.digital {
+    background: var(--color-digital) !important;
+}
+/* Botones de idioma: comparten regla y toman el color de --lang-color */
+.related-product-btn.lang-cat,
+.related-product-btn.lang-spa,
+.related-product-btn.lang-eng,
+.related-product-btn.lang-fre,
+.related-product-btn.lang-por,
+.related-product-btn.lang-ara,
+.related-product-btn.lang-lat,
+.related-product-btn.lang-ita,
+.related-product-btn.lang-grc,
+.related-product-btn.lang-other {
+    background: var(--lang-color, var(--color-other)) !important;
+}
+.related-product-btn:hover {
+    opacity: 0.8 !important;
+}
+
+.catalog-modal-body .collection-link {
+    display: inline-block !important;
+    padding: 8px 16px !important;
+    background: var(--uab-green-pale) !important;
+    color: var(--uab-green-dark) !important;
+    border: none !important;
+    cursor: pointer !important;
+    transition: 0.2s !important;
+    font-size: 0.9rem !important;
+    font-weight: 500 !important;
+    border-radius: 0 !important;
+    text-decoration: none !important;
+}
+.catalog-modal-body .collection-link:hover {
+    background: var(--uab-green) !important;
+    color: #fff !important;
+}
