@@ -28,9 +28,6 @@ export function applyFiltersAndReset() {
         if (formatVal === "digital" && !book.isDigital) return false;
         if (priceVal === "diamond" && !book.isFree) return false;
         if (priceVal === "paid" && book.isFree) return false;
-        // Comparación normalizada: variantes tipográficas del mismo
-        // nombre de colección (con/sin guion, con/sin diacríticos)
-        // cuentan como la misma colección.
         if (collectionVal !== "all" &&
             normalizeTitleKey(book.collectionTitle) !== normalizeTitleKey(collectionVal)) {
             return false;
@@ -45,17 +42,20 @@ export function applyFiltersAndReset() {
 
     // ─── Ordenación ─────────────────────────────────────
     //
-    // Regla general: manda el <select> de ordenación.
+    // Prioridad:
+    //   1. Si hay colección seleccionada → número de colección
+    //      inverso (más reciente primero).
+    //   2. En cualquier caso → criterio del <select> de ordenación.
+    //   3. Como ÚLTIMO desempate → papel antes que digital, para
+    //      que dos formatos del mismo título salgan juntos y con el
+    //      papel primero.
     //
-    // Regla especial: si hay una colección seleccionada, se aplica
-    // primero el criterio del <select> y, como criterio secundario,
-    // el número de colección en orden inverso (más reciente primero).
-    // Así, dentro de una colección, las obras quedan ordenadas por
-    // su número, que es lo que el usuario espera al filtrar por
-    // colección, sin perder el orden principal elegido.
+    // El desempate 3 se aplica tras el 1 y el 2, así que solo entra
+    // cuando dos libros empatan en número de colección (o no hay
+    // colección) y empatan también en el criterio del <select>.
     const inCollection = collectionVal && collectionVal !== "all";
 
-    const applyPrimarySort = (a, b) => {
+    const applySelectSort = (a, b) => {
         switch (sortVal) {
             case "title-asc":
                 return a.titleText.localeCompare(b.titleText, "ca");
@@ -71,7 +71,7 @@ export function applyFiltersAndReset() {
             case "date-asc":
                 return a.sortDate - b.sortDate;
             case "collection-num-desc":
-                return compareCollectionNumber(b, a); // inverso: más reciente primero
+                return compareCollectionNumber(b, a);
             case "collection-num-asc":
                 return compareCollectionNumber(a, b);
             default:
@@ -80,17 +80,30 @@ export function applyFiltersAndReset() {
         }
     };
 
+    // Papel primero, digital después. Se aplica como desempate final
+    // solo cuando los títulos normalizados coinciden: para títulos
+    // distintos no fuerza nada, porque el orden lo decide el criterio
+    // principal.
+    const paperBeforeDigital = (a, b) => {
+        if (a.normalizedTitle !== b.normalizedTitle) return 0;
+        if (a.isDigital === b.isDigital) return 0;
+        return a.isDigital ? 1 : -1;
+    };
+
     if (inCollection) {
-        // Dentro de una colección: criterio principal del <select>,
-        // criterio secundario por número de colección inverso.
         state.filteredBooks.sort((a, b) => {
-            const primary = applyPrimarySort(a, b);
-            if (primary !== 0) return primary;
-            return compareCollectionNumber(b, a); // inverso: número alto primero
+            const byNum = compareCollectionNumber(b, a);
+            if (byNum !== 0) return byNum;
+            const bySelect = applySelectSort(a, b);
+            if (bySelect !== 0) return bySelect;
+            return paperBeforeDigital(a, b);
         });
     } else {
-        // Fuera de una colección: solo criterio del <select>.
-        state.filteredBooks.sort(applyPrimarySort);
+        state.filteredBooks.sort((a, b) => {
+            const bySelect = applySelectSort(a, b);
+            if (bySelect !== 0) return bySelect;
+            return paperBeforeDigital(a, b);
+        });
     }
 
     resetPagination();
@@ -109,16 +122,11 @@ export function applyFiltersAndReset() {
     }
 }
 
-// Compara dos libros por su número de colección. Los valores no
-// numéricos o ausentes se tratan como 0 (van al final en el orden
-// inverso, que es lo deseable: los "sin número" no son "los más
-// recientes"). Si ambos tienen el mismo número, se desempata por
-// título para que el orden sea estable.
 function compareCollectionNumber(a, b) {
     const na = parseFloat(a.collectionNumber) || 0;
     const nb = parseFloat(b.collectionNumber) || 0;
     if (na !== nb) return na - nb;
-    return (a.titleText || "").localeCompare(b.titleText || "", "ca");
+    return 0;
 }
 
 function updateFilterActiveState() {

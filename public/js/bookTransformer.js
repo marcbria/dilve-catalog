@@ -285,6 +285,15 @@ export function mergeBooks(books) {
             if (book.nota_biografica_autor3 && !existing.nota_biografica_autor3) {
                 existing.nota_biografica_autor3 = book.nota_biografica_autor3;
             }
+            // El número de colección puede diferir entre formatos del
+            // mismo ISBN (p. ej. papel nº 91 vs. digital nº 95). Nos
+            // quedamos con el MAYOR, que es el más reciente y el que
+            // usa `compareCollectionNumber` como representante.
+            const existingNum = parseFloat(existing.collectionNumber) || 0;
+            const newNum = parseFloat(book.collectionNumber) || 0;
+            if (newNum > existingNum) {
+                existing.collectionNumber = book.collectionNumber;
+            }
             if (book.sortDate > existing.sortDate) {
                 existing.sortDate = book.sortDate;
                 existing.displayDate = book.displayDate;
