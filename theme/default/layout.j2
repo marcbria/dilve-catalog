@@ -28,52 +28,60 @@
 
     <!-- ─── Controles ─── -->
     <div class="controls-bar" id="controlsBar">
-        <div class="container controls-inner">
-            <div class="search-wrapper">
-                <input type="text" id="searchInput" placeholder="Buscar por título, autor o ISBN..." data-i18n-placeholder="search_placeholder" />
-                <span class="search-icon"><i class="fa-solid fa-magnifying-glass"></i></span>
-            </div>
-            <button class="hamburger" id="hamburgerBtn" aria-label="Menú filtros"><i class="fa-solid fa-bars"></i></button>
-            <div class="filter-group" id="filterGroup">
-                <select id="sortSelect">
-                    <option value="date-desc" data-i18n="sort_recent">Más recientes</option>
-                    <option value="date-asc" data-i18n="sort_oldest">Más antiguos</option>
-                    <option value="title-asc" data-i18n="sort_title_asc">Título ▲</option>
-                    <option value="title-desc" data-i18n="sort_title_desc">Título ▼</option>
-                    <option value="author-asc" data-i18n="sort_author_asc">Autor ▲</option>
-                    <option value="author-desc" data-i18n="sort_author_desc">Autor ▼</option>
-                    <option value="collection-num-desc" data-i18n="sort_collection_num_desc">Número de colección ▼</option>
-                    <option value="collection-num-asc" data-i18n="sort_collection_num_asc">Número de colección ▲</option>
-                </select>
-                <select id="langFilter">
-                    <option value="all" data-i18n="filter_language_all">Tots els idiomes</option>
-                    <option value="cat" data-i18n="filter_language_cat">Català</option>
-                    <option value="spa" data-i18n="filter_language_spa">Castellà</option>
-                    <option value="eng" data-i18n="filter_language_eng">Anglès</option>
-                    <option value="fre" data-i18n="filter_language_fre">Francès</option>
-                    <option value="ita" data-i18n="filter_language_ita">Italià</option>
-                    <option value="por" data-i18n="filter_language_por">Portuguès</option>
-                    <option value="ara" data-i18n="filter_language_ara">Àrab</option>
-                    <option value="lat" data-i18n="filter_language_lat">Llatí</option>
-                    <option value="grc" data-i18n="filter_language_grc">Grec</option>
-                </select>
-                <select id="formatFilter">
-                    <option value="all" data-i18n="filter_format_all">Tots els formats</option>
-                    <option value="paper" data-i18n="filter_format_paper">Paper</option>
-                    <option value="digital" data-i18n="filter_format_digital">Digital</option>
-                </select>
-                <select id="priceFilter">
-                    <option value="all" data-i18n="filter_price_all">Tots els tipus d'accés</option>
-                    <option value="diamond" data-i18n="filter_price_diamond">Llibres en obert</option>
-                    <option value="paid" data-i18n="filter_price_paid">De pagament</option>
-                </select>
-                <div id="collectionFilterWrapper">
-                    <select id="collectionFilter">
-                        <option value="all" data-i18n="filter_collection_all">Totes les col·leccions</option>
-                    </select>
+        <div class="container">
+            <div class="controls-inner">
+                <!-- Fila 1: búsqueda + filtros rápidos -->
+                <div class="controls-row controls-row-top">
+                    <div class="search-wrapper">
+                        <input type="text" id="searchInput" placeholder="Buscar por título, autor o ISBN..." data-i18n-placeholder="search_placeholder" />
+                        <span class="search-icon"><i class="fa-solid fa-magnifying-glass"></i></span>
+                    </div>
+                    <button class="hamburger" id="hamburgerBtn" aria-label="Menú filtros"><i class="fa-solid fa-bars"></i></button>
+                    <div class="filter-group" id="filterGroup">
+                        <select id="sortSelect">
+                            <option value="date-desc" data-i18n="sort_recent">Más recientes</option>
+                            <option value="date-asc" data-i18n="sort_oldest">Más antiguos</option>
+                            <option value="title-asc" data-i18n="sort_title_asc">Título ▲</option>
+                            <option value="title-desc" data-i18n="sort_title_desc">Título ▼</option>
+                            <option value="author-asc" data-i18n="sort_author_asc">Autor ▲</option>
+                            <option value="author-desc" data-i18n="sort_author_desc">Autor ▼</option>
+                            <option value="collection-num-desc" data-i18n="sort_collection_num_desc">Número de colección ▼</option>
+                            <option value="collection-num-asc" data-i18n="sort_collection_num_asc">Número de colección ▲</option>
+                        </select>
+                        <select id="langFilter">
+                            <option value="all" data-i18n="filter_language_all">Tots els idiomes</option>
+                            <option value="cat" data-i18n="filter_language_cat">Català</option>
+                            <option value="spa" data-i18n="filter_language_spa">Castellà</option>
+                            <option value="eng" data-i18n="filter_language_eng">Anglès</option>
+                            <option value="fre" data-i18n="filter_language_fre">Francès</option>
+                            <option value="ita" data-i18n="filter_language_ita">Italià</option>
+                            <option value="por" data-i18n="filter_language_por">Portuguès</option>
+                            <option value="ara" data-i18n="filter_language_ara">Àrab</option>
+                            <option value="lat" data-i18n="filter_language_lat">Llatí</option>
+                            <option value="grc" data-i18n="filter_language_grc">Grec</option>
+                        </select>
+                        <select id="formatFilter">
+                            <option value="all" data-i18n="filter_format_all">Tots els formats</option>
+                            <option value="paper" data-i18n="filter_format_paper">Paper</option>
+                            <option value="digital" data-i18n="filter_format_digital">Digital</option>
+                        </select>
+                        <select id="priceFilter">
+                            <option value="all" data-i18n="filter_price_all">Tots els tipus d'accés</option>
+                            <option value="diamond" data-i18n="filter_price_diamond">Llibres en obert</option>
+                            <option value="paid" data-i18n="filter_price_paid">De pagament</option>
+                        </select>
+                    </div>
                 </div>
-                <button id="resetFilters" data-i18n="filter_reset">Reset</button>
-                <span class="results-count" id="resultsCount"></span>
+                <!-- Fila 2: colecciones + reset + contador -->
+                <div class="controls-row controls-row-bottom" id="collectionRow">
+                    <div id="collectionFilterWrapper">
+                        <select id="collectionFilter">
+                            <option value="all" data-i18n="filter_collection_all">Totes les col·leccions</option>
+                        </select>
+                    </div>
+                    <button id="resetFilters" data-i18n="filter_reset">Reset</button>
+                    <span class="results-count" id="resultsCount"></span>
+                </div>
             </div>
         </div>
     </div>

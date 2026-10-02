@@ -13,6 +13,12 @@
         top: 0;
     }
     .controls-inner {
+        flex-direction: column;
+    }
+    .controls-row {
+        width: 100%;
+    }
+    .controls-row-top {
         flex-wrap: wrap;
     }
     .hamburger {
@@ -23,7 +29,7 @@
         flex-direction: column;
         width: 100%;
         gap: 8px;
-        padding: 8px 0;
+        padding: 8px 0 0;
         border-top: 1px solid #eee;
         margin-top: 4px;
     }
@@ -33,6 +39,22 @@
     .filter-group select,
     .filter-group button {
         width: 100%;
+    }
+    .controls-row-bottom {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 8px;
+    }
+    #collectionFilterWrapper {
+        max-width: 100%;
+        min-width: 0;
+    }
+    #resetFilters {
+        width: 100%;
+    }
+    .results-count {
+        margin-left: 0;
+        text-align: right;
     }
     .books-grid {
         grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
