@@ -43,33 +43,54 @@ export function applyFiltersAndReset() {
         return true;
     });
 
-    switch (sortVal) {
-        case "title-asc":
-            state.filteredBooks.sort((a, b) => a.titleText.localeCompare(b.titleText, "ca"));
-            break;
-        case "title-desc":
-            state.filteredBooks.sort((a, b) => b.titleText.localeCompare(a.titleText, "ca"));
-            break;
-        case "author-asc":
-            state.filteredBooks.sort((a, b) => a.authorDisplay.localeCompare(b.authorDisplay, "ca"));
-            break;
-        case "author-desc":
-            state.filteredBooks.sort((a, b) => b.authorDisplay.localeCompare(a.authorDisplay, "ca"));
-            break;
-        case "date-desc":
-            state.filteredBooks.sort((a, b) => {
+    // ─── Ordenación ─────────────────────────────────────
+    //
+    // Regla general: manda el <select> de ordenación.
+    //
+    // Regla especial: si hay una colección seleccionada, se aplica
+    // primero el criterio del <select> y, como criterio secundario,
+    // el número de colección en orden inverso (más reciente primero).
+    // Así, dentro de una colección, las obras quedan ordenadas por
+    // su número, que es lo que el usuario espera al filtrar por
+    // colección, sin perder el orden principal elegido.
+    const inCollection = collectionVal && collectionVal !== "all";
+
+    const applyPrimarySort = (a, b) => {
+        switch (sortVal) {
+            case "title-asc":
+                return a.titleText.localeCompare(b.titleText, "ca");
+            case "title-desc":
+                return b.titleText.localeCompare(a.titleText, "ca");
+            case "author-asc":
+                return a.authorDisplay.localeCompare(b.authorDisplay, "ca");
+            case "author-desc":
+                return b.authorDisplay.localeCompare(a.authorDisplay, "ca");
+            case "date-desc":
                 if (b.sortDate !== a.sortDate) return b.sortDate - a.sortDate;
                 return (a.titleText || "").localeCompare(b.titleText || "", "ca");
-            });
-            break;
-        case "date-asc":
-            state.filteredBooks.sort((a, b) => a.sortDate - b.sortDate);
-            break;
-        default:
-            state.filteredBooks.sort((a, b) => {
+            case "date-asc":
+                return a.sortDate - b.sortDate;
+            case "collection-num-desc":
+                return compareCollectionNumber(b, a); // inverso: más reciente primero
+            case "collection-num-asc":
+                return compareCollectionNumber(a, b);
+            default:
                 if (b.sortDate !== a.sortDate) return b.sortDate - a.sortDate;
                 return (a.titleText || "").localeCompare(b.titleText || "", "ca");
-            });
+        }
+    };
+
+    if (inCollection) {
+        // Dentro de una colección: criterio principal del <select>,
+        // criterio secundario por número de colección inverso.
+        state.filteredBooks.sort((a, b) => {
+            const primary = applyPrimarySort(a, b);
+            if (primary !== 0) return primary;
+            return compareCollectionNumber(b, a); // inverso: número alto primero
+        });
+    } else {
+        // Fuera de una colección: solo criterio del <select>.
+        state.filteredBooks.sort(applyPrimarySort);
     }
 
     resetPagination();
@@ -86,6 +107,18 @@ export function applyFiltersAndReset() {
     } else {
         loadMoreBooks();
     }
+}
+
+// Compara dos libros por su número de colección. Los valores no
+// numéricos o ausentes se tratan como 0 (van al final en el orden
+// inverso, que es lo deseable: los "sin número" no son "los más
+// recientes"). Si ambos tienen el mismo número, se desempata por
+// título para que el orden sea estable.
+function compareCollectionNumber(a, b) {
+    const na = parseFloat(a.collectionNumber) || 0;
+    const nb = parseFloat(b.collectionNumber) || 0;
+    if (na !== nb) return na - nb;
+    return (a.titleText || "").localeCompare(b.titleText || "", "ca");
 }
 
 function updateFilterActiveState() {
