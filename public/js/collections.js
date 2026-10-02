@@ -133,34 +133,51 @@ function getCollectionIntro(collection, lang) {
 
 export function populateCollectionFilter() {
     // Agrupa las variantes tipográficas del mismo nombre en una sola
-    // entrada del desplegable, usando la clave normalizada.
-    const groups = new Map(); // key → { variants:Set<string> }
+    // entrada del desplegable, usando la clave normalizada. Además,
+    // acumula el número de colección más alto visto en cada grupo:
+    // es el que se usará como criterio secundario de ordenación.
+    const groups = new Map(); // key → { variants:Set<string>, maxNum:number }
     state.allBooks.forEach(b => {
         const title = b.collectionTitle;
         if (!title) return;
         const key = normalizeTitleKey(title);
         if (!key) return;
+
+        // El número de colección llega como string; lo pasamos a número
+        // para poder comparar y para descartar valores no numéricos.
+        const num = parseInt(b.collectionNumber, 10);
+        const safeNum = Number.isFinite(num) ? num : 0;
+
         if (!groups.has(key)) {
-            groups.set(key, new Set([title]));
+            groups.set(key, { variants: new Set([title]), maxNum: safeNum });
         } else {
-            groups.get(key).add(title);
+            const g = groups.get(key);
+            g.variants.add(title);
+            if (safeNum > g.maxNum) g.maxNum = safeNum;
         }
     });
 
     const lang = getCurrentLang();
-    const titled = Array.from(groups.entries()).map(([key, variants]) => {
+    const titled = Array.from(groups.entries()).map(([key, g]) => {
         // Si la colección está en el CSV, usamos su `titulo` como
         // `value` (URL estable, coherente con el CSV). Si no, cogemos
         // la primera variante de ONIX encontrada.
         const entry = state.collectionsData.find(c => c._key === key);
-        const canonical = entry ? entry.titulo : Array.from(variants)[0];
+        const canonical = entry ? entry.titulo : Array.from(g.variants)[0];
         const display = entry
             ? getCollectionTitle(entry, lang) || canonical
             : canonical;
-        return { canonical, display };
+        return { canonical, display, maxNum: g.maxNum };
     });
 
-    titled.sort((a, b) => a.display.localeCompare(b.display, lang));
+    // Criterio principal: alfabético sobre la etiqueta mostrada
+    // (comportamiento previo). Criterio secundario: número de
+    // colección en orden inverso (el más reciente primero).
+    titled.sort((a, b) => {
+        const alpha = a.display.localeCompare(b.display, lang);
+        if (alpha !== 0) return alpha;
+        return b.maxNum - a.maxNum;
+    });
 
     dom.collectionFilter.innerHTML = `<option value="all">${t('filter_collection_all')}</option>`;
     titled.forEach(({ canonical, display }) => {
