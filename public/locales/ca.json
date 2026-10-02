@@ -30,6 +30,8 @@
   "sort_title_desc": "Títol ▼",
   "sort_author_asc": "Autor ▲",
   "sort_author_desc": "Autor ▼",
+  "sort_collection_num_desc": "Número de col·lecció ▼",
+  "sort_collection_num_asc": "Número de col·lecció ▲",
   "results_count": "llibres",
   "no_results": "No s'han trobat llibres",
   "no_results_hint": "Prova amb altres filtres o termes de cerca.",

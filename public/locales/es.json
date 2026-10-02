@@ -30,6 +30,8 @@
   "sort_title_desc": "Título ▼",
   "sort_author_asc": "Autor ▲",
   "sort_author_desc": "Autor ▼",
+  "sort_collection_num_desc": "Número de colección ▼",
+  "sort_collection_num_asc": "Número de colección ▲",
   "results_count": "libros",
   "no_results": "No se han encontrado libros",
   "no_results_hint": "Prueba con otros filtros o términos de búsqueda.",

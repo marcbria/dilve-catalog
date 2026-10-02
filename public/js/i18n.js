@@ -7,12 +7,16 @@ const SUPPORTED_LANGS = ['es', 'ca', 'en'];
 let currentLang = 'ca';
 let translations = {};
 
+// Versión del bundle de traducciones. Incrementar al cambiar los JSON
+// para forzar que el navegador no sirva una copia cacheada antigua.
+const LOCALES_VERSION = '2';
+
 /**
  * Load translations for a given language.
  */
 export async function loadTranslations(lang) {
     try {
-        const response = await fetch(`locales/${lang}.json`);
+        const response = await fetch(`locales/${lang}.json?v=${LOCALES_VERSION}`);
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         translations = await response.json();
         currentLang = lang;
@@ -32,7 +36,14 @@ export async function loadTranslations(lang) {
  * @returns {string} Translated string
  */
 export function t(key, params = {}) {
-    let text = translations[key] || key;
+    let text = translations[key];
+    if (text === undefined) {
+        // Fallback: si la clave no existe, devolvemos la propia clave
+        // (comportamiento previo). Dejamos un aviso para detectar
+        // claves huérfanas durante el desarrollo.
+        console.warn(`[i18n] Missing translation key: ${key}`);
+        text = key;
+    }
     for (const [k, v] of Object.entries(params)) {
         text = text.replace(new RegExp(`{${k}}`, 'g'), v);
     }
