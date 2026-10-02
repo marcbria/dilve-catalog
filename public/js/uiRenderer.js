@@ -217,6 +217,11 @@ export function openDetailModal(book) {
             return `<span class="modal-link" data-author="${escapeHTML(a)}">${escapeHTML(a)}</span>`;
         }).join(', ');
 
+        // Etiqueta dinámica del campo "Autor": singular si solo hay uno,
+        // plural si hay varios. La clave i18n se resuelve con t().
+        const authorCount = (book.authors || []).length;
+        const authorLabel = authorCount > 1 ? t('modal_authors') : t('modal_author');
+
         // Etiqueta del idioma traducida al idioma activo de la UI.
         const langDisplay = getLanguageLabel(book.languageCode, book.languageLabel);
         const langCode = book.languageCode || 'other';
@@ -272,7 +277,9 @@ export function openDetailModal(book) {
             const rendered = parts.length > 1
                 ? parts.map(escapeHTML).join('<br/>')
                 : escapeHTML(raw);
-            coeditionHTML = `<div class="detail-row"><span class="label">${t('modal_coedition')}</span><span class="value">${rendered}</span></div>`;
+            // Etiqueta dinámica: singular si solo hay uno, plural si varios.
+            const coeditorLabel = parts.length > 1 ? t('modal_coeditors') : t('modal_coeditor');
+            coeditionHTML = `<div class="detail-row"><span class="label">${coeditorLabel}</span><span class="value">${rendered}</span></div>`;
         }
 
         let collectionDisplay = "";
@@ -298,7 +305,7 @@ export function openDetailModal(book) {
             ${book.subtitle ? `<div class="modal-subtitle">${escapeHTML(book.subtitle)}</div>` : ''}
             <div class="detail-section">
                 <h4>${t('modal_info')}</h4>
-                <div class="detail-row"><span class="label">${t('modal_author')}</span><span class="value">${authorLinks || '—'}</span></div>
+                <div class="detail-row"><span class="label">${authorLabel}</span><span class="value">${authorLinks || '—'}</span></div>
                 <div class="detail-row"><span class="label">${t('modal_isbn')}</span><span class="value">${escapeHTML(book.isbn || '—')}</span></div>
                 ${book.productIDAlternative ? `<div class="detail-row"><span class="label">${t('modal_isbn_alt')}</span><span class="value">${escapeHTML(book.productIDAlternative)}</span></div>` : ''}
                 <div class="detail-row"><span class="label">${t('modal_publisher')}</span><span class="value">${publisherDisplay || '—'}</span></div>
