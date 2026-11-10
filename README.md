@@ -110,7 +110,7 @@ Todo el proyecto se configura mediante variables de entorno: nunca hay secretos 
 | `LOGO`                  | URL o nombre de archivo del logo (opcional)                       | entrypoint.sh | (vacío)                                      |
 | `ORGANIZATION`          | Nombre de la institución (se usa en el título y el footer)        | entrypoint.sh | `Universitat Autònoma de Barcelona`          |
 | `DEFAULT_LANG`          | Idioma por defecto de la interfaz                                 | entrypoint.sh | `ca`                                         |
-| `BASE_PATH`             | Ruta base si el catálogo se sirve en un subdirectorio. **Debe terminar en `/`** | entrypoint.sh + Traefik | `/`                              |
+| `BASE_PATH`             | Ruta base si el catálogo se sirve en un subdirectorio. **NO debe terminar en `/`** (la barra se añade por código donde corresponde). Ej: `/llibres/cataleg` | entrypoint.sh + Traefik | `/` |
 | `BASE_URL`              | Host público del catálogo (solo el hostname, sin esquema)         | Traefik       | `localhost`                                  |
 
 Ejemplo de `.env` completo (con subdirectorio y Traefik):
@@ -124,7 +124,7 @@ Ejemplo de `.env` completo (con subdirectorio y Traefik):
     ORGANIZATION="Universitat Autònoma de Barcelona"
     LOGO=logo-uab.png
     DEFAULT_LANG=ca
-    BASE_PATH=/llibres/cataleg/
+    BASE_PATH=/llibres/cataleg
     BASE_URL=publicacions.uab.cat
 
 ### Estados ONIX y libros descatalogados
@@ -225,10 +225,12 @@ El script `run.sh` facilita el arranque en diferentes entornos y la ejecución d
 | Error de autenticación en los logs            | Credenciales incorrectas en `.env`. Verifícalas.                                                              |
 | Error 404 al llamar a la API DILVE            | `DILVE_BASE_URL` incorrecta. Debe terminar en `/dilve/dilve/` (no `/dilve/api/`).                            |
 | El cron no se ejecuta                         | Comprueba la variable `CRON_SCHEDULE` y la zona horaria (`TZ`).                                               |
-| Las imágenes no se ven en la web              | Comprueba que las cubiertas se descargaron en `/data/covers` (dentro del contenedor) y que nginx sirve `/data/` según `docker/nginx.conf`. En el navegador, la URL debe ser `{BASE_PATH}data/covers/<fichero>`. |
+| Las imágenes no se ven en la web              | Comprueba que las cubiertas se descargaron en `/data/covers` (dentro del contenedor) y que nginx sirve `/data/` según `docker/nginx.conf`. En el navegador, la URL debe ser `{BASE_PATH}/data/covers/<fichero>`. |
 | «No se encontraron productos»                 | El código de editorial es incorrecto. Obtén el código correcto de DILVE.                                      |
 | Los logs no se generan                        | Comprueba que el directorio `data/logs` existe y tiene permisos de escritura.                                 |
-| Al navegar por subdirectorio, CSS/JS fallan   | `BASE_PATH` no termina en `/`. Debe ser, por ejemplo, `/llibres/cataleg/`.                                    |
+| Al navegar por subdirectorio, CSS/JS fallan   | `BASE_PATH` **no** debe terminar en `/` en `.env`. Tras cambiarlo, reinicia con `./run.sh prod` (o `docker compose ... up -d --build`). |
+| `Loading module ... was blocked because of a disallowed MIME type ("text/html")` | El navegador está pidiendo un `.js` que Nginx no encuentra y devuelve `index.html`. Suele indicar que `BASE_PATH` y el strip de Traefik no están alineados: `BASE_PATH` debe ir **sin barra final** y coincidir con el `stripprefix.prefixes` de `compose.traefik.yml`. |
+| `Security Error: ... may not load or link to file:///` | El CSV contiene rutas de cubierta con esquema `file://`. El transformer las sanea, pero si persiste, revisa la columna `imagen_cubierta` del CSV. |
 | El título traducido de una colección no aparece | El `titulo` del CSV no coincide EXACTAMENTE con el valor `coleccion` de ONIX. Compara con `catalog.csv` (columna `coleccion`) y ajusta. |
 | Los libros descatalogados no aparecen         | El catálogo se generó antes de añadir el estado `07` a `INCLUDED_STATUS_CODES`. Regenera con `./run.sh update --metadata --all`. |
 | Un libro con fecha futura aparece en el catálogo | El navegador tiene una versión antigua del JS en caché. Recarga con `Ctrl+Shift+R` o vacía la caché.        |

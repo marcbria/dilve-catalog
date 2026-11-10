@@ -12,6 +12,11 @@ export TZ="${TZ:-UTC}"
 export THEME="${THEME:-default}"
 export LOGO="${LOGO:-}"
 export BASE_PATH="${BASE_PATH:-/}"
+# Normalizar BASE_PATH: nunca debe terminar en barra (la añadimos
+# por código donde haga falta). "/" se conserva tal cual.
+BASE_PATH="${BASE_PATH%/}"
+[ -z "$BASE_PATH" ] && BASE_PATH="/"
+export BASE_PATH
 export ORGANIZATION="${ORGANIZATION:-Universitat Autònoma de Barcelona}"
 export DEFAULT_LANG="${DEFAULT_LANG:-ca}"
 
@@ -88,10 +93,23 @@ theme = "$THEME"
 base_dir = "/usr/share/nginx/html/theme"
 default_theme = "default"
 logo_env = os.environ.get("LOGO", "")
+# BASE_PATH llega sin barra final (normalizado en el shell de arriba).
 base_path = os.environ.get("BASE_PATH", "/")
+if base_path != "/":
+    base_path = base_path.rstrip("/")
 organization = os.environ.get("ORGANIZATION", "Universitat Autònoma de Barcelona")
 build_date = "$BUILD_DATE"
 default_lang = os.environ.get("DEFAULT_LANG", "es")
+
+# URL con barra final, necesaria para <base href> y para construir
+# rutas públicas relativas.
+base_path_url = "/" if base_path == "/" else base_path + "/"
+
+def public_url(*parts):
+    """Construye una URL pública respetando BASE_PATH sin barras dobles."""
+    base = base_path.rstrip("/")
+    tail = "/".join(str(p).strip("/") for p in parts)
+    return f"{base}/{tail}" if base else f"/{tail}"
 
 def get_fragment_content(fragment_name):
     theme_file = os.path.join(base_dir, theme, fragment_name)
@@ -113,14 +131,12 @@ if logo_env:
     else:
         logo_path = os.path.join(base_dir, theme, "img", logo_env)
         if os.path.exists(logo_path):
-            base = base_path.rstrip('/')
-            logo_url = f"{base}/theme/{theme}/img/{logo_env}"
+            logo_url = public_url("theme", theme, "img", logo_env)
             logo_html = f'<img src="{logo_url}" alt="Logo" />'
         else:
             logo_path_default = os.path.join(base_dir, default_theme, "img", logo_env)
             if os.path.exists(logo_path_default):
-                base = base_path.rstrip('/')
-                logo_url = f"{base}/theme/{default_theme}/img/{logo_env}"
+                logo_url = public_url("theme", default_theme, "img", logo_env)
                 logo_html = f'<img src="{logo_url}" alt="Logo" />'
             else:
                 print(f"Advertencia: Logo '{logo_env}' no encontrado. Se generará SVG.", flush=True)
@@ -138,10 +154,11 @@ context = {
     'STYLES': get_fragment_content('styles.css'),
     'HEAD_EXTRA': get_fragment_content('head_extra.html'),
     'LOGO_HTML': logo_html,
-    'BASE_PATH': base_path,
+    'BASE_PATH': base_path,          # sin barra final
+    'BASE_PATH_URL': base_path_url,  # con barra final (para <base href>)
     'ORGANIZATION': organization,
     'BUILD_DATE': build_date,
-    'DEFAULT_LANG': default_lang,   # <-- NUEVO
+    'DEFAULT_LANG': default_lang,
 }
 
 theme_dir = os.path.join(base_dir, theme)

@@ -57,6 +57,26 @@ const LANGUAGE_CODE_MAP = {
     grc: "grc",   // grec antic
 };
 
+/**
+ * Sanea el nombre de fichero de cubierta que llega desde el CSV.
+ * Algunos catálogos exportan el valor con el prefijo `file://`, que
+ * el navegador rechaza por seguridad ("may not load or link to
+ * file:///"). Nos quedamos solo con el basename.
+ */
+function sanitizeCoverFilename(raw) {
+    if (!raw) return "";
+    let name = String(raw).trim();
+    if (name.startsWith("file://")) {
+        name = name.replace(/^file:\/\//, "");
+    }
+    // Si por lo que sea llegara una URL, extraemos el último segmento.
+    if (name.includes("/")) {
+        const parts = name.split("/");
+        name = parts[parts.length - 1];
+    }
+    return name;
+}
+
 export function transformBook(row) {
     const isbn = row["isbn13"] || "";
     const titleText = row["titulo"] || "";
@@ -75,7 +95,9 @@ export function transformBook(row) {
     const precioVenta = row["precio_venta_publico"] || "";
     const iva = row["iva"] || "";
     const resumen = row["texto_resumen"] || "";
-    const imagen = row["imagen_cubierta"] || "";
+    // Saneamos el nombre de fichero de cubierta: nunca debe contener
+    // esquemas tipo `file://` (el navegador los bloquea por seguridad).
+    const imagen = sanitizeCoverFilename(row["imagen_cubierta"] || "");
     const isbnDigital = row["isbn13_edicion_digital"] || "";
     const isbnImpreso = row["isbn13_edicion_impresa"] || "";
     const productosRelacionados = row["productos_relacionados"] || "";
@@ -179,10 +201,9 @@ export function transformBook(row) {
     let width = anchoCm ? parseFloat(anchoCm).toFixed(1) : "";
     let height = altoCm ? parseFloat(altoCm).toFixed(1) : "";
 
+    // `imagen` ya viene saneada (sin `file://` ni rutas). Construimos
+    // la URL relativa que el navegador resolverá contra <base href>.
     let coverLink = imagen ? `data/covers/${imagen}` : "";
-    if (coverLink.startsWith('file://')) {
-        coverLink = coverLink.replace('file://', '');
-    }
 
     return {
         isbn,

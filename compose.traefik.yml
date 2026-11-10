@@ -4,6 +4,10 @@ services:
       - .env
     labels:
       - "traefik.enable=true"
+      # BASE_PATH debe venir SIN barra final desde .env (ej: /llibres/cataleg).
+      # Traefik usa este valor tanto para PathPrefix como para stripprefix;
+      # una barra final provocaría rutas inconsistentes y errores de MIME
+      # en los módulos ES servidos por Nginx.
       - "traefik.http.routers.cataleg.rule=Host(`${BASE_URL:-localhost}`) && PathPrefix(`${BASE_PATH}`)"
       - "traefik.http.routers.cataleg.entrypoints=websecure"
       - "traefik.http.routers.cataleg.tls=true"
